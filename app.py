@@ -27,6 +27,9 @@ except ImportError:
 from dotenv import load_dotenv
 load_dotenv()
 
+# Add backend to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
+
 # Import AI clients
 from backend.integrations.openai_client import OpenAIClient
 from backend.integrations.claude_client import ClaudeClient
@@ -51,11 +54,38 @@ from config.model_config import get_model_for_task
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
-# Initialize AI clients
-openai_client = OpenAIClient()
-claude_client = ClaudeClient()
-gemini_client = GeminiClient()
-perplexity_client = PerplexityClient()
+# Initialize AI clients with error handling
+openai_client = None
+claude_client = None
+gemini_client = None
+perplexity_client = None
+
+try:
+    openai_client = OpenAIClient()
+    print("[OK] OpenAI initialized")
+except Exception as e:
+    print(f"[WARNING] OpenAI not available: {e}")
+
+try:
+    gemini_client = GeminiClient()
+    if gemini_client.is_available():
+        print("[OK] Gemini initialized")
+    else:
+        print("[WARNING] Gemini not available - add GOOGLE_AI_API_KEY")
+except Exception as e:
+    print(f"[WARNING] Gemini not available: {e}")
+
+try:
+    claude_client = ClaudeClient()
+    print("[OK] Claude initialized")
+except Exception as e:
+    print(f"[WARNING] Claude not available: {e}")
+
+try:
+    perplexity_client = PerplexityClient()
+    print("[OK] Perplexity initialized")
+except Exception as e:
+    print(f"[WARNING] Perplexity not available: {e}")
 
 # Safe print function for Unicode
 def safe_print(text):
