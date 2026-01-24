@@ -550,6 +550,14 @@
             font-weight: 600;
         }
 
+        .research-result-badge.high {
+            background: #dc2626;
+        }
+
+        .research-result-badge.low {
+            background: #6b7280;
+        }
+
         .research-result-meta {
             display: flex;
             align-items: center;
@@ -2424,33 +2432,34 @@
             }
 
             results.forEach((r) => {
+                const impact = r.impact || 'MEDIUM';
+                const badgeClass = impact === 'HIGH' ? 'high' : impact === 'LOW' ? 'low' : '';
+                const keyData = r.industry_data || r.snippet || '';
+                const action = r.so_what || r.why_it_matters || '';
+                const headline = r.headline || r.title || 'Untitled';
+
                 const item = document.createElement('div');
                 item.className = 'research-result-item';
                 item.innerHTML = `
                     <div class="research-result-header">
-                        <span class="research-result-badge">MEDIUM</span>
+                        <span class="research-result-badge ${badgeClass}">${impact}</span>
                         <div class="research-result-meta">
                             <span>${r.publisher || ''}</span>
                             <a href="${r.url || '#'}" target="_blank">Source →</a>
                             <input type="checkbox" class="research-result-checkbox" onclick="event.stopPropagation()">
                         </div>
                     </div>
-                    <div class="research-result-title">${r.title || 'Untitled'}</div>
-                    ${r.key_data ? `
+                    <div class="research-result-title">${headline}</div>
+                    ${keyData ? `
                         <div class="research-result-keydata">
                             <div class="research-result-keydata-label">KEY DATA</div>
-                            <p>${r.key_data}</p>
-                        </div>
-                    ` : r.snippet ? `
-                        <div class="research-result-keydata">
-                            <div class="research-result-keydata-label">KEY DATA</div>
-                            <p>${r.snippet.substring(0, 200)}...</p>
+                            <p>${keyData.substring(0, 250)}${keyData.length > 250 ? '...' : ''}</p>
                         </div>
                     ` : ''}
-                    ${r.action ? `
+                    ${action ? `
                         <div class="research-result-action">
                             <div class="research-result-action-label">ACTION</div>
-                            <p>${r.action}</p>
+                            <p>${action}</p>
                         </div>
                     ` : ''}
                 `;

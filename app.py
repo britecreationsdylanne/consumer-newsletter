@@ -109,61 +109,359 @@ def health_check():
 
 
 # ============================================================================
+# HELPER FUNCTIONS - LLM ENRICHMENT (Matching BriteCo Brief)
+# ============================================================================
+
+def enrich_results_with_llm(results: list, original_query: str) -> list:
+    """
+    Use LLM to generate newsletter-ready content from research results.
+    Produces three-section format: headline, industry_data, so_what
+    """
+    if not results:
+        return results
+
+    try:
+        model_config = get_model_for_task('research_enrichment')
+        model_id = model_config.get('id', 'gpt-4o')
+        max_tokens_param = model_config.get('max_tokens_param', 'max_tokens')
+
+        safe_print(f"[Enrichment] Using model: {model_id}")
+
+        results_text = ""
+        for i, r in enumerate(results):
+            results_text += f"""
+Result {i+1}:
+- URL: {r.get('url', '')}
+- Publisher: {r.get('publisher', '')}
+- Raw snippet: {r.get('snippet', '')[:500]}
+"""
+
+        prompt = f"""You are analyzing research findings for a jewelry industry newsletter. The user searched for: "{original_query}"
+
+Here are research findings to transform into newsletter-ready content:
+{results_text}
+
+For EACH result, extract/generate:
+1. headline: A compelling newsletter headline (5-12 words, specific and actionable)
+2. industry_data: The key statistic, fact, or data point from this article (1-2 sentences). Extract actual numbers/percentages when available.
+3. so_what: What should jewelers DO with this information? (1 actionable sentence)
+4. impact: HIGH (immediate action needed), MEDIUM (worth monitoring), or LOW (FYI only)
+
+Return a JSON array with exactly {len(results)} objects:
+[
+  {{"headline": "...", "industry_data": "...", "so_what": "...", "impact": "HIGH|MEDIUM|LOW"}},
+  ...
+]
+
+Guidelines:
+- Headlines should be specific with data when available (e.g., "Gold Prices Up 8% - Jewelers Should Adjust Pricing")
+- industry_data should contain the actual facts/stats from the article, not commentary
+- so_what should be a specific action: "Review your...", "Consider updating...", "Check your..."
+- HIGH impact: significant market changes, trends affecting sales
+- MEDIUM impact: emerging trends, forecasts, industry shifts
+- LOW impact: general news, minor updates
+
+Return ONLY the JSON array, no other text."""
+
+        api_params = {
+            "model": model_id,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+        }
+        api_params[max_tokens_param] = 2000
+
+        response = openai_client.client.chat.completions.create(**api_params)
+        content = response.choices[0].message.content.strip()
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n", "", content)
+            content = re.sub(r"\n```$", "", content).strip()
+
+        enriched = json.loads(content)
+
+        for i, r in enumerate(results):
+            if i < len(enriched):
+                r['headline'] = enriched[i].get('headline', r.get('title', ''))
+                r['title'] = r['headline']
+                r['industry_data'] = enriched[i].get('industry_data', r.get('snippet', ''))
+                r['so_what'] = enriched[i].get('so_what', '')
+                r['impact'] = enriched[i].get('impact', 'MEDIUM')
+                r['snippet'] = r['industry_data']
+
+        impact_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
+        results.sort(key=lambda x: impact_order.get(x.get('impact', 'LOW'), 2))
+
+        safe_print(f"[LLM Enrichment] Successfully enriched {len(results)} results")
+        return results
+
+    except Exception as e:
+        safe_print(f"[LLM Enrichment] Error: {e} - returning original results")
+        import traceback
+        traceback.print_exc()
+        return results
+
+
+def analyze_industry_impact(results: list) -> list:
+    """
+    Use LLM to analyze each result for jewelry industry impact.
+    Generates newsletter-ready headlines and impact scores.
+    """
+    if not results:
+        return results
+
+    try:
+        model_config = get_model_for_task('research_enrichment')
+        model_id = model_config.get('id', 'gpt-4o')
+        max_tokens_param = model_config.get('max_tokens_param', 'max_tokens')
+
+        safe_print(f"[Insight Builder] Analyzing {len(results)} results with {model_id}...")
+
+        results_text = ""
+        for i, r in enumerate(results):
+            results_text += f"""
+Result {i+1}:
+- Signal: {r.get('signal_source', 'unknown')}
+- Publisher: {r.get('publisher', '')}
+- Raw title: {r.get('title', '')[:100]}
+- Snippet: {r.get('description', r.get('snippet', ''))[:400]}
+"""
+
+        prompt = f"""You are analyzing news articles for a jewelry industry newsletter.
+
+For each article, determine its impact on jewelers and their business.
+
+Here are the articles:
+{results_text}
+
+For EACH article, provide:
+1. headline: A newsletter-ready headline (5-12 words, actionable for jewelers)
+2. impact: HIGH (immediate action needed), MEDIUM (worth monitoring), or LOW (FYI only)
+3. signals: Array of affected categories from [gold_prices, diamond_market, luxury_trends, retail, design_trends, economic, heists_security, technology]
+4. so_what: One sentence explaining what jewelers should do about this
+
+Return a JSON array with exactly {len(results)} objects:
+[
+  {{"headline": "...", "impact": "HIGH|MEDIUM|LOW", "signals": ["..."], "so_what": "..."}},
+  ...
+]
+
+Guidelines:
+- HIGH impact: significant price changes, market shifts, security alerts
+- MEDIUM impact: emerging trends, technology changes, forecasts
+- LOW impact: general news, minor updates
+
+Return ONLY the JSON array, no other text."""
+
+        api_params = {
+            "model": model_id,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+        }
+        api_params[max_tokens_param] = 2000
+
+        response = openai_client.client.chat.completions.create(**api_params)
+        content = response.choices[0].message.content.strip()
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n", "", content)
+            content = re.sub(r"\n```$", "", content).strip()
+
+        enriched = json.loads(content)
+
+        for i, r in enumerate(results):
+            if i < len(enriched):
+                r['headline'] = enriched[i].get('headline', r.get('title', ''))
+                r['impact'] = enriched[i].get('impact', 'MEDIUM')
+                r['signals'] = enriched[i].get('signals', [])
+                r['so_what'] = enriched[i].get('so_what', '')
+                r['industry_data'] = r.get('description', r.get('snippet', ''))
+
+        impact_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
+        results.sort(key=lambda x: impact_order.get(x.get('impact', 'LOW'), 2))
+
+        safe_print(f"[Insight Builder] Analysis complete - enriched {len(results)} results")
+        return results
+
+    except Exception as e:
+        safe_print(f"[Insight Builder] Analysis error: {e} - returning original results")
+        for r in results:
+            r['headline'] = r.get('title', 'Industry Update')
+            r['impact'] = 'MEDIUM'
+            r['signals'] = [r.get('signal_source', 'general')]
+            r['so_what'] = 'Monitor this trend for potential business impact.'
+        return results
+
+
+def analyze_story_angles(results: list, user_query: str) -> list:
+    """
+    Use LLM to analyze articles and surface interesting story angles for newsletters.
+    """
+    if not results:
+        return results
+
+    try:
+        model_config = get_model_for_task('research_enrichment')
+        model_id = model_config.get('id', 'gpt-4o')
+        max_tokens_param = model_config.get('max_tokens_param', 'max_tokens')
+
+        safe_print(f"[Source Explorer] Analyzing {len(results)} results with {model_id}...")
+
+        results_text = ""
+        for i, r in enumerate(results):
+            results_text += f"""
+Article {i+1}:
+- Title: {r.get('title', '')[:100]}
+- Publisher: {r.get('publisher', '')}
+- Snippet: {r.get('snippet', r.get('description', ''))[:400]}
+"""
+
+        prompt = f"""You are a newsletter editor for jewelers. The user searched for: "{user_query}"
+
+Analyze these articles and surface the most interesting story angles for a jeweler newsletter.
+
+Here are the articles:
+{results_text}
+
+For EACH article, provide:
+1. story_angle: A compelling newsletter story angle (1-2 sentences) - what's the interesting hook for jewelers?
+2. headline: A catchy headline (5-10 words) that would grab a jeweler's attention
+3. why_it_matters: One sentence on why jewelers should care about this
+4. content_type: One of [trend, tip, news, insight, case_study]
+5. impact: HIGH, MEDIUM, or LOW
+
+Return a JSON array with exactly {len(results)} objects:
+[
+  {{"story_angle": "...", "headline": "...", "why_it_matters": "...", "content_type": "...", "impact": "MEDIUM"}},
+  ...
+]
+
+Guidelines:
+- Focus on actionable insights jewelers can use with customers
+- Look for data points, trends, or tips that can be turned into content
+- Headlines should be specific and engaging (not generic)
+
+Return ONLY the JSON array, no other text."""
+
+        api_params = {
+            "model": model_id,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.4,
+        }
+        api_params[max_tokens_param] = 2000
+
+        response = openai_client.client.chat.completions.create(**api_params)
+        content = response.choices[0].message.content.strip()
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n", "", content)
+            content = re.sub(r"\n```$", "", content).strip()
+
+        enriched = json.loads(content)
+
+        for i, r in enumerate(results):
+            if i < len(enriched):
+                r['story_angle'] = enriched[i].get('story_angle', '')
+                r['headline'] = enriched[i].get('headline', r.get('title', ''))
+                r['why_it_matters'] = enriched[i].get('why_it_matters', '')
+                r['content_type'] = enriched[i].get('content_type', 'insight')
+                r['so_what'] = enriched[i].get('why_it_matters', r.get('so_what', ''))
+                r['industry_data'] = r.get('snippet', r.get('description', ''))
+                r['impact'] = enriched[i].get('impact', 'MEDIUM')
+
+        safe_print(f"[Source Explorer] Story analysis complete - enriched {len(results)} results")
+        return results
+
+    except Exception as e:
+        safe_print(f"[Source Explorer] Analysis error: {e} - returning original results")
+        for r in results:
+            r['story_angle'] = r.get('snippet', '')[:150]
+            r['headline'] = r.get('title', 'Industry Update')
+            r['why_it_matters'] = 'Review this article for potential newsletter content.'
+            r['content_type'] = 'insight'
+            r['impact'] = 'MEDIUM'
+        return results
+
+
+def transform_to_shared_schema(results: list, source_card: str) -> list:
+    """Transform results to shared schema matching BriteCo Brief"""
+    return [{
+        'title': r.get('title', ''),
+        'headline': r.get('headline', r.get('title', '')),
+        'url': r.get('url', r.get('source_url', '')),
+        'publisher': r.get('publisher', ''),
+        'published_at': r.get('published_date', r.get('published_at', '')),
+        'snippet': r.get('snippet', r.get('description', '')),
+        'industry_data': r.get('industry_data', r.get('snippet', r.get('description', ''))),
+        'so_what': r.get('so_what', ''),
+        'source_card': source_card,
+        'content_type': r.get('content_type', 'news'),
+        'impact': r.get('impact', 'MEDIUM'),
+        'signals': r.get('signals', []),
+        'signal_source': r.get('signal_source', '')
+    } for r in results]
+
+
+# ============================================================================
 # ROUTES - RESEARCH (Perplexity, Insights, Source Explorer)
 # ============================================================================
 
 @app.route('/api/v2/search-perplexity', methods=['POST'])
 def search_perplexity_v2():
-    """Search using Perplexity AI for jewelry industry news"""
+    """
+    Perplexity Research Card - uses Perplexity sonar model for research with citations
+    """
     try:
         data = request.json
-        query = data.get('query', 'jewelry industry news')
+        query = data.get('query', 'jewelry industry news trends')
         time_window = data.get('time_window', '30d')
-        section = data.get('section', 'general')
         exclude_urls = data.get('exclude_urls', [])
 
-        safe_print(f"\n[API] Perplexity search: query='{query}', section={section}")
+        safe_print(f"\n[API v2] Perplexity Research: query='{query}', time_window={time_window}")
 
-        # Enhance query based on section
-        section_focus = {
-            'the_good': 'positive jewelry news trends designs success stories',
-            'the_bad': 'jewelry heists thefts scams fraud negative news',
-            'the_ugly': 'bizarre unusual strange jewelry stories weird',
-            'industry_pulse': 'jewelry industry market trends analysis',
-            'partner_advantage': 'jeweler business tips best practices',
-            'industry_news': 'jewelry market news updates trends'
-        }
+        # Check if Perplexity is available
+        if not perplexity_client or not perplexity_client.is_available():
+            return jsonify({
+                'success': False,
+                'error': 'Perplexity API not configured. Add PERPLEXITY_API_KEY to .env',
+                'results': []
+            }), 503
 
-        enhanced_query = f"{query} {section_focus.get(section, '')}"
-
-        # Search using Perplexity
-        results = perplexity_client.search(
-            query=enhanced_query,
-            max_results=8,
-            exclude_urls=exclude_urls
+        # Search using Perplexity - build jewelry-focused query
+        search_results = perplexity_client.search(
+            query=f"jewelry industry {query}",
+            time_window=time_window,
+            max_results=8
         )
 
-        # Transform results
-        transformed = []
-        for r in results:
-            transformed.append({
-                'title': r.get('title', ''),
-                'url': r.get('url', ''),
-                'snippet': r.get('snippet', r.get('description', '')),
-                'publisher': r.get('publisher', extract_domain(r.get('url', ''))),
-                'published_at': r.get('published_date', ''),
-                'source_card': 'perplexity'
-            })
+        # Filter out excluded URLs
+        if exclude_urls:
+            search_results = [r for r in search_results if r.get('url') not in exclude_urls]
+
+        # Take top 8 results
+        results = search_results[:8]
+
+        # Enrich results with LLM-generated titles and jeweler guidance
+        if results:
+            safe_print(f"[API v2] Enriching {len(results)} Perplexity results with LLM...")
+            results = enrich_results_with_llm(results, query)
+
+        # Build query description for UI
+        time_desc = {
+            '7d': 'past week',
+            '30d': 'past month',
+            '90d': 'past 3 months'
+        }.get(time_window, 'recent')
 
         return jsonify({
             'success': True,
-            'results': transformed,
-            'query': enhanced_query,
-            'source': 'perplexity'
+            'results': results,
+            'queries_used': [f"Jewelry industry news from {time_desc}: {query}"],
+            'source': 'perplexity',
+            'generated_at': datetime.now().isoformat()
         })
 
     except Exception as e:
-        safe_print(f"[API ERROR] Perplexity search: {e}")
+        safe_print(f"[API v2 ERROR] Perplexity Research: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e), 'results': []}), 500
@@ -171,37 +469,44 @@ def search_perplexity_v2():
 
 @app.route('/api/v2/search-insights', methods=['POST'])
 def search_insights_v2():
-    """Search market signals relevant to jewelry industry"""
+    """
+    Insight Builder Card - searches ALL 8 signals and analyzes industry impact
+    """
     try:
         data = request.json
         time_window = data.get('time_window', '30d')
-        section = data.get('section', 'general')
         exclude_urls = data.get('exclude_urls', [])
 
-        safe_print(f"\n[API] Insight Builder search for section: {section}")
+        safe_print(f"\n[API v2] Insight Builder: Searching ALL 8 signals")
 
         # Jewelry-specific signal queries
         SIGNAL_QUERIES = {
-            'gold_prices': 'gold prices market precious metals jewelry industry',
-            'diamond_market': 'diamond prices market trends lab-grown natural',
-            'luxury_trends': 'luxury jewelry market consumer spending trends',
-            'retail': 'jewelry retail sales trends brick and mortar online',
-            'design_trends': 'jewelry design trends fashion styles',
-            'economic': 'consumer spending economy jewelry luxury goods',
-            'heists_security': 'jewelry heists theft security robbery',
-            'technology': 'jewelry technology 3D printing CAD design innovation'
+            'gold_prices': 'US gold prices market precious metals jewelry industry recent news',
+            'diamond_market': 'US diamond prices market trends lab-grown natural recent',
+            'luxury_trends': 'US luxury jewelry market consumer spending trends recent',
+            'retail': 'US jewelry retail sales trends brick mortar online recent',
+            'design_trends': 'jewelry design trends fashion styles 2024 2025 recent',
+            'economic': 'US consumer spending economy jewelry luxury goods recent',
+            'heists_security': 'jewelry heists theft security robbery crime recent news',
+            'technology': 'jewelry technology 3D printing CAD design innovation recent'
         }
 
         all_results = []
         seen_urls = set(exclude_urls)
 
+        safe_print(f"[Insight Builder] Searching all 8 jewelry signals...")
+
         for signal, query_terms in SIGNAL_QUERIES.items():
             try:
-                results = openai_client.search_web_responses_api(
-                    f"Recent news about {query_terms}",
-                    max_results=3,
-                    exclude_urls=list(seen_urls)
-                )
+                prompt = f"""Search for recent US news about {signal.replace('_', ' ')} in jewelry industry.
+
+Find articles about the United States with data points, statistics, and business impact.
+Focus on jewelry retail and wholesale markets.
+Search terms: {query_terms}
+
+Return results with title, url, publisher, published_date, and summary with key data points."""
+
+                results = openai_client.search_web_responses_api(prompt, max_results=4, exclude_urls=list(seen_urls))
 
                 for r in results:
                     url = r.get('url', '')
@@ -210,35 +515,33 @@ def search_insights_v2():
                         all_results.append(r)
                         seen_urls.add(url)
 
+                safe_print(f"[Insight Builder] Signal '{signal}' returned {len(results)} results")
+
             except Exception as e:
-                safe_print(f"[API] Signal '{signal}' search error: {e}")
+                safe_print(f"[Insight Builder] Error searching signal '{signal}': {e}")
                 continue
 
-        # Transform and enrich results
-        transformed = []
-        for r in all_results:
-            transformed.append({
-                'title': r.get('title', ''),
-                'url': r.get('url', ''),
-                'snippet': r.get('description', ''),
-                'publisher': r.get('publisher', extract_domain(r.get('url', ''))),
-                'published_at': r.get('published_date', ''),
-                'signal': r.get('signal_source', ''),
-                'source_card': 'insight'
-            })
+        safe_print(f"[Insight Builder] Total unique results: {len(all_results)}")
 
-        # Enrich with GPT analysis
-        if transformed:
-            transformed = analyze_jewelry_angles(transformed, section)
+        # Analyze results with GPT for industry impact
+        enriched_results = analyze_industry_impact(all_results)
+
+        # Transform to shared schema
+        results = transform_to_shared_schema(enriched_results, 'insight')
+
+        # Get signals searched
+        signals_searched = list(SIGNAL_QUERIES.keys())
 
         return jsonify({
             'success': True,
-            'results': transformed,
-            'source': 'insight'
+            'results': results[:12],
+            'signals_searched': signals_searched,
+            'source': 'insight',
+            'generated_at': datetime.now().isoformat()
         })
 
     except Exception as e:
-        safe_print(f"[API ERROR] Insight search: {e}")
+        safe_print(f"[API v2 ERROR] Insight Builder: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e), 'results': []}), 500
@@ -246,28 +549,75 @@ def search_insights_v2():
 
 @app.route('/api/v2/search-sources', methods=['POST'])
 def search_sources_v2():
-    """Search jewelry industry sources"""
+    """
+    Source Explorer Card - searches specific industry sites with 3-query cascade
+    """
     try:
         data = request.json
         query = data.get('query', 'jewelry industry news')
+        source_packs = data.get('source_packs', ['jewelry'])
         time_window = data.get('time_window', '30d')
-        section = data.get('section', 'general')
         exclude_urls = data.get('exclude_urls', [])
 
-        safe_print(f"\n[API] Source Explorer: query='{query}', section={section}")
+        safe_print(f"\n[API v2] Source Explorer: query='{query}', packs={source_packs}, time_window={time_window}")
 
-        # Use configured jewelry sources
-        sites = JEWELRY_NEWS_SOURCES
+        # Convert time window to human-readable for query
+        time_desc = {
+            '7d': 'past week',
+            '30d': 'past month',
+            '90d': 'past 3 months'
+        }.get(time_window, 'recent')
 
-        # Build site-specific query
-        site_query = ' OR '.join([f'site:{s}' for s in sites])
+        # Jewelry industry source packs
+        SITE_PACKS = {
+            'jewelry': JEWELRY_NEWS_SOURCES,
+            'luxury': [
+                'luxurydaily.com', 'jckonline.com', 'nationaljeweler.com',
+                'rapaport.com', 'professionaljeweler.com'
+            ],
+            'retail': [
+                'retaildive.com', 'chainstoreage.com', 'jckonline.com',
+                'nationaljeweler.com'
+            ],
+            'design': [
+                'jckonline.com', 'nationaljeweler.com', 'jewellerynet.com',
+                'rapaport.com'
+            ]
+        }
+
+        # Collect sites from selected packs
+        sites = []
+        for pack in source_packs:
+            sites.extend(SITE_PACKS.get(pack, []))
+        sites = list(set(sites))
+
+        if not sites:
+            sites = JEWELRY_NEWS_SOURCES
+
+        # Build site: queries with 3-query cascade
+        site_query = ' OR '.join([f'site:{s}' for s in sites[:6]])
 
         queries = [
-            f"({site_query}) {query}",
-            f"({site_query}) jewelry industry news trends",
-            f"jewelry news {query}"  # Fallback without site restriction
+            f"""Search for: ({site_query}) {query}
+
+Find articles from the {time_desc} from these jewelry industry sources.
+Return results with title, url, publisher, published_date, and summary.""",
+
+            f"""Search for: ({site_query}) jewelry industry news trends
+
+Find business news from the {time_desc} about jewelry retail and wholesale.
+Return results with title, url, publisher, published_date, and summary.""",
+
+            f"""Search for jewelry industry news from trade publications.
+
+Find articles from the {time_desc} about: {query}
+Focus on business insights, trends, and industry analysis.
+Return results with title, url, publisher, published_date, and summary."""
         ]
 
+        safe_print(f"[API v2] Source Explorer using {len(sites)} sites from packs: {source_packs}")
+
+        # Multi-search with cascade
         all_results = []
         seen_urls = set(exclude_urls)
 
@@ -289,33 +639,33 @@ def search_sources_v2():
                         seen_urls.add(url)
 
             except Exception as e:
-                safe_print(f"[API] Source query error: {e}")
+                safe_print(f"[API v2] Source query error: {e}")
                 continue
 
-        # Transform results
-        transformed = []
-        for r in all_results[:8]:
-            transformed.append({
-                'title': r.get('title', ''),
-                'url': r.get('url', ''),
-                'snippet': r.get('description', ''),
-                'publisher': r.get('publisher', extract_domain(r.get('url', ''))),
-                'published_at': r.get('published_date', ''),
-                'source_card': 'explorer'
-            })
+        # Transform to shared schema
+        results = transform_to_shared_schema(all_results[:8], 'explorer')
 
-        # Enrich with story angles
-        if transformed:
-            transformed = analyze_jewelry_angles(transformed, section)
+        # Enrich with GPT story angle analysis
+        results = analyze_story_angles(results, query)
+
+        # Query summaries for UI display
+        query_summaries = [
+            f"1. Site-specific: {query} from {', '.join(sites[:3])}...",
+            "2. Broader: jewelry industry news from sites",
+            "3. Fallback: jewelry news (any source)"
+        ]
 
         return jsonify({
             'success': True,
-            'results': transformed,
-            'source': 'explorer'
+            'results': results,
+            'queries_used': query_summaries,
+            'source_packs': source_packs,
+            'source': 'explorer',
+            'generated_at': datetime.now().isoformat()
         })
 
     except Exception as e:
-        safe_print(f"[API ERROR] Source search: {e}")
+        safe_print(f"[API v2 ERROR] Source Explorer: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e), 'results': []}), 500
@@ -334,72 +684,6 @@ def extract_domain(url):
         return ''
 
 
-def analyze_jewelry_angles(results, section):
-    """Use GPT to analyze articles for jewelry newsletter angles"""
-    if not results:
-        return results
-
-    try:
-        model_config = get_model_for_task('research_enrichment')
-        model_id = model_config.get('id', 'gpt-4o')
-
-        results_text = ""
-        for i, r in enumerate(results):
-            results_text += f"""
-Article {i+1}:
-- Title: {r.get('title', '')[:100]}
-- Publisher: {r.get('publisher', '')}
-- Snippet: {r.get('snippet', '')[:300]}
-"""
-
-        section_context = {
-            'the_good': 'positive, uplifting jewelry stories',
-            'the_bad': 'cautionary tales, heists, thefts, scams',
-            'the_ugly': 'bizarre, unusual, strange jewelry stories',
-            'industry_pulse': 'industry trends and analysis',
-            'partner_advantage': 'practical tips for jewelers',
-            'industry_news': 'quick news updates'
-        }
-
-        prompt = f"""Analyze these jewelry industry articles for a newsletter section focused on {section_context.get(section, 'general jewelry news')}.
-
-{results_text}
-
-For EACH article, provide:
-1. headline: A catchy headline (5-10 words) for jewelers
-2. angle: Why this matters to jewelry professionals (1 sentence)
-3. fit_score: How well it fits the section "{section}" (1-10)
-
-Return a JSON array:
-[{{"headline": "...", "angle": "...", "fit_score": 8}}, ...]
-
-Return ONLY the JSON array."""
-
-        response = openai_client.client.chat.completions.create(
-            model=model_id,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.4,
-            max_tokens=1500
-        )
-
-        content = response.choices[0].message.content.strip()
-        if content.startswith("```"):
-            content = re.sub(r"^```[a-zA-Z]*\n", "", content)
-            content = re.sub(r"\n```$", "", content).strip()
-
-        enriched = json.loads(content)
-
-        for i, r in enumerate(results):
-            if i < len(enriched):
-                r['headline'] = enriched[i].get('headline', r.get('title', ''))
-                r['angle'] = enriched[i].get('angle', '')
-                r['fit_score'] = enriched[i].get('fit_score', 5)
-
-        return results
-
-    except Exception as e:
-        safe_print(f"[API] Angle analysis error: {e}")
-        return results
 
 
 # ============================================================================
