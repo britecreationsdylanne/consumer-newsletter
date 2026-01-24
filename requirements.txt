@@ -1,0 +1,32 @@
+# Flask
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# HTTP Requests
+requests>=2.31.0
+
+# HTML Parsing
+beautifulsoup4>=4.12.0
+
+# OpenAI
+openai>=1.12.0
+
+# Anthropic (Claude)
+anthropic>=0.18.0
+
+# Google (Gemini & Docs)
+google-generativeai>=0.4.0
+google-auth>=2.27.0
+google-api-python-client>=2.118.0
+
+# Image Processing
+Pillow>=10.2.0
+
+# Email (SendGrid)
+sendgrid>=6.10.0
+
+# YAML Config
+PyYAML>=6.0.1
