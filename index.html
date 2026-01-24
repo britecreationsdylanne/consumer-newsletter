@@ -1987,6 +1987,13 @@
             industry_news: []
         };
 
+        // Tab-specific search state (each tab has its own search results)
+        let gbuSearchState = {
+            good: { perplexity: [], insight: [], source: [], htmlCache: { perplexity: '', insight: '', source: '' } },
+            bad: { perplexity: [], insight: [], source: [], htmlCache: { perplexity: '', insight: '', source: '' } },
+            ugly: { perplexity: [], insight: [], source: [], htmlCache: { perplexity: '', insight: '', source: '' } }
+        };
+
         let customLinks = {
             gbu: [],
             pulse: [],
@@ -2211,6 +2218,17 @@
 
         // GBU Tab switching
         function switchGBUTab(tab, element) {
+            // Save current tab's HTML cache before switching
+            const oldTab = currentGBUTab;
+            if (gbuSearchState[oldTab]) {
+                const perplexityDiv = document.getElementById('gbu-perplexity-results');
+                const insightDiv = document.getElementById('gbu-insight-results');
+                const sourceDiv = document.getElementById('gbu-source-results');
+                if (perplexityDiv) gbuSearchState[oldTab].htmlCache.perplexity = perplexityDiv.innerHTML;
+                if (insightDiv) gbuSearchState[oldTab].htmlCache.insight = insightDiv.innerHTML;
+                if (sourceDiv) gbuSearchState[oldTab].htmlCache.source = sourceDiv.innerHTML;
+            }
+
             currentGBUTab = tab;
 
             // Update tabs
@@ -2230,6 +2248,22 @@
             };
             document.querySelector('#step3 .research-section-info h3 strong').textContent = 'The ' + tab.charAt(0).toUpperCase() + tab.slice(1);
             document.getElementById('step3SectionDescription').textContent = descriptions[tab];
+
+            // Restore new tab's cached results (or show empty state)
+            const newState = gbuSearchState[tab];
+            const perplexityDiv = document.getElementById('gbu-perplexity-results');
+            const insightDiv = document.getElementById('gbu-insight-results');
+            const sourceDiv = document.getElementById('gbu-source-results');
+
+            if (perplexityDiv) {
+                perplexityDiv.innerHTML = newState.htmlCache.perplexity || '<p style="color: #666; font-size: 13px; text-align: center; padding: 20px;">Search to find articles for this section</p>';
+            }
+            if (insightDiv) {
+                insightDiv.innerHTML = newState.htmlCache.insight || '<p style="color: #666; font-size: 13px; text-align: center; padding: 20px;">Search to find articles for this section</p>';
+            }
+            if (sourceDiv) {
+                sourceDiv.innerHTML = newState.htmlCache.source || '<p style="color: #666; font-size: 13px; text-align: center; padding: 20px;">Search to find articles for this section</p>';
+            }
         }
 
         // Step 5 tab switching
@@ -2428,6 +2462,11 @@
 
             if (results.length === 0) {
                 resultsDiv.innerHTML = '<p style="color: #666; font-size: 13px; padding: 20px; text-align: center;">No results found</p>';
+                // Save empty state to cache for GBU tabs
+                if (section === 'gbu' && gbuSearchState[currentGBUTab]) {
+                    gbuSearchState[currentGBUTab].htmlCache[source] = resultsDiv.innerHTML;
+                    gbuSearchState[currentGBUTab][source] = [];
+                }
                 return;
             }
 
@@ -2466,6 +2505,12 @@
                 item.onclick = () => selectArticle(section, r, item);
                 resultsDiv.appendChild(item);
             });
+
+            // Save results to cache for GBU tabs
+            if (section === 'gbu' && gbuSearchState[currentGBUTab]) {
+                gbuSearchState[currentGBUTab].htmlCache[source] = resultsDiv.innerHTML;
+                gbuSearchState[currentGBUTab][source] = results;
+            }
         }
 
         function selectArticle(section, article, element) {
