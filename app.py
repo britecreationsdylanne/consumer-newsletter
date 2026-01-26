@@ -1348,7 +1348,7 @@ def generate_image_prompts():
         data = request.json
         sections = data.get('sections', {})
 
-        safe_print(f"\n[API] Generating image prompts...")
+        safe_print(f"\n[API] Generating image prompts for {len(sections)} sections...")
 
         prompts = {}
 
@@ -1356,36 +1356,42 @@ def generate_image_prompts():
             if not content:
                 continue
 
+            safe_print(f"  - Creating image prompt for {section}")
+
             title = content.get('title', content.get('subtitle', ''))
             body = content.get('content', content.get('copy', content.get('intro', '')))
 
             # Handle case where body is a dict/object instead of string
             if isinstance(body, dict):
-                # Extract text from nested object structure
                 body = body.get('intro', '') or body.get('content', '') or body.get('copy', '') or str(body)
 
             # Ensure body is a string before slicing
             body = str(body) if body else ''
 
-            prompt_request = f"""Create an image prompt for a jewelry newsletter section.
+            prompt_request = f"""Create a text-to-image prompt for a jewelry newsletter image.
 
 Section: {section}
-Title: {title}
-Content: {body[:200]}
+Title: "{title}"
+Content: "{body[:400]}..."
 
-Create a detailed image prompt (20-30 words) that:
-- Relates to the content
-- Is visually striking
-- Works well as a newsletter image
-- Avoids text in the image
+Requirements:
+- Photorealistic, professional photography style (NOT cartoon, NOT illustration, NOT digital art)
+- Stock photo aesthetic - like images from Shutterstock or Getty Images
+- Luxury jewelry aesthetic with elegant lighting and composition
+- Teal/gold color accents where appropriate (BriteCo brand colors)
+- No text overlays in the image
+- Suitable for professional email newsletter
+- Clean, well-lit, high-quality photography look
+- Focus on jewelry, gemstones, watches, or luxury retail settings
 
-Return ONLY the image prompt, nothing else."""
+Output ONLY the image generation prompt, nothing else."""
 
             try:
                 response = claude_client.generate_content(
                     prompt=prompt_request,
-                    max_tokens=100,
-                    temperature=0.7
+                    model="claude-opus-4-5-20251101",
+                    max_tokens=150,
+                    temperature=0.5
                 )
 
                 prompts[section] = {
@@ -1396,13 +1402,16 @@ Return ONLY the image prompt, nothing else."""
             except Exception as e:
                 safe_print(f"  Error generating prompt for {section}: {e}")
                 prompts[section] = {
-                    'prompt': f"Professional jewelry photography, elegant display, luxury aesthetic, {title}",
+                    'prompt': f"Photorealistic professional jewelry photography, elegant luxury display with soft lighting, high-end retail aesthetic, {title}, stock photo quality",
                     'title': title
                 }
 
+        safe_print(f"[API] Generated {len(prompts)} image prompts")
+
         return jsonify({
             'success': True,
-            'prompts': prompts
+            'prompts': prompts,
+            'generated_at': datetime.now().isoformat()
         })
 
     except Exception as e:
@@ -1421,16 +1430,33 @@ def generate_images():
 
         safe_print(f"\n[API] Generating {len(prompts)} images...")
 
+        # Check if Gemini client is available
+        if not gemini_client or not gemini_client.is_available():
+            safe_print("[API ERROR] Gemini client not available")
+            return jsonify({'success': False, 'error': 'Gemini image generation not available'}), 500
+
         images = {}
 
-        # Image sizes for different sections (all 203x203 for jeweler newsletter)
+        # Image sizes for different sections
+        # Square (180x180) for side images: GBU, Brite Spot
+        # Full width (490x263) for: Industry Pulse, Partner Advantage
         IMAGE_SIZES = {
-            'the_good': (203, 203),
-            'the_bad': (203, 203),
-            'the_ugly': (203, 203),
-            'industry_pulse': (203, 203),
-            'partner_advantage': (203, 203),
-            'brite_spot': (203, 203)
+            'the_good': (180, 180),
+            'the_bad': (180, 180),
+            'the_ugly': (180, 180),
+            'brite_spot': (180, 180),
+            'industry_pulse': (490, 263),
+            'partner_advantage': (490, 263)
+        }
+
+        # Aspect ratios: square for side images, landscape for full-width
+        ASPECT_RATIOS = {
+            'the_good': '1:1',
+            'the_bad': '1:1',
+            'the_ugly': '1:1',
+            'brite_spot': '1:1',
+            'industry_pulse': '16:9',
+            'partner_advantage': '16:9'
         }
 
         for section, prompt_data in prompts.items():
@@ -1441,26 +1467,30 @@ def generate_images():
             safe_print(f"  Generating image for {section}...")
 
             try:
+                aspect_ratio = ASPECT_RATIOS.get(section, '1:1')
                 result = gemini_client.generate_image(
                     prompt=prompt,
                     model="gemini-2.0-flash-exp",
-                    aspect_ratio="16:9"
+                    aspect_ratio=aspect_ratio
                 )
 
                 image_data = result.get('image_data', '')
 
-                # Resize if needed
+                # Resize to target dimensions
                 if image_data:
-                    target_size = IMAGE_SIZES.get(section, (400, 250))
+                    target_size = IMAGE_SIZES.get(section, (180, 180))
                     image_data = resize_image(image_data, target_size)
 
                 images[section] = {
                     'url': f"data:image/png;base64,{image_data}" if image_data else '',
                     'prompt': prompt
                 }
+                safe_print(f"    Generated image for {section}")
 
             except Exception as e:
                 safe_print(f"  Error generating image for {section}: {e}")
+                import traceback
+                traceback.print_exc()
                 images[section] = {
                     'url': '',
                     'prompt': prompt,
@@ -1511,29 +1541,44 @@ def generate_single_image():
         if not prompt:
             return jsonify({'success': False, 'error': 'No prompt provided'}), 400
 
+        # Check if Gemini client is available
+        if not gemini_client or not gemini_client.is_available():
+            return jsonify({'success': False, 'error': 'Gemini image generation not available'}), 500
+
         safe_print(f"\n[API] Regenerating image for {section}...")
 
         # Image sizes for different sections
         IMAGE_SIZES = {
-            'the_good': (203, 203),
-            'the_bad': (203, 203),
-            'the_ugly': (203, 203),
-            'industry_pulse': (203, 203),
-            'partner_advantage': (203, 203),
-            'brite_spot': (203, 203)
+            'the_good': (180, 180),
+            'the_bad': (180, 180),
+            'the_ugly': (180, 180),
+            'brite_spot': (180, 180),
+            'industry_pulse': (490, 263),
+            'partner_advantage': (490, 263)
         }
 
+        # Aspect ratios
+        ASPECT_RATIOS = {
+            'the_good': '1:1',
+            'the_bad': '1:1',
+            'the_ugly': '1:1',
+            'brite_spot': '1:1',
+            'industry_pulse': '16:9',
+            'partner_advantage': '16:9'
+        }
+
+        aspect_ratio = ASPECT_RATIOS.get(section, '1:1')
         result = gemini_client.generate_image(
             prompt=prompt,
             model="gemini-2.0-flash-exp",
-            aspect_ratio="1:1"
+            aspect_ratio=aspect_ratio
         )
 
         image_data = result.get('image_data', '')
 
         # Resize to target dimensions
         if image_data:
-            target_size = IMAGE_SIZES.get(section, (203, 203))
+            target_size = IMAGE_SIZES.get(section, (180, 180))
             image_data = resize_image(image_data, target_size)
 
         image_url = f"data:image/png;base64,{image_data}" if image_data else ''
@@ -1797,7 +1842,7 @@ def export_to_docs():
         requests_list = []
         index_offset = [1]
 
-        def add_text(text, bold=False, heading=False):
+        def add_text(text, bold=False, heading=False, link_url=None):
             if not text:
                 return
             text = str(text).strip() + '\n\n'
@@ -1825,6 +1870,19 @@ def export_to_docs():
                         'range': {'startIndex': start_index, 'endIndex': end_index - 1},
                         'textStyle': {'bold': True},
                         'fields': 'bold'
+                    }
+                })
+
+            # Add hyperlink if URL provided
+            if link_url:
+                requests_list.append({
+                    'updateTextStyle': {
+                        'range': {'startIndex': start_index, 'endIndex': end_index - 2},  # -2 to exclude \n\n
+                        'textStyle': {
+                            'link': {'url': link_url},
+                            'foregroundColor': {'color': {'rgbColor': {'red': 0.0, 'green': 0.51, 'blue': 0.51}}}
+                        },
+                        'fields': 'link,foregroundColor'
                     }
                 })
 
@@ -1883,7 +1941,9 @@ def export_to_docs():
             if isinstance(news, dict) and 'bullets' in news:
                 for bullet in news['bullets']:
                     if isinstance(bullet, dict):
-                        add_text(f"• {bullet.get('text', '')}")
+                        bullet_text = f"• {bullet.get('text', '')}"
+                        bullet_url = bullet.get('url', None)
+                        add_text(bullet_text, link_url=bullet_url)
                     else:
                         add_text(f"• {bullet}")
             elif isinstance(news, list):

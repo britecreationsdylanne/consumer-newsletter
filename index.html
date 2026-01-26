@@ -1352,10 +1352,27 @@
 
                 <!-- Brite Spot Title -->
                 <div class="ai-rewrite-box">
-                    <label style="font-weight: 600; color: #272d3f; display: block; margin-bottom: 10px;">
-                        The Brite Spot - Sub-header Title <span style="color: #666; font-weight: 400;">(max 15 words)</span>
-                    </label>
+                    <div class="ai-rewrite-header">
+                        <label>The Brite Spot - Sub-header Title <span style="color: #666; font-weight: 400;">(max 15 words)</span></label>
+                    </div>
                     <input type="text" id="briteSpotTitle" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;" placeholder="New Feature Announcement or Big News">
+                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px;">
+                        <div class="ai-rewrite-controls">
+                            <select id="briteSpotTitleTone" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px;">
+                                <option value="exciting">Exciting</option>
+                                <option value="informative" selected>Informative</option>
+                                <option value="professional">Professional</option>
+                            </select>
+                            <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px;" onclick="aiRewriteBriteSpotTitle()">AI Rewrite</button>
+                        </div>
+                    </div>
+                    <div class="ai-rewrite-result" id="briteSpotTitleRewriteResult">
+                        <div class="ai-rewrite-result-header">
+                            <span class="ai-rewrite-result-label">AI Rewritten Version</span>
+                            <button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="useBriteSpotTitleRewrite()">Use This Version</button>
+                        </div>
+                        <div class="ai-rewrite-result-content" id="briteSpotTitleRewriteText"></div>
+                    </div>
                 </div>
 
                 <!-- Brite Spot Body -->
@@ -2001,17 +2018,8 @@
             <div class="loading">
                 <div class="spinner"></div>
                 <h3>Generating Images...</h3>
-                <p style="color: #666;" id="imageGenStatus">Creating images with Gemini...</p>
-                <div style="background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 15px; margin-top: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 14px; font-weight: 600; color: #1e40af;">Progress</span>
-                        <span style="font-size: 14px; font-weight: 600; color: #1e40af;" id="imageGenProgress">0%</span>
-                    </div>
-                    <div style="background: #dbeafe; height: 8px; border-radius: 4px; overflow: hidden;">
-                        <div id="imageGenProgressBar" style="background: linear-gradient(90deg, #3b82f6, #2563eb); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
-                    </div>
-                    <p style="margin-top: 10px; margin-bottom: 0; font-size: 13px; color: #64748b; text-align: center;" id="imageGenTime">Estimated time: ~30-45 seconds</p>
-                </div>
+                <p style="color: #666;" id="imageGenStatus">Using Gemini to create article-specific images...</p>
+                <p style="color: #999; font-size: 14px; margin-top: 10px;">This may take 30-60 seconds for 6 images...</p>
             </div>
         </div>
 
@@ -2257,56 +2265,26 @@
                 <pre id="htmlCode" style="margin: 0; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace; font-size: 12px;"></pre>
             </div>
 
-            <!-- Send Test Email Section -->
-            <div id="testEmailSection" style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #e5e7eb;">
-                <h3 style="margin: 0 0 15px 0; color: #059669;">📧 Send Test Email</h3>
-                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Preview the actual email in your inbox before pushing to Ontraport.</p>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="testEmailJohn" value="john.ortbal@brite.co">
-                        <span>John Ortbal</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="testEmailStef" value="stef.lynn@brite.co">
-                        <span>Stef Lynn</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="testEmailSelena" value="selena.fragassi@brite.co">
-                        <span>Selena Fragassi</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="testEmailDylanne" value="dylanne.crugnale@brite.co">
-                        <span>Dylanne Crugnale</span>
-                    </label>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <input type="text" id="testEmailCustom" placeholder="Additional email (optional)" style="width: 100%; max-width: 300px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px;">
-                </div>
-                <button class="btn" onclick="sendTestEmail()" id="testEmailBtn" style="background: #059669;">
-                    <span id="testEmailBtnText">✉️ Send Test Email</span>
-                </button>
-                <div id="testEmailResult" style="display: none; margin-top: 15px; padding: 12px; border-radius: 6px;"></div>
-            </div>
-
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(10)">← Back to Subject Line</button>
                 <button class="btn btn-secondary" onclick="toggleHTMLView()" id="htmlViewBtn">📝 View HTML Code</button>
                 <button class="btn btn-secondary" onclick="copyHTMLCode()">📋 Copy HTML</button>
-                <button class="btn btn-orange" onclick="pushToOntraport()" style="background: #FE8916;">🚀 Push to Ontraport</button>
+                <button class="btn" onclick="goToStep(12)">Push to Ontraport →</button>
             </div>
         </div>
 
         <!-- Step 12: Push to Ontraport -->
         <div class="step" id="step12">
-            <h2>📤 Push to Ontraport</h2>
-            <p class="step-description">Send your newsletter to Ontraport for distribution</p>
+            <h2>🚀 Push to Ontraport</h2>
+            <p class="step-description">Send your newsletter to Ontraport with pre-configured BriteCo settings</p>
 
-            <div style="background: white; padding: 30px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb; text-align: center;">
-                <div style="font-size: 48px; margin-bottom: 20px;">📬</div>
-                <h3 style="margin: 0 0 10px 0; color: #272d3f;">Ready to Send?</h3>
-                <p style="color: #666; margin-bottom: 20px;">Your newsletter is ready to be pushed to Ontraport. This will create a new email draft in your Ontraport account.</p>
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                <div style="padding: 15px; background-color: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e; margin-bottom: 20px;">
+                    <p style="margin: 0; font-weight: 600; color: #166534;">Subject Line:</p>
+                    <p id="ontraportSubjectDisplay" style="margin: 5px 0 0 0; font-size: 16px; color: #272d3f;"></p>
+                </div>
 
-                <button class="btn btn-orange" onclick="pushToOntraport()" id="ontraportBtn" style="padding: 15px 40px; font-size: 18px;">
+                <button class="btn" onclick="pushToOntraport()" id="ontraportBtn" style="width: 100%; padding: 15px; font-size: 16px;">
                     <span id="ontraportBtnText">🚀 Push to Ontraport</span>
                 </button>
 
@@ -2488,6 +2466,14 @@
             // Populate preview when going to step 11
             if (step === 11) {
                 populatePreview();
+            }
+            // Populate subject line display when going to step 12 (Ontraport)
+            if (step === 12) {
+                const subjectLine = document.getElementById('finalSubjectLine')?.value || 'Stay In The Loupe - ' + selectedMonth;
+                const subjectDisplay = document.getElementById('ontraportSubjectDisplay');
+                if (subjectDisplay) {
+                    subjectDisplay.textContent = subjectLine;
+                }
             }
             currentStep = step;
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -2937,6 +2923,32 @@
         function useBriteSpotRewrite() {
             document.getElementById('briteSpotBody').value = document.getElementById('briteSpotRewriteText').textContent;
             document.getElementById('briteSpotRewriteResult').classList.remove('show');
+        }
+
+        async function aiRewriteBriteSpotTitle() {
+            const content = document.getElementById('briteSpotTitle').value;
+            const tone = document.getElementById('briteSpotTitleTone').value;
+            if (!content.trim()) { alert('Please enter a title first'); return; }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/rewrite-content`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, tone, section: 'brite_spot_title', max_words: 15 })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('briteSpotTitleRewriteText').textContent = data.rewritten;
+                    document.getElementById('briteSpotTitleRewriteResult').classList.add('show');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function useBriteSpotTitleRewrite() {
+            document.getElementById('briteSpotTitle').value = document.getElementById('briteSpotTitleRewriteText').textContent;
+            document.getElementById('briteSpotTitleRewriteResult').classList.remove('show');
         }
 
         // GBU Tab switching
@@ -3637,7 +3649,11 @@
                 const news = generatedContent.industry_news;
                 let html = '<ul>';
                 (news.bullets || []).forEach(b => {
-                    html += `<li>${b.text || b}</li>`;
+                    if (b.url) {
+                        html += `<li><a href="${b.url}" target="_blank" style="color: #018181; text-decoration: underline;">${b.text || b}</a></li>`;
+                    } else {
+                        html += `<li>${b.text || b}</li>`;
+                    }
                 });
                 html += '</ul>';
                 document.getElementById('review-news').innerHTML = html;
@@ -3978,14 +3994,16 @@
             btnText.textContent = 'Exporting...';
 
             try {
+                const monthCapitalized = selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1);
+                const currentYear = new Date().getFullYear();
                 const response = await fetch(`${API_BASE}/api/export-to-docs`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         content: generatedContent,
-                        title: `Stay In The Loupe - ${selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1)} ${new Date().getFullYear()}`,
+                        title: `${currentYear} ${monthCapitalized} - Jeweler Newsletter`,
                         month: selectedMonth,
-                        year: new Date().getFullYear()
+                        year: currentYear
                     })
                 });
 
@@ -4417,14 +4435,14 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 </td></tr>
 
 <!-- Hero Banner -->
-<tr><td style="background-color:#037E7F;background-image:url('https://accidentpros.linkgama.com/wp-content/uploads/2025/10/banner-bg.png');background-size:cover;padding:40px 20px;text-align:center;">
+<tr><td style="background-color:#037E7F;background-image:url('https://brite.co/wp-content/uploads/2025/09/section-1-bg.png');background-size:cover;padding:40px 20px;text-align:center;">
 <h1 style="color:#ffffff;font-size:40px;margin:0 0 20px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;">Stay In The Loupe</h1>
 <p style="color:#ffffff;font-size:16px;line-height:28px;margin:0 0 30px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;max-width:480px;margin-left:auto;margin-right:auto;">${intro}</p>
 </td></tr>
 
 <!-- Good/Bad/Ugly Section -->
 <tr><td style="padding:0;">
-<img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/good-bad-ugly.png" alt="Good Bad Ugly" width="100%" style="display:block;">
+<img src="https://brite.co/wp-content/uploads/2025/09/good-bad-ugly-banner.png" alt="Good Bad Ugly" width="100%" style="display:block;">
 <table width="100%" cellpadding="20" cellspacing="0">
 <!-- Good -->
 <tr><td>
@@ -4469,8 +4487,10 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 </td></tr>
 
 <!-- Brite Spot Section -->
+<tr><td style="padding:0;">
+<img src="https://brite.co/wp-content/uploads/2025/09/brite-spot-1.png" alt="The Brite Spot" width="600" style="width:100%;display:block;">
+</td></tr>
 <tr><td style="padding:30px 20px;background-color:#f9fafb;">
-<h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">The Brite Spot</h2>
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
 <td valign="top" width="60%">
 <p style="font-size:16px;line-height:28px;color:#3B3B3B;margin:0;">${briteSpot}</p>
@@ -4482,34 +4502,28 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 </td></tr>
 
 <!-- Industry Pulse Section -->
+<tr><td style="padding:0;">
+<img src="https://brite.co/wp-content/uploads/2025/09/industry-pulse-banner.png" alt="Industry Pulse" width="600" style="width:100%;display:block;">
+</td></tr>
 <tr><td style="padding:30px 20px;">
-<h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">Industry Pulse</h2>
-<table width="100%" cellpadding="0" cellspacing="0"><tr>
-<td valign="top" align="left" width="40%">
-<img src="${pulseImage}" alt="" width="203" style="width:203px;height:auto;">
-</td>
-<td valign="top" width="60%" style="padding-left:20px;">
+<img src="${pulseImage}" alt="" width="490" style="width:100%;max-width:490px;height:auto;display:block;margin:0 auto 20px auto;border-radius:4px;">
 <div style="font-size:16px;line-height:28px;color:#3B3B3B;">${pulse}</div>
-</td>
-</tr></table>
 </td></tr>
 
 <!-- Partner Advantage Section -->
+<tr><td style="padding:0;">
+<img src="https://brite.co/wp-content/uploads/2025/09/partner-advantage-banner.png" alt="Partner Advantage" width="600" style="width:100%;display:block;">
+</td></tr>
 <tr><td style="padding:30px 20px;background-color:#f9fafb;">
-<h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">Partner Advantage</h2>
-<table width="100%" cellpadding="0" cellspacing="0"><tr>
-<td valign="top" width="60%">
+<img src="${partnerImage}" alt="" width="490" style="width:100%;max-width:490px;height:auto;display:block;margin:0 auto 20px auto;border-radius:4px;">
 <div style="font-size:16px;line-height:28px;color:#3B3B3B;">${partner}</div>
-</td>
-<td valign="top" align="right" width="40%">
-<img src="${partnerImage}" alt="" width="203" style="width:203px;height:auto;">
-</td>
-</tr></table>
 </td></tr>
 
 <!-- Industry News Section -->
+<tr><td style="padding:0;">
+<img src="https://brite.co/wp-content/uploads/2025/09/industry-news-banner.png" alt="Industry News" width="600" style="width:100%;display:block;">
+</td></tr>
 <tr><td style="padding:30px 20px;">
-<h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">Industry News</h2>
 <div style="font-size:16px;line-height:28px;color:#3B3B3B;">${news}</div>
 </td></tr>
 
