@@ -1211,13 +1211,24 @@
             font-size: 14px;
         }
 
-        /* Newsletter Preview */
+        /* Newsletter Preview - Email Client Style */
         #newsletterPreview {
-            background: #E8E8E8;
+            background: #ffffff;
             border-radius: 8px;
-            padding: 20px;
-            max-width: 620px;
+            padding: 0;
+            max-width: 640px;
             margin: 20px auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            overflow: hidden;
+            transform: scale(0.85);
+            transform-origin: top center;
+        }
+        #newsletterPreview table {
+            font-size: 14px;
+        }
+        #newsletterPreview img {
+            max-width: 100%;
+            height: auto;
         }
 
         /* Responsive */
@@ -2263,8 +2274,10 @@
                 </div>
             </div>
 
-            <div id="newsletterPreview" style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; padding: 40px 20px; max-width: 640px; margin: 20px auto;">
-                <!-- Full newsletter HTML will be displayed here -->
+            <div style="background: #DFE7F0; padding: 30px; border-radius: 8px; margin: 20px 0; overflow: auto;">
+                <div id="newsletterPreview">
+                    <!-- Full newsletter HTML will be displayed here -->
+                </div>
             </div>
 
             <div id="htmlCodeView" style="display: none; background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; margin: 20px 0; max-height: 500px; overflow-y: auto;">
@@ -3655,14 +3668,16 @@
                 const news = generatedContent.industry_news;
                 let html = '<ul>';
                 (news.bullets || []).forEach(b => {
-                    // Support both new format (headline + description) and legacy format (text)
-                    const headline = b.headline || b.text || b;
-                    const description = b.description || '';
-                    if (b.url) {
-                        html += `<li><a href="${b.url}" target="_blank" style="color: #018181; text-decoration: underline;">${headline}</a>${description ? ' ' + description : ''}</li>`;
-                    } else {
-                        html += `<li><strong>${headline}</strong>${description ? ' ' + description : ''}</li>`;
-                    }
+                    // Get text which may contain markdown links [text](url)
+                    let bulletText = b.text || b.headline || b;
+
+                    // Convert markdown links to HTML with teal styling
+                    bulletText = bulletText.replace(
+                        /\[([^\]]+)\]\(([^)]+)\)/g,
+                        '<a href="$2" target="_blank" style="color: #018181; text-decoration: underline;">$1</a>'
+                    );
+
+                    html += `<li>${bulletText}</li>`;
                 });
                 html += '</ul>';
                 document.getElementById('review-news').innerHTML = html;
@@ -4378,13 +4393,17 @@
             const subjectLine = document.getElementById('finalSubjectLine')?.value || 'Stay In The Loupe - ' + selectedMonth;
             const preheader = document.getElementById('finalPreheader')?.value || 'Your monthly jewelry industry insights from BriteCo';
 
-            // Get images
-            const goodImage = generatedImages.good || generatedImages.the_good || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
-            const badImage = generatedImages.bad || generatedImages.the_bad || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
-            const uglyImage = generatedImages.ugly || generatedImages.the_ugly || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
-            const briteSpotImage = generatedImages.briteSpot || generatedImages.brite_spot || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
-            const pulseImage = generatedImages.pulse || generatedImages.industry_pulse || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
-            const partnerImage = generatedImages.partner || generatedImages.partner_advantage || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+            // Get images - handle both {url: '...'} objects and direct URL strings
+            const getImageUrl = (img) => {
+                if (!img) return 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+                return img.url || img || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+            };
+            const goodImage = getImageUrl(generatedImages.the_good || generatedImages.good);
+            const badImage = getImageUrl(generatedImages.the_bad || generatedImages.bad);
+            const uglyImage = getImageUrl(generatedImages.the_ugly || generatedImages.ugly);
+            const briteSpotImage = getImageUrl(generatedImages.brite_spot || generatedImages.briteSpot);
+            const pulseImage = getImageUrl(generatedImages.industry_pulse || generatedImages.pulse);
+            const partnerImage = getImageUrl(generatedImages.partner_advantage || generatedImages.partner);
 
             // Extract titles from Good/Bad/Ugly content (first line is typically the title)
             const extractTitle = (content) => {

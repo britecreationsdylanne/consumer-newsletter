@@ -965,7 +965,7 @@ Write in a professional but engaging tone."""
 
 @app.route('/api/rewrite-content', methods=['POST'])
 def rewrite_content():
-    """AI rewrite for intro and brite spot content"""
+    """AI rewrite for intro and brite spot content with strict word limits"""
     try:
         data = request.json
         content = data.get('content', '')
@@ -981,29 +981,47 @@ def rewrite_content():
             'informative': 'Use a clear, educational tone that emphasizes key facts.'
         }
 
-        section_context = {
-            'intro': 'This is the newsletter introduction that welcomes readers to the monthly edition.',
-            'brite_spot': 'This is "The Brite Spot" section highlighting BriteCo/company news and announcements.'
+        # Section-specific context and STRICT word limits
+        section_specs = {
+            'intro': {
+                'context': 'This is the newsletter introduction that welcomes readers to the monthly edition.',
+                'max_words': 50,
+                'description': '2-3 sentences maximum'
+            },
+            'brite_spot': {
+                'context': 'This is "The Brite Spot" section highlighting BriteCo/company news and announcements.',
+                'max_words': 100,
+                'description': '3-4 sentences maximum'
+            },
+            'brite_spot_title': {
+                'context': 'This is the sub-header title for "The Brite Spot" section.',
+                'max_words': 15,
+                'description': '1 short headline (under 15 words)'
+            }
         }
+
+        spec = section_specs.get(section, section_specs['intro'])
 
         prompt = f"""Rewrite the following content for a jewelry industry newsletter called "Stay In The Loupe".
 
-{section_context.get(section, '')}
+{spec['context']}
 
 TONE: {tone_prompts.get(tone, tone_prompts['professional'])}
+
+CRITICAL WORD LIMIT: Maximum {spec['max_words']} words ({spec['description']})
 
 Original content:
 {content}
 
 Instructions:
 1. Keep the core message and information
-2. Improve clarity and engagement
+2. STRICTLY stay within {spec['max_words']} words - this is non-negotiable
 3. Match the requested tone
-4. Keep it concise (similar length to original)
-5. Use active voice
-6. Make it relevant to jewelry professionals
+4. Use active voice
+5. Make it relevant to jewelry professionals
+6. Do NOT add any notes, explanations, or suggestions - output ONLY the rewritten content
 
-Rewritten version:"""
+Rewritten version (max {spec['max_words']} words):"""
 
         try:
             response = claude_client.generate_content(
@@ -1289,17 +1307,29 @@ Return JSON:
 {articles_text}
 
 Requirements:
-- Each bullet has a short catchy headline (5-8 words) followed by a brief description (10-15 words)
-- The headline should be linkable, the description provides context
-- Mix of topics: trends, market news, technology, etc.
+- Each bullet is ONE complete sentence that naturally incorporates a hyperlink
+- The link text should be ORGANIC and VARIED - it could be:
+  - A source name ("according to National Jeweler")
+  - A key phrase ("new diamond grading standards")
+  - A trend name ("lab-grown market expansion")
+  - An action ("reports show" or "reveals that")
+- The link text should NOT be the entire sentence, just a natural phrase within it
+- Keep each bullet to 15-25 words total
+- Mix of topics: trends, market news, technology, retail insights
 
 Return JSON:
 {{
     "bullets": [
-        {{"headline": "Short catchy headline here", "description": "brief description providing context", "url": "..."}},
+        {{"text": "Full sentence with [link text](url) embedded naturally within it.", "url": "source_url"}},
         ...
     ]
-}}"""
+}}
+
+Example good formats:
+- "The [surge in estate jewelry demand](url) is driving renewed focus on authentication services for vintage pieces."
+- "According to [JCK Online](url), lab-grown diamonds now account for 20% of engagement ring sales."
+- "Retailers are embracing [mixed-metal styling trends](url) as consumers seek unique, personalized pieces."
+"""
 
             try:
                 response = claude_client.generate_content(
@@ -1318,8 +1348,9 @@ Return JSON:
 
             except Exception as e:
                 safe_print(f"  Error generating industry_news: {e}")
+                # Fallback: use article titles as link text in a sentence
                 generated['industry_news'] = {
-                    'bullets': [{'headline': art.get('title', ''), 'description': '', 'url': art.get('url', '')} for art in articles[:5]]
+                    'bullets': [{'text': f"[{art.get('title', '')}]({art.get('url', '')}) offers insights for jewelry professionals.", 'url': art.get('url', '')} for art in articles[:5]]
                 }
 
         # Convert markdown links to HTML in all generated content
@@ -1570,9 +1601,9 @@ def generate_images():
 
             try:
                 aspect_ratio = ASPECT_RATIOS.get(section, '1:1')
+                # Use default model (gemini-2.5-flash-image) from gemini_client
                 result = gemini_client.generate_image(
                     prompt=prompt,
-                    model="gemini-2.0-flash-exp",
                     aspect_ratio=aspect_ratio
                 )
 
