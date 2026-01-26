@@ -1810,34 +1810,304 @@
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="showStep('6b')">← Back to Edit</button>
                 <button class="btn btn-secondary" onclick="exportBrandCheckResults()">📋 Export Brand Check</button>
-                <button class="btn" onclick="goToStep(8)">Continue to Images →</button>
+                <button class="btn" onclick="generateImagePrompts()">Continue to Image Prompts →</button>
             </div>
         </div>
 
-        <!-- Step 7b: Generating Images Loading -->
-        <div class="step" id="step7b">
+        <!-- Step 8: Edit Image Prompts -->
+        <div class="step" id="step8">
+            <h2>🎨 Image Generation</h2>
+            <p>Review prompts and select styles, then generate images</p>
+
+            <div id="promptGenerationLoading">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <h3>Generating Prompts...</h3>
+                    <p style="color: #666;">Analyzing your articles with Claude AI...</p>
+                </div>
+            </div>
+
+            <div id="promptEditing" style="display: none;">
+                <!-- The Good Image Prompt -->
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 5px 0;">👍 The Good Image Prompt</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;" id="goodPromptArticle"></p>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Image Style:</label>
+                        <select id="goodImageStyle" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;" onchange="updatePromptWithStyle('good')">
+                            <option value="photorealistic">Photorealistic (Default)</option>
+                            <option value="sketch">Sketch / Illustration</option>
+                            <option value="watercolor">Watercolor</option>
+                            <option value="modern-flat">Modern Flat Design</option>
+                            <option value="magazine">Magazine Editorial</option>
+                            <option value="cartoon">Cartoon</option>
+                            <option value="infographic">Infographic / Data Viz</option>
+                        </select>
+                    </div>
+                    <textarea id="goodImagePromptText" rows="3" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-family: inherit;" placeholder="Prompt will appear here..."></textarea>
+                </div>
+
+                <!-- The Bad Image Prompt -->
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 5px 0;">👎 The Bad Image Prompt</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;" id="badPromptArticle"></p>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Image Style:</label>
+                        <select id="badImageStyle" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;" onchange="updatePromptWithStyle('bad')">
+                            <option value="photorealistic">Photorealistic (Default)</option>
+                            <option value="sketch">Sketch / Illustration</option>
+                            <option value="watercolor">Watercolor</option>
+                            <option value="modern-flat">Modern Flat Design</option>
+                            <option value="magazine">Magazine Editorial</option>
+                            <option value="cartoon">Cartoon</option>
+                            <option value="infographic">Infographic / Data Viz</option>
+                        </select>
+                    </div>
+                    <textarea id="badImagePromptText" rows="3" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-family: inherit;" placeholder="Prompt will appear here..."></textarea>
+                </div>
+
+                <!-- The Ugly Image Prompt -->
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 5px 0;">😱 The Ugly Image Prompt</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;" id="uglyPromptArticle"></p>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Image Style:</label>
+                        <select id="uglyImageStyle" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;" onchange="updatePromptWithStyle('ugly')">
+                            <option value="photorealistic">Photorealistic (Default)</option>
+                            <option value="sketch">Sketch / Illustration</option>
+                            <option value="watercolor">Watercolor</option>
+                            <option value="modern-flat">Modern Flat Design</option>
+                            <option value="magazine">Magazine Editorial</option>
+                            <option value="cartoon">Cartoon</option>
+                            <option value="infographic">Infographic / Data Viz</option>
+                        </select>
+                    </div>
+                    <textarea id="uglyImagePromptText" rows="3" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-family: inherit;" placeholder="Prompt will appear here..."></textarea>
+                </div>
+
+                <!-- Brite Spot Image Prompt -->
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 5px 0;">✨ Brite Spot Image Prompt</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;" id="briteSpotPromptArticle"></p>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Image Style:</label>
+                        <select id="briteSpotImageStyle" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;" onchange="updatePromptWithStyle('briteSpot')">
+                            <option value="photorealistic">Photorealistic (Default)</option>
+                            <option value="sketch">Sketch / Illustration</option>
+                            <option value="watercolor">Watercolor</option>
+                            <option value="modern-flat">Modern Flat Design</option>
+                            <option value="magazine">Magazine Editorial</option>
+                            <option value="cartoon">Cartoon</option>
+                            <option value="infographic">Infographic / Data Viz</option>
+                        </select>
+                    </div>
+                    <textarea id="briteSpotImagePromptText" rows="3" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-family: inherit;" placeholder="Prompt will appear here..."></textarea>
+                </div>
+
+                <!-- Industry Pulse Image Prompt -->
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 5px 0;">📊 Industry Pulse Image Prompt</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;" id="pulsePromptArticle"></p>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Image Style:</label>
+                        <select id="pulseImageStyle" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;" onchange="updatePromptWithStyle('pulse')">
+                            <option value="photorealistic">Photorealistic (Default)</option>
+                            <option value="sketch">Sketch / Illustration</option>
+                            <option value="watercolor">Watercolor</option>
+                            <option value="modern-flat">Modern Flat Design</option>
+                            <option value="magazine">Magazine Editorial</option>
+                            <option value="cartoon">Cartoon</option>
+                            <option value="infographic">Infographic / Data Viz</option>
+                        </select>
+                    </div>
+                    <textarea id="pulseImagePromptText" rows="3" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-family: inherit;" placeholder="Prompt will appear here..."></textarea>
+                </div>
+
+                <!-- Partner Advantage Image Prompt -->
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 5px 0;">💡 Partner Advantage Image Prompt</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;" id="partnerPromptArticle"></p>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Image Style:</label>
+                        <select id="partnerImageStyle" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;" onchange="updatePromptWithStyle('partner')">
+                            <option value="photorealistic">Photorealistic (Default)</option>
+                            <option value="sketch">Sketch / Illustration</option>
+                            <option value="watercolor">Watercolor</option>
+                            <option value="modern-flat">Modern Flat Design</option>
+                            <option value="magazine">Magazine Editorial</option>
+                            <option value="cartoon">Cartoon</option>
+                            <option value="infographic">Infographic / Data Viz</option>
+                        </select>
+                    </div>
+                    <textarea id="partnerImagePromptText" rows="3" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-family: inherit;" placeholder="Prompt will appear here..."></textarea>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn-secondary btn" onclick="goToStep(7)">← Back</button>
+                    <button class="btn-secondary btn" onclick="generateImagePrompts(true)" style="background: #f59e0b; color: white; border-color: #f59e0b;">🔄 Regenerate Prompts</button>
+                    <button class="btn" onclick="generateImagesFromPrompts()">Generate Images →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 8b: Generating Images Loading -->
+        <div class="step" id="step8b">
             <div class="loading">
                 <div class="spinner"></div>
                 <h3>Generating Images...</h3>
-                <p style="color: #666;">Gemini AI is creating images for your newsletter sections</p>
+                <p style="color: #666;" id="imageGenStatus">Creating images with Gemini...</p>
+                <div style="background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 15px; margin-top: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 14px; font-weight: 600; color: #1e40af;">Progress</span>
+                        <span style="font-size: 14px; font-weight: 600; color: #1e40af;" id="imageGenProgress">0%</span>
+                    </div>
+                    <div style="background: #dbeafe; height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div id="imageGenProgressBar" style="background: linear-gradient(90deg, #3b82f6, #2563eb); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+                    </div>
+                    <p style="margin-top: 10px; margin-bottom: 0; font-size: 13px; color: #64748b; text-align: center;" id="imageGenTime">Estimated time: ~30-45 seconds</p>
+                </div>
             </div>
         </div>
 
-        <!-- Step 8: Review Images -->
-        <div class="step" id="step8">
-            <h2>🎨 Review Generated Images</h2>
-            <p class="step-description">Review the AI-generated images for your newsletter</p>
+        <!-- Step 9: Review Article Images -->
+        <div class="step" id="step9">
+            <h2>🖼️ Article Images</h2>
+            <p>Review and customize images for your newsletter sections</p>
 
-            <div id="imageResults" style="margin-bottom: 20px;"></div>
+            <!-- The Good Image -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0;">👍 The Good Image</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;" id="goodImageTitle">For your Good section</p>
+
+                <div id="goodImagePreview" style="background: #f5f5f5; border: 2px dashed #ddd; border-radius: 8px; min-height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                    <div style="text-align: center; color: #999;">
+                        <div class="spinner" style="margin: 0 auto 10px;"></div>
+                        <div>Generating image...</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px;">Image Prompt:</label>
+                    <textarea id="goodPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
+                </div>
+                <button class="btn-secondary btn" onclick="regenerateImage('good')" style="margin-right: 10px;">🔄 Regenerate</button>
+                <button class="btn-secondary btn" onclick="exportImage('good')" style="margin-right: 10px;">📥 Export</button>
+                <button class="btn-secondary btn" onclick="resizeImage('good')">🔍 Resize</button>
+            </div>
+
+            <!-- The Bad Image -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0;">👎 The Bad Image</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;" id="badImageTitle">For your Bad section</p>
+
+                <div id="badImagePreview" style="background: #f5f5f5; border: 2px dashed #ddd; border-radius: 8px; min-height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                    <div style="text-align: center; color: #999;">
+                        <div class="spinner" style="margin: 0 auto 10px;"></div>
+                        <div>Generating image...</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px;">Image Prompt:</label>
+                    <textarea id="badPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
+                </div>
+                <button class="btn-secondary btn" onclick="regenerateImage('bad')" style="margin-right: 10px;">🔄 Regenerate</button>
+                <button class="btn-secondary btn" onclick="exportImage('bad')" style="margin-right: 10px;">📥 Export</button>
+                <button class="btn-secondary btn" onclick="resizeImage('bad')">🔍 Resize</button>
+            </div>
+
+            <!-- The Ugly Image -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0;">😱 The Ugly Image</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;" id="uglyImageTitle">For your Ugly section</p>
+
+                <div id="uglyImagePreview" style="background: #f5f5f5; border: 2px dashed #ddd; border-radius: 8px; min-height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                    <div style="text-align: center; color: #999;">
+                        <div class="spinner" style="margin: 0 auto 10px;"></div>
+                        <div>Generating image...</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px;">Image Prompt:</label>
+                    <textarea id="uglyPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
+                </div>
+                <button class="btn-secondary btn" onclick="regenerateImage('ugly')" style="margin-right: 10px;">🔄 Regenerate</button>
+                <button class="btn-secondary btn" onclick="exportImage('ugly')" style="margin-right: 10px;">📥 Export</button>
+                <button class="btn-secondary btn" onclick="resizeImage('ugly')">🔍 Resize</button>
+            </div>
+
+            <!-- Brite Spot Image -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0;">✨ Brite Spot Image</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;" id="briteSpotImageTitle">For your Brite Spot section</p>
+
+                <div id="briteSpotImagePreview" style="background: #f5f5f5; border: 2px dashed #ddd; border-radius: 8px; min-height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                    <div style="text-align: center; color: #999;">
+                        <div class="spinner" style="margin: 0 auto 10px;"></div>
+                        <div>Generating image...</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px;">Image Prompt:</label>
+                    <textarea id="briteSpotPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
+                </div>
+                <button class="btn-secondary btn" onclick="regenerateImage('briteSpot')" style="margin-right: 10px;">🔄 Regenerate</button>
+                <button class="btn-secondary btn" onclick="exportImage('briteSpot')" style="margin-right: 10px;">📥 Export</button>
+                <button class="btn-secondary btn" onclick="resizeImage('briteSpot')">🔍 Resize</button>
+            </div>
+
+            <!-- Industry Pulse Image -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0;">📊 Industry Pulse Image</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;" id="pulseImageTitle">For your Industry Pulse section</p>
+
+                <div id="pulseImagePreview" style="background: #f5f5f5; border: 2px dashed #ddd; border-radius: 8px; min-height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                    <div style="text-align: center; color: #999;">
+                        <div class="spinner" style="margin: 0 auto 10px;"></div>
+                        <div>Generating image...</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px;">Image Prompt:</label>
+                    <textarea id="pulsePrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
+                </div>
+                <button class="btn-secondary btn" onclick="regenerateImage('pulse')" style="margin-right: 10px;">🔄 Regenerate</button>
+                <button class="btn-secondary btn" onclick="exportImage('pulse')" style="margin-right: 10px;">📥 Export</button>
+                <button class="btn-secondary btn" onclick="resizeImage('pulse')">🔍 Resize</button>
+            </div>
+
+            <!-- Partner Advantage Image -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0;">💡 Partner Advantage Image</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;" id="partnerImageTitle">For your Partner Advantage section</p>
+
+                <div id="partnerImagePreview" style="background: #f5f5f5; border: 2px dashed #ddd; border-radius: 8px; min-height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                    <div style="text-align: center; color: #999;">
+                        <div class="spinner" style="margin: 0 auto 10px;"></div>
+                        <div>Generating image...</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px;">Image Prompt:</label>
+                    <textarea id="partnerPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
+                </div>
+                <button class="btn-secondary btn" onclick="regenerateImage('partner')" style="margin-right: 10px;">🔄 Regenerate</button>
+                <button class="btn-secondary btn" onclick="exportImage('partner')" style="margin-right: 10px;">📥 Export</button>
+                <button class="btn-secondary btn" onclick="resizeImage('partner')">🔍 Resize</button>
+            </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="goToStep(7)">← Back to Brand Check</button>
-                <button class="btn" onclick="goToStep(9)">Continue to Subject Line →</button>
+                <button class="btn-secondary btn" onclick="showStep(8)">← Back to Prompts</button>
+                <button class="btn" onclick="goToStep(10)">Continue to Subject Line →</button>
             </div>
         </div>
 
-        <!-- Step 9: Subject Line & Preheader -->
-        <div class="step" id="step9">
+        <!-- Step 10: Subject Line & Preheader -->
+        <div class="step" id="step10">
             <h2>✉️ Subject Line & Preheader</h2>
             <p class="step-description">Claude will analyze your content and suggest compelling subject lines and preheaders</p>
 
@@ -1909,13 +2179,13 @@
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="goToStep(8)">← Back to Images</button>
-                <button class="btn" onclick="goToStep(10)">Continue to Preview →</button>
+                <button class="btn btn-secondary" onclick="goToStep(9)">← Back to Images</button>
+                <button class="btn" onclick="goToStep(11)">Continue to Preview →</button>
             </div>
         </div>
 
-        <!-- Step 10: Preview & Publish -->
-        <div class="step" id="step10">
+        <!-- Step 11: Newsletter Preview -->
+        <div class="step" id="step11">
             <h2>💻 Newsletter Preview</h2>
             <p class="step-description">Review your complete newsletter before sending</p>
 
@@ -1948,10 +2218,32 @@
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="goToStep(9)">← Back to Subject Line</button>
+                <button class="btn btn-secondary" onclick="goToStep(10)">← Back to Subject Line</button>
                 <button class="btn btn-secondary" onclick="toggleHTMLView()" id="htmlViewBtn">📝 View HTML Code</button>
                 <button class="btn btn-secondary" onclick="copyHTMLCode()">📋 Copy HTML</button>
-                <button class="btn" onclick="pushToOntraport()">Push to Ontraport →</button>
+                <button class="btn" onclick="goToStep(12)">Continue to Ontraport →</button>
+            </div>
+        </div>
+
+        <!-- Step 12: Push to Ontraport -->
+        <div class="step" id="step12">
+            <h2>📤 Push to Ontraport</h2>
+            <p class="step-description">Send your newsletter to Ontraport for distribution</p>
+
+            <div style="background: white; padding: 30px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 20px;">📬</div>
+                <h3 style="margin: 0 0 10px 0; color: #272d3f;">Ready to Send?</h3>
+                <p style="color: #666; margin-bottom: 20px;">Your newsletter is ready to be pushed to Ontraport. This will create a new email draft in your Ontraport account.</p>
+
+                <button class="btn btn-orange" onclick="pushToOntraport()" id="ontraportBtn" style="padding: 15px 40px; font-size: 18px;">
+                    <span id="ontraportBtnText">🚀 Push to Ontraport</span>
+                </button>
+
+                <div id="ontraportResult" style="display: none; margin-top: 20px; padding: 15px; border-radius: 6px;"></div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(11)">← Back to Preview</button>
             </div>
         </div>
     </div>
@@ -1985,7 +2277,7 @@
         let currentStep = 1;
         let currentGBUTab = 'good';
         let currentStep5Tab = 'partner';
-        const totalSteps = 10;
+        const totalSteps = 12;
 
         let selectedArticles = {
             the_good: null,
@@ -2011,6 +2303,8 @@
 
         let generatedContent = {};
         let generatedImages = {};
+        let generatedPrompts = {};
+        let promptsAlreadyGenerated = false;
         let exportedDocUrl = '';
 
         // Team members
@@ -2034,10 +2328,12 @@
             '6b': 'Review Content',
             '6c': 'Brand Check...',
             7: 'Brand Check',
-            '7b': 'Generating Images...',
-            8: 'Images',
-            9: 'Subject Line',
-            10: 'Preview & Publish'
+            8: 'Image Prompts',
+            '8b': 'Generating Images...',
+            9: 'Review Images',
+            10: 'Subject Line',
+            11: 'Preview',
+            12: 'Ontraport'
         };
 
         // Password
@@ -2110,13 +2406,8 @@
                 runBrandCheckAuto();
                 return;
             }
-            // Auto-run image generation when going to step 8
-            if (step === 8) {
-                generateImagesAuto();
-                return;
-            }
-            // Populate preview when going to step 10
-            if (step === 10) {
+            // Populate preview when going to step 11
+            if (step === 11) {
                 populatePreview();
             }
             currentStep = step;
@@ -2142,14 +2433,340 @@
         function showStep(stepId) {
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             document.getElementById('step' + stepId).classList.add('active');
+            currentStep = stepId;
+            updateProgressBar();
         }
 
         function updateProgressBar() {
-            const stepNum = typeof currentStep === 'string' ? 7 : currentStep;
+            // Map string step IDs to numeric values for progress calculation
+            let stepNum = currentStep;
+            if (typeof currentStep === 'string') {
+                if (currentStep === '6b' || currentStep === '6c') stepNum = 6;
+                else if (currentStep === '8b') stepNum = 8;
+                else stepNum = parseInt(currentStep) || 7;
+            }
             const progress = (stepNum / totalSteps) * 100;
             document.getElementById('progressBar').style.width = progress + '%';
             document.getElementById('progressStep').textContent = `Step ${stepNum} of ${totalSteps}`;
             document.getElementById('progressLabel').textContent = stepLabels[currentStep] || '';
+        }
+
+        // Image Prompt Generation
+        async function generateImagePrompts(forceRegenerate = false) {
+            // If prompts already generated and not forcing regeneration, just show the edit step
+            if (promptsAlreadyGenerated && !forceRegenerate) {
+                showStep(8);
+                document.getElementById('promptGenerationLoading').style.display = 'none';
+                document.getElementById('promptEditing').style.display = 'block';
+                return;
+            }
+
+            try {
+                showStep(8);
+                document.getElementById('promptGenerationLoading').style.display = 'block';
+                document.getElementById('promptEditing').style.display = 'none';
+
+                // Gather content for prompt generation
+                const contentData = {
+                    the_good: document.getElementById('goodContent')?.value || generatedContent.the_good || '',
+                    the_bad: document.getElementById('badContent')?.value || generatedContent.the_bad || '',
+                    the_ugly: document.getElementById('uglyContent')?.value || generatedContent.the_ugly || '',
+                    brite_spot: document.getElementById('briteSpotContent')?.value || generatedContent.brite_spot || '',
+                    industry_pulse: document.getElementById('pulseContent')?.value || generatedContent.industry_pulse || '',
+                    partner_advantage: document.getElementById('partnerContent')?.value || generatedContent.partner_advantage || ''
+                };
+
+                const response = await fetch(`${API_BASE}/api/generate-image-prompts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: contentData })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    generatedPrompts = data.prompts;
+                    promptsAlreadyGenerated = true;
+
+                    // Populate the prompt textareas
+                    document.getElementById('goodImagePromptText').value = data.prompts.the_good || '';
+                    document.getElementById('badImagePromptText').value = data.prompts.the_bad || '';
+                    document.getElementById('uglyImagePromptText').value = data.prompts.the_ugly || '';
+                    document.getElementById('briteSpotImagePromptText').value = data.prompts.brite_spot || '';
+                    document.getElementById('pulseImagePromptText').value = data.prompts.industry_pulse || '';
+                    document.getElementById('partnerImagePromptText').value = data.prompts.partner_advantage || '';
+
+                    // Show article titles if available
+                    if (selectedArticles.the_good?.title) {
+                        document.getElementById('goodPromptArticle').textContent = `Article: ${selectedArticles.the_good.title}`;
+                    }
+                    if (selectedArticles.the_bad?.title) {
+                        document.getElementById('badPromptArticle').textContent = `Article: ${selectedArticles.the_bad.title}`;
+                    }
+                    if (selectedArticles.the_ugly?.title) {
+                        document.getElementById('uglyPromptArticle').textContent = `Article: ${selectedArticles.the_ugly.title}`;
+                    }
+
+                    document.getElementById('promptGenerationLoading').style.display = 'none';
+                    document.getElementById('promptEditing').style.display = 'block';
+                } else {
+                    throw new Error(data.error || 'Failed to generate prompts');
+                }
+            } catch (error) {
+                console.error('Error generating prompts:', error);
+                alert('Error generating image prompts: ' + error.message);
+                goToStep(7);
+            }
+        }
+
+        // Update prompt with selected style
+        function updatePromptWithStyle(section) {
+            const styleSelect = document.getElementById(section + 'ImageStyle');
+            const promptTextarea = document.getElementById(section + 'ImagePromptText');
+
+            if (!styleSelect || !promptTextarea) return;
+
+            const style = styleSelect.value;
+            let currentPrompt = promptTextarea.value;
+
+            // Remove any existing style prefix
+            const stylePatterns = [
+                /^Photorealistic:?\s*/i,
+                /^Sketch \/ Illustration:?\s*/i,
+                /^Watercolor:?\s*/i,
+                /^Modern Flat Design:?\s*/i,
+                /^Magazine Editorial:?\s*/i,
+                /^Cartoon:?\s*/i,
+                /^Infographic \/ Data Viz:?\s*/i
+            ];
+
+            stylePatterns.forEach(pattern => {
+                currentPrompt = currentPrompt.replace(pattern, '');
+            });
+
+            // Add new style prefix
+            const styleLabels = {
+                'photorealistic': 'Photorealistic',
+                'sketch': 'Sketch / Illustration',
+                'watercolor': 'Watercolor',
+                'modern-flat': 'Modern Flat Design',
+                'magazine': 'Magazine Editorial',
+                'cartoon': 'Cartoon',
+                'infographic': 'Infographic / Data Viz'
+            };
+
+            promptTextarea.value = `${styleLabels[style]}: ${currentPrompt.trim()}`;
+        }
+
+        // Generate images from edited prompts
+        async function generateImagesFromPrompts() {
+            try {
+                showStep('8b');
+
+                // Format prompts as expected by backend (each section has an object with 'prompt' key)
+                const prompts = {
+                    the_good: { prompt: document.getElementById('goodImagePromptText').value },
+                    the_bad: { prompt: document.getElementById('badImagePromptText').value },
+                    the_ugly: { prompt: document.getElementById('uglyImagePromptText').value },
+                    brite_spot: { prompt: document.getElementById('briteSpotImagePromptText').value },
+                    industry_pulse: { prompt: document.getElementById('pulseImagePromptText').value },
+                    partner_advantage: { prompt: document.getElementById('partnerImagePromptText').value }
+                };
+
+                // Update progress UI
+                const totalImages = 6;
+                let completedImages = 0;
+
+                const updateProgress = (count) => {
+                    completedImages = count;
+                    const percent = Math.round((completedImages / totalImages) * 100);
+                    document.getElementById('imageGenProgress').textContent = `${percent}%`;
+                    document.getElementById('imageGenProgressBar').style.width = `${percent}%`;
+                    document.getElementById('imageGenStatus').textContent = `Generated ${completedImages} of ${totalImages} images...`;
+                };
+
+                const response = await fetch(`${API_BASE}/api/generate-images`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompts })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    generatedImages = data.images;
+                    updateProgress(6);
+
+                    // Display images in review step
+                    displayGeneratedImages();
+                    showStep(9);
+                } else {
+                    throw new Error(data.error || 'Failed to generate images');
+                }
+            } catch (error) {
+                console.error('Error generating images:', error);
+                alert('Error generating images: ' + error.message);
+                showStep(8);
+            }
+        }
+
+        // Display generated images in review step
+        function displayGeneratedImages() {
+            const sections = ['good', 'bad', 'ugly', 'briteSpot', 'pulse', 'partner'];
+            const sectionMap = {
+                'good': 'the_good',
+                'bad': 'the_bad',
+                'ugly': 'the_ugly',
+                'briteSpot': 'brite_spot',
+                'pulse': 'industry_pulse',
+                'partner': 'partner_advantage'
+            };
+
+            sections.forEach(section => {
+                const previewDiv = document.getElementById(section + 'ImagePreview');
+                const promptTextarea = document.getElementById(section + 'Prompt');
+                const imageKey = sectionMap[section];
+
+                if (previewDiv && generatedImages[imageKey]) {
+                    // Handle both formats: {url: '...'} object or direct URL string
+                    const imageUrl = generatedImages[imageKey].url || generatedImages[imageKey];
+                    if (imageUrl) {
+                        previewDiv.innerHTML = `<img src="${imageUrl}" style="max-width: 100%; border-radius: 8px;" alt="${section} image">`;
+                    }
+                }
+
+                if (promptTextarea) {
+                    promptTextarea.value = document.getElementById(section + 'ImagePromptText')?.value || '';
+                }
+            });
+        }
+
+        // Regenerate single image
+        async function regenerateImage(section) {
+            const sectionMap = {
+                'good': 'the_good',
+                'bad': 'the_bad',
+                'ugly': 'the_ugly',
+                'briteSpot': 'brite_spot',
+                'pulse': 'industry_pulse',
+                'partner': 'partner_advantage'
+            };
+
+            const previewDiv = document.getElementById(section + 'ImagePreview');
+            const promptTextarea = document.getElementById(section + 'Prompt');
+            const imageKey = sectionMap[section];
+
+            if (!previewDiv || !promptTextarea) return;
+
+            const prompt = promptTextarea.value;
+            if (!prompt) {
+                alert('Please enter a prompt first');
+                return;
+            }
+
+            previewDiv.innerHTML = `
+                <div style="text-align: center; color: #999;">
+                    <div class="spinner" style="margin: 0 auto 10px;"></div>
+                    <div>Regenerating image...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/generate-single-image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, section: imageKey })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    generatedImages[imageKey] = data.image_url;
+                    previewDiv.innerHTML = `<img src="${data.image_url}" style="max-width: 100%; border-radius: 8px;" alt="${section} image">`;
+                } else {
+                    throw new Error(data.error || 'Failed to regenerate image');
+                }
+            } catch (error) {
+                console.error('Error regenerating image:', error);
+                previewDiv.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 20px;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Export single image
+        function exportImage(section) {
+            const sectionMap = {
+                'good': 'the_good',
+                'bad': 'the_bad',
+                'ugly': 'the_ugly',
+                'briteSpot': 'brite_spot',
+                'pulse': 'industry_pulse',
+                'partner': 'partner_advantage'
+            };
+
+            const imageKey = sectionMap[section];
+            const imageUrl = generatedImages[imageKey];
+
+            if (!imageUrl) {
+                alert('No image to export');
+                return;
+            }
+
+            // Create download link
+            const link = document.createElement('a');
+            link.href = imageUrl;
+            link.download = `${section}-image.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Resize image
+        async function resizeImage(section) {
+            const sectionMap = {
+                'good': 'the_good',
+                'bad': 'the_bad',
+                'ugly': 'the_ugly',
+                'briteSpot': 'brite_spot',
+                'pulse': 'industry_pulse',
+                'partner': 'partner_advantage'
+            };
+
+            const imageKey = sectionMap[section];
+            const imageUrl = generatedImages[imageKey];
+
+            if (!imageUrl) {
+                alert('No image to resize');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/resize-image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_url: imageUrl,
+                        width: 203,
+                        height: 203,
+                        section: imageKey
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    generatedImages[imageKey] = data.resized_url;
+                    const previewDiv = document.getElementById(section + 'ImagePreview');
+                    if (previewDiv) {
+                        previewDiv.innerHTML = `<img src="${data.resized_url}" style="max-width: 100%; border-radius: 8px;" alt="${section} image">`;
+                    }
+                    alert('Image resized to 203x203px');
+                } else {
+                    throw new Error(data.error || 'Failed to resize image');
+                }
+            } catch (error) {
+                console.error('Error resizing image:', error);
+                alert('Error resizing image: ' + error.message);
+            }
         }
 
         // Word counters
@@ -2927,80 +3544,6 @@
                 resultDiv.style.background = '#fee2e2';
                 resultDiv.style.border = '2px solid #ef4444';
                 resultDiv.innerHTML = `<p style="margin: 0; color: #991b1b;">✗ Error: ${error.message}</p>`;
-            }
-        }
-
-        // Generate images - auto-run version
-        async function generateImagesAuto() {
-            // Show loading screen
-            currentStep = '7b';
-            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-            document.getElementById('step7b').classList.add('active');
-            updateProgressBar();
-            window.scrollTo(0, 0);
-
-            try {
-                const response = await fetch(`${API_BASE}/api/generate-images`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: generatedContent, month: selectedMonth })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    generatedImages = data.images;
-                    displayGeneratedImages(data.images);
-                } else {
-                    document.getElementById('imageResults').innerHTML = '<p style="color: #666; text-align: center;">No images generated. Continue to the next step.</p>';
-                }
-
-                // Show results step
-                currentStep = 8;
-                document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-                document.getElementById('step8').classList.add('active');
-                updateProgressBar();
-            } catch (error) {
-                console.error('Image generation failed:', error);
-                document.getElementById('imageResults').innerHTML = '<p style="color: #dc2626; text-align: center;">Image generation failed. You can continue without images.</p>';
-                currentStep = 8;
-                document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-                document.getElementById('step8').classList.add('active');
-                updateProgressBar();
-            }
-        }
-
-        function displayGeneratedImages(images) {
-            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">';
-            for (const [section, url] of Object.entries(images)) {
-                const sectionTitle = section.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                html += `
-                    <div style="background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 15px;">
-                        <h4 style="color: #272d3f; margin-bottom: 10px; font-size: 14px;">${sectionTitle}</h4>
-                        <img src="${url}" style="width: 100%; border-radius: 6px;" alt="${sectionTitle}">
-                        <button class="btn btn-secondary" onclick="regenerateImage('${section}')" style="margin-top: 10px; width: 100%; font-size: 13px;">🔄 Regenerate</button>
-                    </div>
-                `;
-            }
-            html += '</div>';
-            document.getElementById('imageResults').innerHTML = html;
-        }
-
-        async function regenerateImage(section) {
-            // Individual image regeneration
-            try {
-                const response = await fetch(`${API_BASE}/api/generate-images`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: generatedContent, month: selectedMonth, section: section })
-                });
-                const data = await response.json();
-                if (data.success && data.images[section]) {
-                    generatedImages[section] = data.images[section];
-                    displayGeneratedImages(generatedImages);
-                }
-            } catch (error) {
-                alert('Failed to regenerate image: ' + error.message);
             }
         }
 

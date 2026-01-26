@@ -1275,14 +1275,14 @@ def generate_images():
 
         images = {}
 
-        # Image sizes for different sections
+        # Image sizes for different sections (all 203x203 for jeweler newsletter)
         IMAGE_SIZES = {
-            'the_good': (300, 200),
-            'the_bad': (300, 200),
-            'the_ugly': (300, 200),
-            'industry_pulse': (580, 300),
-            'partner_advantage': (400, 250),
-            'brite_spot': (400, 200)
+            'the_good': (203, 203),
+            'the_bad': (203, 203),
+            'the_ugly': (203, 203),
+            'industry_pulse': (203, 203),
+            'partner_advantage': (203, 203),
+            'brite_spot': (203, 203)
         }
 
         for section, prompt_data in prompts.items():
@@ -1350,6 +1350,99 @@ def resize_image(base64_data, target_size):
     except Exception as e:
         safe_print(f"  Resize error: {e}")
         return base64_data
+
+
+@app.route('/api/generate-single-image', methods=['POST'])
+def generate_single_image():
+    """Generate a single image using Gemini"""
+    try:
+        data = request.json
+        prompt = data.get('prompt', '')
+        section = data.get('section', 'generic')
+
+        if not prompt:
+            return jsonify({'success': False, 'error': 'No prompt provided'}), 400
+
+        safe_print(f"\n[API] Regenerating image for {section}...")
+
+        # Image sizes for different sections
+        IMAGE_SIZES = {
+            'the_good': (203, 203),
+            'the_bad': (203, 203),
+            'the_ugly': (203, 203),
+            'industry_pulse': (203, 203),
+            'partner_advantage': (203, 203),
+            'brite_spot': (203, 203)
+        }
+
+        result = gemini_client.generate_image(
+            prompt=prompt,
+            model="gemini-2.0-flash-exp",
+            aspect_ratio="1:1"
+        )
+
+        image_data = result.get('image_data', '')
+
+        # Resize to target dimensions
+        if image_data:
+            target_size = IMAGE_SIZES.get(section, (203, 203))
+            image_data = resize_image(image_data, target_size)
+
+        image_url = f"data:image/png;base64,{image_data}" if image_data else ''
+
+        return jsonify({
+            'success': True,
+            'image_url': image_url
+        })
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Generate single image: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/resize-image', methods=['POST'])
+def resize_image_endpoint():
+    """Resize an image to specified dimensions"""
+    try:
+        data = request.json
+        image_url = data.get('image_url', '')
+        width = data.get('width', 203)
+        height = data.get('height', 203)
+        section = data.get('section', 'generic')
+
+        if not image_url:
+            return jsonify({'success': False, 'error': 'No image URL provided'}), 400
+
+        safe_print(f"\n[API] Resizing image for {section} to {width}x{height}...")
+
+        # Extract base64 data from data URL
+        if image_url.startswith('data:'):
+            base64_data = image_url.split(',')[1] if ',' in image_url else ''
+        else:
+            # If it's a regular URL, fetch and convert
+            import requests as req
+            response = req.get(image_url)
+            base64_data = base64.b64encode(response.content).decode('utf-8')
+
+        if not base64_data:
+            return jsonify({'success': False, 'error': 'Could not extract image data'}), 400
+
+        # Resize the image
+        resized_data = resize_image(base64_data, (width, height))
+        resized_url = f"data:image/png;base64,{resized_data}"
+
+        return jsonify({
+            'success': True,
+            'resized_url': resized_url
+        })
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Resize image: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================
