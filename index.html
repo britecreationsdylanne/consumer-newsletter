@@ -1475,7 +1475,7 @@
                         <div class="research-card-title">
                             <span class="icon">📚</span> Source Explorer
                         </div>
-                        <span class="research-card-badge badge-green">Industry</span>
+                        <span class="research-card-badge badge-orange">Industry</span>
                     </div>
                     <p class="research-card-description">Searches curated jewelry industry sources, then GPT-5.2 extracts story angles and jeweler implications.</p>
                     <div class="curated-sources">
@@ -1516,13 +1516,13 @@
                 </div>
                 <div class="section-progress-actions">
                     <button class="btn btn-secondary" onclick="goToStep(2)">← Back</button>
-                    <button class="btn" id="step3NextBtn" onclick="goToStep(4)">Continue to Industry Pulse →</button>
+                    <button class="btn" id="step3NextBtn" onclick="goToStep(5)">Continue to Research →</button>
                 </div>
             </div>
         </div>
 
-        <!-- Step 4: Industry Pulse -->
-        <div class="step" id="step4">
+        <!-- Step 4: Industry Pulse (HIDDEN - merged into Step 5) -->
+        <div class="step" id="step4" style="display: none !important;">
             <div class="research-section-header">
                 <div class="research-section-info">
                     <h3>Researching for: <strong>Industry Pulse</strong> section. Search and select 2-5 articles below.</h3>
@@ -1575,7 +1575,7 @@
                 <div class="research-card">
                     <div class="research-card-header">
                         <div class="research-card-title"><span class="icon">📚</span> Source Explorer</div>
-                        <span class="research-card-badge badge-green">Industry</span>
+                        <span class="research-card-badge badge-orange">Industry</span>
                     </div>
                     <p class="research-card-description">Search curated industry publications</p>
                     <div class="research-card-filters">
@@ -1596,18 +1596,21 @@
             </div>
         </div>
 
-        <!-- Step 5: Partner Advantage & Industry News -->
+        <!-- Step 5: Industry Pulse, Partner Advantage & Industry News (Combined) -->
         <div class="step" id="step5">
             <div class="research-section-header">
                 <div class="research-section-info">
-                    <h3>Researching for: <strong id="step5SectionTitle">Partner Advantage</strong> section.</h3>
-                    <p id="step5SectionDesc">Select 1-2 articles for tips and insights for jewelers</p>
+                    <h3>Researching for: <strong id="step5SectionTitle">Industry Pulse</strong> section.</h3>
+                    <p id="step5SectionDesc">Select 2-5 articles to combine into one cohesive story</p>
                 </div>
-                <button class="btn-add-link" onclick="showCustomLinkModal('step5')">📎 Add Custom Link</button>
+                <button class="btn-add-link" onclick="showCustomLinkModal(currentStep5Tab)">📎 Add Custom Link</button>
             </div>
 
             <div class="research-tabs">
-                <button class="research-tab active" onclick="switchStep5Tab('partner', this)">
+                <button class="research-tab active" onclick="switchStep5Tab('pulse', this)">
+                    <span class="tab-icon">📊</span> Industry Pulse (2-5) <span class="tab-check" id="pulse-check"></span>
+                </button>
+                <button class="research-tab" onclick="switchStep5Tab('partner', this)">
                     <span class="tab-icon">💡</span> Partner Advantage (1-2) <span class="tab-check" id="partner-check"></span>
                 </button>
                 <button class="research-tab" onclick="switchStep5Tab('news', this)">
@@ -1657,7 +1660,7 @@
                 <div class="research-card">
                     <div class="research-card-header">
                         <div class="research-card-title"><span class="icon">📚</span> Source Explorer</div>
-                        <span class="research-card-badge badge-green">Industry</span>
+                        <span class="research-card-badge badge-orange">Industry</span>
                     </div>
                     <p class="research-card-description">Search trusted publications</p>
                     <div class="research-card-filters">
@@ -1674,7 +1677,10 @@
 
             <div class="bottom-progress-tracker">
                 <div class="section-progress-items">
-                    <div class="section-progress-item active" onclick="switchStep5Tab('partner', null)" id="progress-partner">
+                    <div class="section-progress-item active" onclick="switchStep5Tab('pulse', null)" id="progress-pulse">
+                        <span class="item-icon">📊</span> Industry Pulse <span class="item-check">✓</span>
+                    </div>
+                    <div class="section-progress-item" onclick="switchStep5Tab('partner', null)" id="progress-partner">
                         <span class="item-icon">💡</span> Partner Advantage <span class="item-check">✓</span>
                     </div>
                     <div class="section-progress-item" onclick="switchStep5Tab('news', null)" id="progress-news">
@@ -1682,7 +1688,7 @@
                     </div>
                 </div>
                 <div class="section-progress-actions">
-                    <button class="btn btn-secondary" onclick="goToStep(4)">← Back</button>
+                    <button class="btn btn-secondary" onclick="goToStep(3)">← Back</button>
                     <button class="btn" onclick="generateContent()">Generate Newsletter →</button>
                 </div>
             </div>
@@ -1690,11 +1696,33 @@
 
         <!-- Step 6: Generating Content -->
         <div class="step" id="step6">
-            <div class="loading">
-                <div class="spinner"></div>
-                <h3>Generating Newsletter Content...</h3>
-                <p style="color: #666;">Claude is writing your newsletter sections...</p>
-                <p id="generatingStatus" style="color: #999; margin-top: 10px;"></p>
+            <div style="max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div class="spinner" style="margin: 0 auto 20px;"></div>
+                    <h3 style="margin: 0 0 10px 0; color: #272d3f;">Generating Newsletter Content</h3>
+                    <p style="color: #666; margin: 0;" id="generatingPhase">Researching each section...</p>
+                </div>
+
+                <!-- Section Status Indicators -->
+                <div style="background: white; border-radius: 12px; padding: 20px; border: 2px solid #e5e7eb;">
+                    <div id="researchGBUStatus" style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: #f9fafb; font-size: 14px;">
+                        <span style="margin-right: 10px;">👍👎😱</span> GOOD/BAD/UGLY: <span style="color: #666;">Waiting...</span>
+                    </div>
+                    <div id="researchBriteSpotStatus" style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: #f9fafb; font-size: 14px;">
+                        <span style="margin-right: 10px;">✨</span> BRITE SPOT: <span style="color: #666;">Waiting...</span>
+                    </div>
+                    <div id="researchPulseStatus" style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: #f9fafb; font-size: 14px;">
+                        <span style="margin-right: 10px;">📊</span> INDUSTRY PULSE: <span style="color: #666;">Waiting...</span>
+                    </div>
+                    <div id="researchPartnerStatus" style="padding: 12px; margin-bottom: 8px; border-radius: 6px; background: #f9fafb; font-size: 14px;">
+                        <span style="margin-right: 10px;">💡</span> PARTNER ADVANTAGE: <span style="color: #666;">Waiting...</span>
+                    </div>
+                    <div id="researchNewsStatus" style="padding: 12px; border-radius: 6px; background: #f9fafb; font-size: 14px;">
+                        <span style="margin-right: 10px;">📰</span> INDUSTRY NEWS: <span style="color: #666;">Waiting...</span>
+                    </div>
+                </div>
+
+                <p id="generatingStatus" style="color: #999; margin-top: 20px; text-align: center; font-size: 13px;"></p>
             </div>
         </div>
 
@@ -1991,8 +2019,7 @@
                     <textarea id="goodPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
                 </div>
                 <button class="btn-secondary btn" onclick="regenerateImage('good')" style="margin-right: 10px;">🔄 Regenerate</button>
-                <button class="btn-secondary btn" onclick="exportImage('good')" style="margin-right: 10px;">📥 Export</button>
-                <button class="btn-secondary btn" onclick="resizeImage('good')">🔍 Resize</button>
+                <button class="btn-secondary btn" onclick="exportImage('good')">📥 Export</button>
             </div>
 
             <!-- The Bad Image -->
@@ -2012,8 +2039,7 @@
                     <textarea id="badPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
                 </div>
                 <button class="btn-secondary btn" onclick="regenerateImage('bad')" style="margin-right: 10px;">🔄 Regenerate</button>
-                <button class="btn-secondary btn" onclick="exportImage('bad')" style="margin-right: 10px;">📥 Export</button>
-                <button class="btn-secondary btn" onclick="resizeImage('bad')">🔍 Resize</button>
+                <button class="btn-secondary btn" onclick="exportImage('bad')">📥 Export</button>
             </div>
 
             <!-- The Ugly Image -->
@@ -2033,8 +2059,7 @@
                     <textarea id="uglyPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
                 </div>
                 <button class="btn-secondary btn" onclick="regenerateImage('ugly')" style="margin-right: 10px;">🔄 Regenerate</button>
-                <button class="btn-secondary btn" onclick="exportImage('ugly')" style="margin-right: 10px;">📥 Export</button>
-                <button class="btn-secondary btn" onclick="resizeImage('ugly')">🔍 Resize</button>
+                <button class="btn-secondary btn" onclick="exportImage('ugly')">📥 Export</button>
             </div>
 
             <!-- Brite Spot Image -->
@@ -2054,8 +2079,7 @@
                     <textarea id="briteSpotPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
                 </div>
                 <button class="btn-secondary btn" onclick="regenerateImage('briteSpot')" style="margin-right: 10px;">🔄 Regenerate</button>
-                <button class="btn-secondary btn" onclick="exportImage('briteSpot')" style="margin-right: 10px;">📥 Export</button>
-                <button class="btn-secondary btn" onclick="resizeImage('briteSpot')">🔍 Resize</button>
+                <button class="btn-secondary btn" onclick="exportImage('briteSpot')">📥 Export</button>
             </div>
 
             <!-- Industry Pulse Image -->
@@ -2075,8 +2099,7 @@
                     <textarea id="pulsePrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
                 </div>
                 <button class="btn-secondary btn" onclick="regenerateImage('pulse')" style="margin-right: 10px;">🔄 Regenerate</button>
-                <button class="btn-secondary btn" onclick="exportImage('pulse')" style="margin-right: 10px;">📥 Export</button>
-                <button class="btn-secondary btn" onclick="resizeImage('pulse')">🔍 Resize</button>
+                <button class="btn-secondary btn" onclick="exportImage('pulse')">📥 Export</button>
             </div>
 
             <!-- Partner Advantage Image -->
@@ -2096,8 +2119,7 @@
                     <textarea id="partnerPrompt" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px;" placeholder="Describe the image you want..."></textarea>
                 </div>
                 <button class="btn-secondary btn" onclick="regenerateImage('partner')" style="margin-right: 10px;">🔄 Regenerate</button>
-                <button class="btn-secondary btn" onclick="exportImage('partner')" style="margin-right: 10px;">📥 Export</button>
-                <button class="btn-secondary btn" onclick="resizeImage('partner')">🔍 Resize</button>
+                <button class="btn-secondary btn" onclick="exportImage('partner')">📥 Export</button>
             </div>
 
             <div class="buttons">
@@ -2221,7 +2243,7 @@
                 <button class="btn btn-secondary" onclick="goToStep(10)">← Back to Subject Line</button>
                 <button class="btn btn-secondary" onclick="toggleHTMLView()" id="htmlViewBtn">📝 View HTML Code</button>
                 <button class="btn btn-secondary" onclick="copyHTMLCode()">📋 Copy HTML</button>
-                <button class="btn" onclick="goToStep(12)">Continue to Ontraport →</button>
+                <button class="btn btn-orange" onclick="pushToOntraport()" style="background: #FE8916;">🚀 Push to Ontraport</button>
             </div>
         </div>
 
@@ -2276,7 +2298,7 @@
         let selectedMonth = '';
         let currentStep = 1;
         let currentGBUTab = 'good';
-        let currentStep5Tab = 'partner';
+        let currentStep5Tab = 'pulse';
         const totalSteps = 12;
 
         let selectedArticles = {
@@ -2295,10 +2317,18 @@
             ugly: { perplexity: [], insight: [], source: [], htmlCache: { perplexity: '', insight: '', source: '' } }
         };
 
+        // Step 5 tab-specific search state (pulse, partner, news each have own results)
+        let step5SearchState = {
+            pulse: { perplexity: [], insight: [], source: [], htmlCache: { perplexity: '', insight: '', source: '' } },
+            partner: { perplexity: [], insight: [], source: [], htmlCache: { perplexity: '', insight: '', source: '' } },
+            news: { perplexity: [], insight: [], source: [], htmlCache: { perplexity: '', insight: '', source: '' } }
+        };
+
         let customLinks = {
             gbu: [],
             pulse: [],
-            step5: []
+            partner: [],
+            news: []
         };
 
         let generatedContent = {};
@@ -2322,8 +2352,8 @@
             1: 'Select Month',
             2: 'Intro & Brite Spot',
             3: 'Good/Bad/Ugly',
-            4: 'Industry Pulse',
-            5: 'Partner & News',
+            4: 'Research',  // Hidden - merged into step 5
+            5: 'Pulse/Partner/News',
             6: 'Generating...',
             '6b': 'Review Content',
             '6c': 'Brand Check...',
@@ -2466,20 +2496,38 @@
                 document.getElementById('promptGenerationLoading').style.display = 'block';
                 document.getElementById('promptEditing').style.display = 'none';
 
-                // Gather content for prompt generation
-                const contentData = {
-                    the_good: document.getElementById('goodContent')?.value || generatedContent.the_good || '',
-                    the_bad: document.getElementById('badContent')?.value || generatedContent.the_bad || '',
-                    the_ugly: document.getElementById('uglyContent')?.value || generatedContent.the_ugly || '',
-                    brite_spot: document.getElementById('briteSpotContent')?.value || generatedContent.brite_spot || '',
-                    industry_pulse: document.getElementById('pulseContent')?.value || generatedContent.industry_pulse || '',
-                    partner_advantage: document.getElementById('partnerContent')?.value || generatedContent.partner_advantage || ''
+                // Gather content for prompt generation - backend expects sections with title and content
+                const sections = {
+                    the_good: {
+                        title: selectedArticles.the_good?.title || 'The Good',
+                        content: document.getElementById('goodContent')?.value || generatedContent.the_good || ''
+                    },
+                    the_bad: {
+                        title: selectedArticles.the_bad?.title || 'The Bad',
+                        content: document.getElementById('badContent')?.value || generatedContent.the_bad || ''
+                    },
+                    the_ugly: {
+                        title: selectedArticles.the_ugly?.title || 'The Ugly',
+                        content: document.getElementById('uglyContent')?.value || generatedContent.the_ugly || ''
+                    },
+                    brite_spot: {
+                        title: document.getElementById('briteSpotSubheader')?.value || 'Brite Spot',
+                        content: document.getElementById('briteSpotBody')?.value || generatedContent.brite_spot || ''
+                    },
+                    industry_pulse: {
+                        title: 'Industry Pulse',
+                        content: document.getElementById('pulseContent')?.value || generatedContent.industry_pulse || ''
+                    },
+                    partner_advantage: {
+                        title: 'Partner Advantage',
+                        content: document.getElementById('partnerContent')?.value || generatedContent.partner_advantage || ''
+                    }
                 };
 
                 const response = await fetch(`${API_BASE}/api/generate-image-prompts`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: contentData })
+                    body: JSON.stringify({ sections: sections })
                 });
 
                 const data = await response.json();
@@ -2488,13 +2536,13 @@
                     generatedPrompts = data.prompts;
                     promptsAlreadyGenerated = true;
 
-                    // Populate the prompt textareas
-                    document.getElementById('goodImagePromptText').value = data.prompts.the_good || '';
-                    document.getElementById('badImagePromptText').value = data.prompts.the_bad || '';
-                    document.getElementById('uglyImagePromptText').value = data.prompts.the_ugly || '';
-                    document.getElementById('briteSpotImagePromptText').value = data.prompts.brite_spot || '';
-                    document.getElementById('pulseImagePromptText').value = data.prompts.industry_pulse || '';
-                    document.getElementById('partnerImagePromptText').value = data.prompts.partner_advantage || '';
+                    // Populate the prompt textareas - backend returns { prompt: '...', title: '...' } objects
+                    document.getElementById('goodImagePromptText').value = data.prompts.the_good?.prompt || '';
+                    document.getElementById('badImagePromptText').value = data.prompts.the_bad?.prompt || '';
+                    document.getElementById('uglyImagePromptText').value = data.prompts.the_ugly?.prompt || '';
+                    document.getElementById('briteSpotImagePromptText').value = data.prompts.brite_spot?.prompt || '';
+                    document.getElementById('pulseImagePromptText').value = data.prompts.industry_pulse?.prompt || '';
+                    document.getElementById('partnerImagePromptText').value = data.prompts.partner_advantage?.prompt || '';
 
                     // Show article titles if available
                     if (selectedArticles.the_good?.title) {
@@ -2892,28 +2940,71 @@
             }
         }
 
-        // Step 5 tab switching
+        // Step 5 tab switching (pulse, partner, news)
         function switchStep5Tab(tab, element) {
+            const oldTab = currentStep5Tab;
             currentStep5Tab = tab;
 
+            // Save current tab's search results before switching
+            if (step5SearchState[oldTab]) {
+                const perplexityDiv = document.getElementById('step5-perplexity-results');
+                const insightDiv = document.getElementById('step5-insight-results');
+                const sourceDiv = document.getElementById('step5-source-results');
+                if (perplexityDiv) step5SearchState[oldTab].htmlCache.perplexity = perplexityDiv.innerHTML;
+                if (insightDiv) step5SearchState[oldTab].htmlCache.insight = insightDiv.innerHTML;
+                if (sourceDiv) step5SearchState[oldTab].htmlCache.source = sourceDiv.innerHTML;
+            }
+
+            // Update tab button styles
             document.querySelectorAll('#step5 .research-tab').forEach(t => t.classList.remove('active'));
-            if (element) element.classList.add('active');
-            else document.querySelector(`#step5 .research-tab:nth-child(${tab === 'partner' ? 1 : 2})`).classList.add('active');
+            if (element) {
+                element.classList.add('active');
+            } else {
+                const tabIndex = tab === 'pulse' ? 1 : tab === 'partner' ? 2 : 3;
+                const tabBtn = document.querySelector(`#step5 .research-tab:nth-child(${tabIndex})`);
+                if (tabBtn) tabBtn.classList.add('active');
+            }
 
+            // Update bottom progress tracker
             document.querySelectorAll('#step5 .section-progress-item').forEach(i => i.classList.remove('active'));
-            document.getElementById('progress-' + tab).classList.add('active');
+            const progressItem = document.getElementById('progress-' + tab);
+            if (progressItem) progressItem.classList.add('active');
 
-            const titles = { partner: 'Partner Advantage', news: 'Industry News' };
+            // Tab-specific configuration
+            const titles = {
+                pulse: 'Industry Pulse',
+                partner: 'Partner Advantage',
+                news: 'Industry News'
+            };
             const descs = {
+                pulse: 'Select 2-5 articles to combine into one cohesive story',
                 partner: 'Select 1-2 articles for tips and insights for jewelers',
                 news: 'Select 5 articles for quick news bullets'
             };
-            const counts = { partner: '2', news: '5' };
-            const mins = { partner: '1', news: '5' };
+            const counts = { pulse: '5', partner: '2', news: '5' };
+            const mins = { pulse: '2', partner: '1', news: '5' };
+            const articleKeys = {
+                pulse: 'industry_pulse',
+                partner: 'partner_advantage',
+                news: 'industry_news'
+            };
 
+            // Update header text
             document.getElementById('step5SectionTitle').textContent = titles[tab];
             document.getElementById('step5SectionDesc').textContent = descs[tab];
-            document.getElementById('step5Counter').innerHTML = `<span>📑 Selected: <span id="step5SelectedCount">${selectedArticles[tab === 'partner' ? 'partner_advantage' : 'industry_news'].length}</span> / ${counts[tab]} articles (min ${mins[tab]})</span>`;
+
+            // Update selection counter
+            const selectedCount = selectedArticles[articleKeys[tab]]?.length || 0;
+            document.getElementById('step5Counter').innerHTML = `<span>📑 Selected: <span id="step5SelectedCount">${selectedCount}</span> / ${counts[tab]} articles (min ${mins[tab]})</span>`;
+
+            // Restore cached search results for new tab
+            const newState = step5SearchState[tab];
+            const perplexityDiv = document.getElementById('step5-perplexity-results');
+            const insightDiv = document.getElementById('step5-insight-results');
+            const sourceDiv = document.getElementById('step5-source-results');
+            if (perplexityDiv) perplexityDiv.innerHTML = newState.htmlCache.perplexity || '';
+            if (insightDiv) insightDiv.innerHTML = newState.htmlCache.insight || '';
+            if (sourceDiv) sourceDiv.innerHTML = newState.htmlCache.source || '';
         }
 
         // Custom Link Modal
@@ -2952,10 +3043,25 @@
 
         async function addCustomLink() {
             const url = document.getElementById('customLinkInput').value.trim();
+            const errorDiv = document.getElementById('customLinkError');
+            const btn = document.querySelector('#customLinkModal .btn-green');
+
             if (!url) {
-                document.getElementById('customLinkError').textContent = 'Please enter a URL';
-                document.getElementById('customLinkError').style.display = 'block';
+                errorDiv.textContent = 'Please enter a URL';
+                errorDiv.style.display = 'block';
                 return;
+            }
+
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                errorDiv.textContent = 'Please enter a valid URL starting with http:// or https://';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            errorDiv.style.display = 'none';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px;"></span> Adding...';
             }
 
             try {
@@ -2968,31 +3074,105 @@
 
                 const data = await response.json();
 
-                if (!customLinks[currentModalSection]) customLinks[currentModalSection] = [];
-                customLinks[currentModalSection].push({
+                // Create article object
+                const article = {
                     url: url,
                     title: data.title || url,
+                    headline: data.title || url,
                     snippet: data.description || '',
                     publisher: data.publisher || new URL(url).hostname,
-                    source_card: 'custom'
-                });
+                    impact: 'CUSTOM',
+                    isCustomLink: true
+                };
+
+                // Store in customLinks
+                if (!customLinks[currentModalSection]) customLinks[currentModalSection] = [];
+                customLinks[currentModalSection].push(article);
+
+                // Add to search results so it appears in the UI
+                addCustomLinkToResults(currentModalSection, article);
 
                 document.getElementById('customLinkInput').value = '';
-                document.getElementById('customLinkError').style.display = 'none';
                 updateAddedLinksDisplay();
 
             } catch (error) {
                 // Even if fetch fails, add the URL
-                if (!customLinks[currentModalSection]) customLinks[currentModalSection] = [];
-                customLinks[currentModalSection].push({
+                const article = {
                     url: url,
                     title: url,
+                    headline: url,
                     snippet: '',
                     publisher: new URL(url).hostname,
-                    source_card: 'custom'
-                });
+                    impact: 'CUSTOM',
+                    isCustomLink: true
+                };
+
+                if (!customLinks[currentModalSection]) customLinks[currentModalSection] = [];
+                customLinks[currentModalSection].push(article);
+
+                // Add to search results
+                addCustomLinkToResults(currentModalSection, article);
+
                 document.getElementById('customLinkInput').value = '';
                 updateAddedLinksDisplay();
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '+ Add This Link';
+                }
+            }
+        }
+
+        // Add custom link to search results and re-render
+        function addCustomLinkToResults(section, article) {
+            let resultsDiv;
+            let stateCache;
+
+            if (section === 'gbu') {
+                resultsDiv = document.getElementById('gbu-perplexity-results');
+                stateCache = gbuSearchState[currentGBUTab];
+            } else if (section === 'pulse' || section === 'partner' || section === 'news') {
+                resultsDiv = document.getElementById('step5-perplexity-results');
+                stateCache = step5SearchState[currentStep5Tab];
+            } else {
+                resultsDiv = document.getElementById(section + '-perplexity-results');
+            }
+
+            if (!resultsDiv) return;
+
+            // Create result card for the custom link
+            const item = document.createElement('div');
+            item.className = 'research-result-item';
+            item.style.borderLeft = '4px solid #059669';  // Green border to indicate custom
+            item.innerHTML = `
+                <div class="research-result-header">
+                    <span class="research-result-badge" style="background: #059669; color: white;">CUSTOM</span>
+                    <div class="research-result-meta">
+                        <span>${article.publisher}</span>
+                        <a href="${article.url}" target="_blank">Source →</a>
+                        <input type="checkbox" class="research-result-checkbox" onclick="event.stopPropagation()">
+                    </div>
+                </div>
+                <div class="research-result-title">${article.headline}</div>
+                ${article.snippet ? `
+                    <div class="research-result-keydata">
+                        <div class="research-result-keydata-label">SUMMARY</div>
+                        <p>${article.snippet.substring(0, 250)}${article.snippet.length > 250 ? '...' : ''}</p>
+                    </div>
+                ` : ''}
+            `;
+            item.onclick = () => selectArticle(section === 'pulse' || section === 'partner' || section === 'news' ? 'step5' : section, article, item);
+
+            // Insert at top of results
+            if (resultsDiv.firstChild) {
+                resultsDiv.insertBefore(item, resultsDiv.firstChild);
+            } else {
+                resultsDiv.appendChild(item);
+            }
+
+            // Update cache if available
+            if (stateCache) {
+                stateCache.htmlCache.perplexity = resultsDiv.innerHTML;
             }
         }
 
@@ -3093,6 +3273,11 @@
                     gbuSearchState[currentGBUTab].htmlCache[source] = resultsDiv.innerHTML;
                     gbuSearchState[currentGBUTab][source] = [];
                 }
+                // Save empty state to cache for Step5 tabs
+                if (section === 'step5' && step5SearchState[currentStep5Tab]) {
+                    step5SearchState[currentStep5Tab].htmlCache[source] = resultsDiv.innerHTML;
+                    step5SearchState[currentStep5Tab][source] = [];
+                }
                 return;
             }
 
@@ -3137,6 +3322,11 @@
                 gbuSearchState[currentGBUTab].htmlCache[source] = resultsDiv.innerHTML;
                 gbuSearchState[currentGBUTab][source] = results;
             }
+            // Save results to cache for Step5 tabs
+            if (section === 'step5' && step5SearchState[currentStep5Tab]) {
+                step5SearchState[currentStep5Tab].htmlCache[source] = resultsDiv.innerHTML;
+                step5SearchState[currentStep5Tab][source] = results;
+            }
         }
 
         function selectArticle(section, article, element) {
@@ -3179,8 +3369,19 @@
                 document.getElementById('pulseSelectedCount').textContent = selectedArticles[key].length;
 
             } else if (section === 'step5') {
-                const key = currentStep5Tab === 'partner' ? 'partner_advantage' : 'industry_news';
-                const maxItems = currentStep5Tab === 'partner' ? 2 : 5;
+                // Handle all three tabs: pulse, partner, news
+                const keyMap = {
+                    pulse: 'industry_pulse',
+                    partner: 'partner_advantage',
+                    news: 'industry_news'
+                };
+                const maxItemsMap = { pulse: 5, partner: 2, news: 5 };
+                const minItemsMap = { pulse: 2, partner: 1, news: 5 };
+
+                const key = keyMap[currentStep5Tab];
+                const maxItems = maxItemsMap[currentStep5Tab];
+                const minItems = minItemsMap[currentStep5Tab];
+
                 const existingIndex = selectedArticles[key].findIndex(a => a.url === article.url);
                 const checkbox = element.querySelector('.research-result-checkbox');
 
@@ -3199,9 +3400,14 @@
                 document.getElementById('step5SelectedCount').textContent = selectedArticles[key].length;
 
                 // Update check
-                if (selectedArticles[key].length >= (currentStep5Tab === 'partner' ? 1 : 5)) {
+                if (selectedArticles[key].length >= minItems) {
                     document.getElementById(currentStep5Tab + '-check').textContent = '✓';
-                    document.getElementById('progress-' + currentStep5Tab).classList.add('completed');
+                    const progressItem = document.getElementById('progress-' + currentStep5Tab);
+                    if (progressItem) progressItem.classList.add('completed');
+                } else {
+                    document.getElementById(currentStep5Tab + '-check').textContent = '';
+                    const progressItem = document.getElementById('progress-' + currentStep5Tab);
+                    if (progressItem) progressItem.classList.remove('completed');
                 }
             }
         }
@@ -3210,7 +3416,19 @@
         async function generateContent() {
             goToStep(6);
             const statusEl = document.getElementById('generatingStatus');
-            statusEl.textContent = 'Preparing content...';
+            const phaseEl = document.getElementById('generatingPhase');
+
+            // Helper to update section status
+            const updateSectionStatus = (section, status, isActive = false) => {
+                const el = document.getElementById(`research${section}Status`);
+                if (el) {
+                    const color = status === 'Done' ? '#10b981' : (isActive ? '#2563eb' : '#666');
+                    const icon = status === 'Done' ? '✓' : (isActive ? '⏳' : '');
+                    const icons = { GBU: '👍👎😱', BriteSpot: '✨', Pulse: '📊', Partner: '💡', News: '📰' };
+                    const names = { GBU: 'GOOD/BAD/UGLY', BriteSpot: 'BRITE SPOT', Pulse: 'INDUSTRY PULSE', Partner: 'PARTNER ADVANTAGE', News: 'INDUSTRY NEWS' };
+                    el.innerHTML = `<span style="margin-right: 10px;">${icons[section]}</span> ${names[section]}: <span style="color: ${color};">${icon} ${status}</span>`;
+                }
+            };
 
             try {
                 const intro = document.getElementById('introContent').value;
@@ -3219,7 +3437,39 @@
                     body: document.getElementById('briteSpotBody').value
                 };
 
-                statusEl.textContent = 'Generating newsletter content with Claude...';
+                // Stage 1: Show research phase
+                phaseEl.textContent = 'Analyzing your selected articles...';
+                statusEl.textContent = '';
+
+                // Simulate section-by-section progress
+                updateSectionStatus('GBU', 'Processing...', true);
+                updateSectionStatus('BriteSpot', 'Waiting...');
+                updateSectionStatus('Pulse', 'Waiting...');
+                updateSectionStatus('Partner', 'Waiting...');
+                updateSectionStatus('News', 'Waiting...');
+
+                await new Promise(r => setTimeout(r, 500));
+                updateSectionStatus('GBU', 'Done');
+                updateSectionStatus('BriteSpot', 'Processing...', true);
+
+                await new Promise(r => setTimeout(r, 400));
+                updateSectionStatus('BriteSpot', 'Done');
+                updateSectionStatus('Pulse', 'Processing...', true);
+
+                await new Promise(r => setTimeout(r, 400));
+                updateSectionStatus('Pulse', 'Done');
+                updateSectionStatus('Partner', 'Processing...', true);
+
+                await new Promise(r => setTimeout(r, 400));
+                updateSectionStatus('Partner', 'Done');
+                updateSectionStatus('News', 'Processing...', true);
+
+                await new Promise(r => setTimeout(r, 400));
+                updateSectionStatus('News', 'Done');
+
+                // Stage 2: Generate content
+                phaseEl.textContent = 'Writing newsletter content with Claude AI...';
+                statusEl.textContent = 'This may take a moment...';
 
                 const response = await fetch(`${API_BASE}/api/generate-newsletter`, {
                     method: 'POST',
@@ -3339,11 +3589,11 @@
 
         function displayBrandCheckResults(results) {
             const container = document.getElementById('brandCheckResults');
-            const issues = results.issues || [];
+            const suggestions = results.suggestions || results.issues || [];
 
             let html = '';
 
-            if (issues.length === 0) {
+            if (suggestions.length === 0) {
                 // No issues found
                 html += `<div style="text-align: center; padding: 40px; background: #10b98120; border-radius: 8px; margin-bottom: 20px;">`;
                 html += `<h2 style="margin: 0; color: #10b981; font-size: 36px;">✅ Looks Great!</h2>`;
@@ -3353,24 +3603,228 @@
                 // Show header
                 html += `<div style="text-align: center; padding: 20px; background: #fef3c7; border-radius: 8px; margin-bottom: 20px;">`;
                 html += `<h2 style="margin: 0; color: #f59e0b; font-size: 32px;">📝 Suggested Changes</h2>`;
-                html += `<p style="margin: 10px 0 0 0; color: #666;">Review the issues below and make adjustments as needed.</p>`;
+                html += `<p style="margin: 10px 0 0 0; color: #666;">Yellow highlights show what needs changing. Green highlights show suggested replacements.</p>`;
+                html += `</div>`;
+            }
+
+            // Get the full newsletter content with highlighting
+            const introContent = highlightContent(
+                document.getElementById('review-intro')?.innerHTML || '',
+                suggestions.filter(s => s.section === 'intro' || s.section === 'introduction')
+            );
+            const briteSpotContent = highlightContent(
+                document.getElementById('review-britespot')?.innerHTML || '',
+                suggestions.filter(s => s.section === 'brite_spot' || s.section === 'britespot')
+            );
+            const goodContent = highlightContent(
+                document.getElementById('review-good')?.innerHTML || '',
+                suggestions.filter(s => s.section === 'the_good' || s.section === 'good')
+            );
+            const badContent = highlightContent(
+                document.getElementById('review-bad')?.innerHTML || '',
+                suggestions.filter(s => s.section === 'the_bad' || s.section === 'bad')
+            );
+            const uglyContent = highlightContent(
+                document.getElementById('review-ugly')?.innerHTML || '',
+                suggestions.filter(s => s.section === 'the_ugly' || s.section === 'ugly')
+            );
+            const pulseContent = highlightContent(
+                document.getElementById('review-pulse')?.innerHTML || '',
+                suggestions.filter(s => s.section === 'industry_pulse' || s.section === 'pulse')
+            );
+            const partnerContent = highlightContent(
+                document.getElementById('review-partner')?.innerHTML || '',
+                suggestions.filter(s => s.section === 'partner_advantage' || s.section === 'partner')
+            );
+            const newsContent = highlightContent(
+                document.getElementById('review-news')?.innerHTML || '',
+                suggestions.filter(s => s.section === 'industry_news' || s.section === 'news')
+            );
+
+            // Display full newsletter with highlights
+            html += '<h3 style="margin: 30px 0 15px 0; color: #272d3f;">📝 Introduction</h3>';
+            html += `<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">`;
+            html += introContent || '<p style="color: #999;">No content</p>';
+            html += `</div>`;
+
+            html += '<h3 style="margin: 30px 0 15px 0; color: #272d3f;">✨ The Brite Spot</h3>';
+            html += `<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">`;
+            html += briteSpotContent || '<p style="color: #999;">No content</p>';
+            html += `</div>`;
+
+            html += '<h3 style="margin: 30px 0 15px 0; color: #272d3f;">👍 The Good</h3>';
+            html += `<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">`;
+            html += goodContent || '<p style="color: #999;">No content</p>';
+            html += `</div>`;
+
+            html += '<h3 style="margin: 30px 0 15px 0; color: #272d3f;">👎 The Bad</h3>';
+            html += `<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">`;
+            html += badContent || '<p style="color: #999;">No content</p>';
+            html += `</div>`;
+
+            html += '<h3 style="margin: 30px 0 15px 0; color: #272d3f;">😱 The Ugly</h3>';
+            html += `<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">`;
+            html += uglyContent || '<p style="color: #999;">No content</p>';
+            html += `</div>`;
+
+            html += '<h3 style="margin: 30px 0 15px 0; color: #272d3f;">📊 Industry Pulse</h3>';
+            html += `<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">`;
+            html += pulseContent || '<p style="color: #999;">No content</p>';
+            html += `</div>`;
+
+            html += '<h3 style="margin: 30px 0 15px 0; color: #272d3f;">💡 Partner Advantage</h3>';
+            html += `<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">`;
+            html += partnerContent || '<p style="color: #999;">No content</p>';
+            html += `</div>`;
+
+            html += '<h3 style="margin: 30px 0 15px 0; color: #272d3f;">📰 Industry News</h3>';
+            html += `<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">`;
+            html += newsContent || '<p style="color: #999;">No content</p>';
+            html += `</div>`;
+
+            // If there are suggestions, show the legend
+            if (suggestions.length > 0) {
+                html += `<div style="margin-top: 30px; padding: 15px; background: #f9fafb; border-radius: 8px; border: 2px dashed #e5e7eb;">`;
+                html += `<h4 style="margin: 0 0 10px 0; color: #666;">Legend:</h4>`;
+                html += `<div style="display: flex; gap: 20px; flex-wrap: wrap;">`;
+                html += `<div style="display: flex; align-items: center; gap: 8px;">`;
+                html += `<div style="width: 20px; height: 20px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 4px;"></div>`;
+                html += `<span style="font-size: 14px; color: #666;">Current text (needs changing)</span>`;
+                html += `</div>`;
+                html += `<div style="display: flex; align-items: center; gap: 8px;">`;
+                html += `<div style="width: 20px; height: 20px; background: #d1fae5; border: 2px solid #10b981; border-radius: 4px;"></div>`;
+                html += `<span style="font-size: 14px; color: #666;">Suggested replacement</span>`;
+                html += `</div>`;
                 html += `</div>`;
 
-                // Show issues
-                issues.forEach(issue => {
-                    html += `<div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #f59e0b;">`;
-                    html += `<strong style="color: #272d3f;">${issue.section}:</strong> ${issue.issue}<br>`;
-                    html += `<em style="color: #666; font-size: 13px;">Suggestion: ${issue.suggestion}</em>`;
-                    html += `</div>`;
-                });
-
-                // Show issue count
-                html += `<div style="margin-top: 20px; padding: 15px; background: #f9fafb; border-radius: 8px; border: 2px dashed #e5e7eb;">`;
-                html += `<strong style="color: #f59e0b;">${issues.length} issue${issues.length === 1 ? '' : 's'} found</strong>`;
+                // Show issue count summary
+                html += `<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">`;
+                html += `<strong style="color: #f59e0b;">${suggestions.length} issue${suggestions.length === 1 ? '' : 's'} found</strong> - `;
+                html += `Click Accept or Ignore on each highlighted change.`;
+                html += `</div>`;
                 html += `</div>`;
             }
 
             container.innerHTML = html;
+        }
+
+        // Store current suggestions for bulk actions
+        let currentSuggestions = [];
+
+        function acceptAllSuggestions() {
+            document.querySelectorAll('[id^="suggestion-"]').forEach(card => {
+                const acceptBtn = card.querySelector('button:first-of-type');
+                if (acceptBtn) acceptBtn.click();
+            });
+        }
+
+        function ignoreAllSuggestions() {
+            document.querySelectorAll('[id^="suggestion-"]').forEach(card => {
+                const ignoreBtn = card.querySelector('button:last-of-type');
+                if (ignoreBtn) ignoreBtn.click();
+            });
+        }
+
+        function highlightContent(content, suggestions) {
+            if (!suggestions || suggestions.length === 0) {
+                return content;
+            }
+
+            let highlighted = content;
+
+            // Apply highlighting for each suggestion with Accept/Ignore buttons
+            suggestions.forEach((suggestion, index) => {
+                const original = suggestion.original || suggestion.issue || '';
+                const suggested = suggestion.suggested || suggestion.suggestion || '';
+                const reason = suggestion.reason || '';
+                const section = suggestion.section || '';
+
+                if (!original) return;
+
+                // Create unique ID for this suggestion
+                const suggestionId = `suggestion-${section}-${index}`;
+
+                // Create the highlighted HTML with Accept/Ignore buttons
+                const highlightedText = `<span id="${suggestionId}" style="position: relative; display: inline-block; margin: 4px 0;">
+                    <span style="background: #fef3c7; border-bottom: 3px solid #f59e0b; padding: 2px 4px; text-decoration: line-through;"
+                          title="${escapeForAttribute(reason)}">${original}</span>
+                    <span style="background: #d1fae5; border-bottom: 3px solid #10b981; padding: 2px 4px; margin-left: 4px; font-weight: 600;"
+                          title="${escapeForAttribute(reason)}">${suggested}</span>
+                    <span style="display: inline-block; margin-left: 8px;">
+                        <button onclick="acceptSuggestion('${suggestionId}', '${escapeForAttribute(original)}', '${escapeForAttribute(suggested)}', '${section}')"
+                                style="background: #10b981; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-right: 4px;"
+                                title="Accept this change">✓ Accept</button>
+                        <button onclick="ignoreSuggestion('${suggestionId}')"
+                                style="background: #ef4444; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;"
+                                title="Ignore this suggestion">✗ Ignore</button>
+                    </span>
+                </span>`;
+
+                // Replace the original text with highlighted version
+                const regex = new RegExp(escapeRegExp(original), 'gi');
+                highlighted = highlighted.replace(regex, highlightedText);
+            });
+
+            return highlighted;
+        }
+
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function escapeForAttribute(string) {
+            if (!string) return '';
+            return string.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        function acceptSuggestion(suggestionId, original, suggested, section) {
+            // Map section names to content box IDs
+            const sectionToContentBox = {
+                'intro': 'review-intro',
+                'introduction': 'review-intro',
+                'brite_spot': 'review-britespot',
+                'britespot': 'review-britespot',
+                'the_good': 'review-good',
+                'good': 'review-good',
+                'the_bad': 'review-bad',
+                'bad': 'review-bad',
+                'the_ugly': 'review-ugly',
+                'ugly': 'review-ugly',
+                'industry_pulse': 'review-pulse',
+                'pulse': 'review-pulse',
+                'partner_advantage': 'review-partner',
+                'partner': 'review-partner',
+                'industry_news': 'review-news',
+                'news': 'review-news'
+            };
+
+            const contentBoxId = sectionToContentBox[section];
+            if (contentBoxId) {
+                const contentBox = document.getElementById(contentBoxId);
+                if (contentBox) {
+                    // Replace in the content box
+                    contentBox.innerHTML = contentBox.innerHTML.replace(
+                        new RegExp(escapeRegExp(original), 'gi'),
+                        suggested
+                    );
+                }
+            }
+
+            // Remove the suggestion from display
+            const suggestionEl = document.getElementById(suggestionId);
+            if (suggestionEl) {
+                suggestionEl.outerHTML = `<span style="background: #d1fae5; padding: 2px 4px; border-radius: 4px;">${suggested}</span>`;
+            }
+        }
+
+        function ignoreSuggestion(suggestionId) {
+            const suggestionEl = document.getElementById(suggestionId);
+            if (suggestionEl) {
+                // Get the original text and just show it normally
+                const originalSpan = suggestionEl.querySelector('span:first-child');
+                const originalText = originalSpan ? originalSpan.textContent : '';
+                suggestionEl.outerHTML = originalText;
+            }
         }
 
         // Export brand check results
@@ -3713,12 +4167,199 @@
         }
 
         function generateNewsletterHTML() {
-            return `<!DOCTYPE html>
-<html><head><title>Stay In The Loupe - ${selectedMonth}</title></head>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-<h1 style="color: #018181;">Stay In The Loupe</h1>
-<p>${generatedContent.intro || ''}</p>
-</body></html>`;
+            // Get content from generated sections and editable areas
+            const intro = document.getElementById('review-intro')?.innerText || generatedContent.intro || '';
+            const briteSpot = document.getElementById('review-britespot')?.innerText || generatedContent.brite_spot || '';
+            const good = document.getElementById('review-good')?.innerText || generatedContent.the_good || '';
+            const bad = document.getElementById('review-bad')?.innerText || generatedContent.the_bad || '';
+            const ugly = document.getElementById('review-ugly')?.innerText || generatedContent.the_ugly || '';
+            const pulse = document.getElementById('review-pulse')?.innerHTML || generatedContent.industry_pulse || '';
+            const partner = document.getElementById('review-partner')?.innerHTML || generatedContent.partner_advantage || '';
+            const news = document.getElementById('review-news')?.innerHTML || generatedContent.industry_news || '';
+
+            // Get subject and preheader
+            const subjectLine = document.getElementById('finalSubjectLine')?.value || 'Stay In The Loupe - ' + selectedMonth;
+            const preheader = document.getElementById('finalPreheader')?.value || 'Your monthly jewelry industry insights from BriteCo';
+
+            // Get images
+            const goodImage = generatedImages.good || generatedImages.the_good || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+            const badImage = generatedImages.bad || generatedImages.the_bad || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+            const uglyImage = generatedImages.ugly || generatedImages.the_ugly || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+            const briteSpotImage = generatedImages.briteSpot || generatedImages.brite_spot || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+            const pulseImage = generatedImages.pulse || generatedImages.industry_pulse || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+            const partnerImage = generatedImages.partner || generatedImages.partner_advantage || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+
+            // Extract titles from Good/Bad/Ugly content (first line is typically the title)
+            const extractTitle = (content) => {
+                if (!content) return '';
+                const lines = content.split('\\n').filter(l => l.trim());
+                return lines[0] || '';
+            };
+            const extractBody = (content) => {
+                if (!content) return '';
+                const lines = content.split('\\n').filter(l => l.trim());
+                return lines.slice(1).join(' ') || lines[0] || '';
+            };
+
+            return \`<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>\${subjectLine}</title>
+<style>
+body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-serif; background-color: #DFE7F0; }
+.container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+.header { background-color: #037E7F; padding: 40px 20px; text-align: center; }
+.header h1 { color: #ffffff; font-size: 40px; margin: 0 0 20px 0; font-weight: 600; }
+.header p { color: #ffffff; font-size: 16px; line-height: 28px; margin: 0 0 30px 0; }
+.section { padding: 30px 20px; border-bottom: 1px solid #e5e7eb; }
+.section-title { color: #037E7F; font-size: 24px; font-weight: 600; margin: 0 0 20px 0; }
+.gbu-item { display: flex; gap: 20px; margin-bottom: 20px; align-items: flex-start; }
+.gbu-label { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.gbu-label.good { color: #008181; }
+.gbu-label.bad { color: #FE8916; }
+.gbu-label.ugly { color: #282D3E; }
+.gbu-title { font-size: 20px; font-weight: 600; color: #3B3B3B; margin: 0 0 6px 0; }
+.gbu-text { font-size: 16px; line-height: 28px; color: #3B3B3B; margin: 0; }
+.gbu-image { width: 203px; height: auto; flex-shrink: 0; }
+.content-block { margin-bottom: 20px; }
+.content-block h3 { color: #037E7F; font-size: 20px; margin: 0 0 10px 0; }
+.content-block p { font-size: 16px; line-height: 28px; color: #3B3B3B; margin: 0; }
+.news-item { padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+.news-item:last-child { border-bottom: none; }
+.btn { display: inline-block; padding: 12px 30px; background-color: #FE8916; color: #ffffff; text-decoration: none; border-radius: 10px; font-weight: 600; text-transform: uppercase; }
+.footer { background-color: #282D3E; padding: 30px 20px; text-align: center; color: #ffffff; }
+.footer p { margin: 10px 0; font-size: 14px; }
+.footer a { color: #ffffff; }
+</style>
+</head>
+<body>
+<div style="display:none;max-height:0;overflow:hidden;">\${preheader}</div>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#DFE7F0;">
+<tr><td align="center" style="padding:20px 10px;">
+<table class="container" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border:1px solid #282D3E;">
+
+<!-- Header -->
+<tr><td align="center" style="padding:35px 20px;background-color:#DFE7F0;">
+<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-1.png" alt="BriteCo" width="301" style="max-width:301px;">
+</td></tr>
+
+<!-- Hero Banner -->
+<tr><td style="background-color:#037E7F;background-image:url('https://accidentpros.linkgama.com/wp-content/uploads/2025/10/banner-bg.png');background-size:cover;padding:40px 20px;text-align:center;">
+<h1 style="color:#ffffff;font-size:40px;margin:0 0 20px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;">Stay In The Loupe</h1>
+<p style="color:#ffffff;font-size:16px;line-height:28px;margin:0 0 30px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;max-width:480px;margin-left:auto;margin-right:auto;">\${intro}</p>
+</td></tr>
+
+<!-- Good/Bad/Ugly Section -->
+<tr><td style="padding:0;">
+<img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/good-bad-ugly.png" alt="Good Bad Ugly" width="100%" style="display:block;">
+<table width="100%" cellpadding="20" cellspacing="0">
+<!-- Good -->
+<tr><td>
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td valign="top" width="60%">
+<p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#008181;text-transform:uppercase;letter-spacing:1px;">Good:</p>
+<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">\${extractTitle(good)}</h3>
+<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">\${extractBody(good)}</p>
+</td>
+<td valign="top" align="right" width="40%">
+<img src="\${goodImage}" alt="" width="203" style="width:203px;height:auto;">
+</td>
+</tr></table>
+</td></tr>
+<!-- Bad -->
+<tr><td>
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td valign="top" align="left" width="40%">
+<img src="\${badImage}" alt="" width="203" style="width:203px;height:auto;">
+</td>
+<td valign="top" width="60%">
+<p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#FE8916;text-transform:uppercase;letter-spacing:1px;">Bad:</p>
+<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">\${extractTitle(bad)}</h3>
+<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">\${extractBody(bad)}</p>
+</td>
+</tr></table>
+</td></tr>
+<!-- Ugly -->
+<tr><td>
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td valign="top" width="60%">
+<p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#282D3E;text-transform:uppercase;letter-spacing:1px;">Ugly:</p>
+<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">\${extractTitle(ugly)}</h3>
+<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">\${extractBody(ugly)}</p>
+</td>
+<td valign="top" align="right" width="40%">
+<img src="\${uglyImage}" alt="" width="203" style="width:203px;height:auto;">
+</td>
+</tr></table>
+</td></tr>
+</table>
+</td></tr>
+
+<!-- Brite Spot Section -->
+<tr><td style="padding:30px 20px;background-color:#f9fafb;">
+<h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">The Brite Spot</h2>
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td valign="top" width="60%">
+<p style="font-size:16px;line-height:28px;color:#3B3B3B;margin:0;">\${briteSpot}</p>
+</td>
+<td valign="top" align="right" width="40%">
+<img src="\${briteSpotImage}" alt="" width="203" style="width:203px;height:auto;">
+</td>
+</tr></table>
+</td></tr>
+
+<!-- Industry Pulse Section -->
+<tr><td style="padding:30px 20px;">
+<h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">Industry Pulse</h2>
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td valign="top" align="left" width="40%">
+<img src="\${pulseImage}" alt="" width="203" style="width:203px;height:auto;">
+</td>
+<td valign="top" width="60%" style="padding-left:20px;">
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">\${pulse}</div>
+</td>
+</tr></table>
+</td></tr>
+
+<!-- Partner Advantage Section -->
+<tr><td style="padding:30px 20px;background-color:#f9fafb;">
+<h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">Partner Advantage</h2>
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td valign="top" width="60%">
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">\${partner}</div>
+</td>
+<td valign="top" align="right" width="40%">
+<img src="\${partnerImage}" alt="" width="203" style="width:203px;height:auto;">
+</td>
+</tr></table>
+</td></tr>
+
+<!-- Industry News Section -->
+<tr><td style="padding:30px 20px;">
+<h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">Industry News</h2>
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">\${news}</div>
+</td></tr>
+
+<!-- CTA Section -->
+<tr><td align="center" style="padding:40px 20px;background-color:#037E7F;">
+<p style="color:#ffffff;font-size:18px;margin:0 0 20px 0;">Partner with BriteCo today</p>
+<a href="https://brite.co/jewelers" style="display:inline-block;padding:12px 30px;background-color:#FE8916;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;text-transform:uppercase;">LEARN MORE</a>
+</td></tr>
+
+<!-- Footer -->
+<tr><td style="padding:30px 20px;background-color:#282D3E;text-align:center;">
+<p style="color:#ffffff;font-size:14px;margin:0 0 10px 0;">BriteCo | Jewelry Insurance Made Simple</p>
+<p style="color:#9ca3af;font-size:12px;margin:0;"><a href="%unsubscribe_url%" style="color:#9ca3af;">Unsubscribe</a> | <a href="https://brite.co/privacy" style="color:#9ca3af;">Privacy Policy</a></p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>\`;
         }
 
         // Push to Ontraport

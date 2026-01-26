@@ -66,7 +66,7 @@ ONTRAPORT_CONFIG = {
     "object_type_id": "0",
     "from_email": "jeweler@brite.co",
     "reply_to_email": "jeweler@brite.co",
-    "from_name": "BriteCo Jewelry Insurance"
+    "from_name": "BriteCo Insurance"
 }
 
 # Team members for preview emails
