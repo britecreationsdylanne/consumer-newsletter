@@ -4192,21 +4192,21 @@
             // Extract titles from Good/Bad/Ugly content (first line is typically the title)
             const extractTitle = (content) => {
                 if (!content) return '';
-                const lines = content.split('\\n').filter(l => l.trim());
+                const lines = content.split('\n').filter(l => l.trim());
                 return lines[0] || '';
             };
             const extractBody = (content) => {
                 if (!content) return '';
-                const lines = content.split('\\n').filter(l => l.trim());
+                const lines = content.split('\n').filter(l => l.trim());
                 return lines.slice(1).join(' ') || lines[0] || '';
             };
 
-            return \`<!DOCTYPE html>
+            return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>\${subjectLine}</title>
+<title>${subjectLine}</title>
 <style>
 body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-serif; background-color: #DFE7F0; }
 .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
@@ -4235,7 +4235,7 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 </style>
 </head>
 <body>
-<div style="display:none;max-height:0;overflow:hidden;">\${preheader}</div>
+<div style="display:none;max-height:0;overflow:hidden;">${preheader}</div>
 
 <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#DFE7F0;">
 <tr><td align="center" style="padding:20px 10px;">
@@ -4249,7 +4249,7 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 <!-- Hero Banner -->
 <tr><td style="background-color:#037E7F;background-image:url('https://accidentpros.linkgama.com/wp-content/uploads/2025/10/banner-bg.png');background-size:cover;padding:40px 20px;text-align:center;">
 <h1 style="color:#ffffff;font-size:40px;margin:0 0 20px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;">Stay In The Loupe</h1>
-<p style="color:#ffffff;font-size:16px;line-height:28px;margin:0 0 30px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;max-width:480px;margin-left:auto;margin-right:auto;">\${intro}</p>
+<p style="color:#ffffff;font-size:16px;line-height:28px;margin:0 0 30px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;max-width:480px;margin-left:auto;margin-right:auto;">${intro}</p>
 </td></tr>
 
 <!-- Good/Bad/Ugly Section -->
@@ -4261,11 +4261,11 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
 <td valign="top" width="60%">
 <p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#008181;text-transform:uppercase;letter-spacing:1px;">Good:</p>
-<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">\${extractTitle(good)}</h3>
-<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">\${extractBody(good)}</p>
+<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">${extractTitle(good)}</h3>
+<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">${extractBody(good)}</p>
 </td>
 <td valign="top" align="right" width="40%">
-<img src="\${goodImage}" alt="" width="203" style="width:203px;height:auto;">
+<img src="${goodImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
 </tr></table>
 </td></tr>
@@ -4273,12 +4273,12 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 <tr><td>
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
 <td valign="top" align="left" width="40%">
-<img src="\${badImage}" alt="" width="203" style="width:203px;height:auto;">
+<img src="${badImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
 <td valign="top" width="60%">
 <p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#FE8916;text-transform:uppercase;letter-spacing:1px;">Bad:</p>
-<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">\${extractTitle(bad)}</h3>
-<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">\${extractBody(bad)}</p>
+<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">${extractTitle(bad)}</h3>
+<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">${extractBody(bad)}</p>
 </td>
 </tr></table>
 </td></tr>
@@ -4287,11 +4287,11 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
 <td valign="top" width="60%">
 <p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#282D3E;text-transform:uppercase;letter-spacing:1px;">Ugly:</p>
-<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">\${extractTitle(ugly)}</h3>
-<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">\${extractBody(ugly)}</p>
+<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">${extractTitle(ugly)}</h3>
+<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">${extractBody(ugly)}</p>
 </td>
 <td valign="top" align="right" width="40%">
-<img src="\${uglyImage}" alt="" width="203" style="width:203px;height:auto;">
+<img src="${uglyImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
 </tr></table>
 </td></tr>
@@ -4303,10 +4303,10 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 <h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">The Brite Spot</h2>
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
 <td valign="top" width="60%">
-<p style="font-size:16px;line-height:28px;color:#3B3B3B;margin:0;">\${briteSpot}</p>
+<p style="font-size:16px;line-height:28px;color:#3B3B3B;margin:0;">${briteSpot}</p>
 </td>
 <td valign="top" align="right" width="40%">
-<img src="\${briteSpotImage}" alt="" width="203" style="width:203px;height:auto;">
+<img src="${briteSpotImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
 </tr></table>
 </td></tr>
@@ -4316,10 +4316,10 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 <h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">Industry Pulse</h2>
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
 <td valign="top" align="left" width="40%">
-<img src="\${pulseImage}" alt="" width="203" style="width:203px;height:auto;">
+<img src="${pulseImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
 <td valign="top" width="60%" style="padding-left:20px;">
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">\${pulse}</div>
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${pulse}</div>
 </td>
 </tr></table>
 </td></tr>
@@ -4329,10 +4329,10 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 <h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">Partner Advantage</h2>
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
 <td valign="top" width="60%">
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">\${partner}</div>
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${partner}</div>
 </td>
 <td valign="top" align="right" width="40%">
-<img src="\${partnerImage}" alt="" width="203" style="width:203px;height:auto;">
+<img src="${partnerImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
 </tr></table>
 </td></tr>
@@ -4340,7 +4340,7 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 <!-- Industry News Section -->
 <tr><td style="padding:30px 20px;">
 <h2 style="color:#037E7F;font-size:24px;margin:0 0 20px 0;">Industry News</h2>
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">\${news}</div>
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${news}</div>
 </td></tr>
 
 <!-- CTA Section -->
@@ -4359,7 +4359,7 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 </td></tr>
 </table>
 </body>
-</html>\`;
+</html>`;
         }
 
         // Push to Ontraport
