@@ -1289,15 +1289,14 @@ Return JSON:
 {articles_text}
 
 Requirements:
-- Each bullet is exactly 1 catchy sentence
-- Treat each as a headline
-- Include hyperlink to source
+- Each bullet has a short catchy headline (5-8 words) followed by a brief description (10-15 words)
+- The headline should be linkable, the description provides context
 - Mix of topics: trends, market news, technology, etc.
 
 Return JSON:
 {{
     "bullets": [
-        {{"text": "...", "url": "..."}},
+        {{"headline": "Short catchy headline here", "description": "brief description providing context", "url": "..."}},
         ...
     ]
 }}"""
@@ -1320,7 +1319,7 @@ Return JSON:
             except Exception as e:
                 safe_print(f"  Error generating industry_news: {e}")
                 generated['industry_news'] = {
-                    'bullets': [{'text': art.get('title', ''), 'url': art.get('url', '')} for art in articles[:5]]
+                    'bullets': [{'headline': art.get('title', ''), 'description': '', 'url': art.get('url', '')} for art in articles[:5]]
                 }
 
         # Convert markdown links to HTML in all generated content

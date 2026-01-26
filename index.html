@@ -2019,6 +2019,12 @@
                 <div class="spinner"></div>
                 <h3>Generating Images...</h3>
                 <p style="color: #666;" id="imageGenStatus">Using Gemini to create article-specific images...</p>
+                <div style="width: 200px; margin: 15px auto;">
+                    <div style="background: #e0e0e0; border-radius: 10px; height: 20px; overflow: hidden;">
+                        <div id="imageGenProgressBar" style="background: #018181; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                    <p style="color: #018181; font-weight: bold; margin-top: 5px;" id="imageGenProgress">0%</p>
+                </div>
                 <p style="color: #999; font-size: 14px; margin-top: 10px;">This may take 30-60 seconds for 6 images...</p>
             </div>
         </div>
@@ -3649,10 +3655,13 @@
                 const news = generatedContent.industry_news;
                 let html = '<ul>';
                 (news.bullets || []).forEach(b => {
+                    // Support both new format (headline + description) and legacy format (text)
+                    const headline = b.headline || b.text || b;
+                    const description = b.description || '';
                     if (b.url) {
-                        html += `<li><a href="${b.url}" target="_blank" style="color: #018181; text-decoration: underline;">${b.text || b}</a></li>`;
+                        html += `<li><a href="${b.url}" target="_blank" style="color: #018181; text-decoration: underline;">${headline}</a>${description ? ' ' + description : ''}</li>`;
                     } else {
-                        html += `<li>${b.text || b}</li>`;
+                        html += `<li><strong>${headline}</strong>${description ? ' ' + description : ''}</li>`;
                     }
                 });
                 html += '</ul>';
