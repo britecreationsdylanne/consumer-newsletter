@@ -2353,16 +2353,6 @@
             <h2>🚀 Push to Ontraport</h2>
             <p class="step-description">Send your newsletter to Ontraport with pre-configured BriteCo settings</p>
 
-            <!-- Export Images to Hosting -->
-            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #f59e0b;">
-                <h3 style="margin: 0 0 10px 0; color: #92400e;">🖼️ Host Images</h3>
-                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Upload generated images to cloud hosting so they display in email clients (Gmail, Outlook, etc).</p>
-                <button class="btn" onclick="exportImagesToHost()" id="exportImagesBtn" style="background: #f59e0b; width: 100%; padding: 12px; font-size: 15px;">
-                    <span id="exportImagesBtnText">🖼️ Upload & Host Images</span>
-                </button>
-                <div id="exportImagesResult" style="display: none; margin-top: 15px; padding: 12px; border-radius: 6px;"></div>
-            </div>
-
             <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
                 <div style="padding: 15px; background-color: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e; margin-bottom: 20px;">
                     <label style="display: block; font-weight: 600; color: #166534; margin-bottom: 5px;">Subject Line:</label>
@@ -2374,6 +2364,13 @@
                 </button>
 
                 <div id="ontraportResult" style="display: none; margin-top: 20px; padding: 15px; border-radius: 6px;"></div>
+            </div>
+
+            <!-- Download Images for WordPress Hosting -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #3b82f6;">
+                <h3 style="margin: 0 0 10px 0; color: #1e40af;">🖼️ Download Generated Images</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Download all generated images to host in WordPress/Ontraport. After uploading, paste the hosted URLs into the email HTML.</p>
+                <button class="btn" onclick="downloadAllImages()" style="background: #3b82f6; width: 100%; padding: 12px; font-size: 15px;">📥 Download Generated Images to Host in Ontraport</button>
             </div>
 
             <div class="buttons">
@@ -4436,7 +4433,15 @@
 
         // Copy HTML code
         function copyHTMLCode() {
-            const html = generateNewsletterHTML();
+            let html = generateNewsletterHTML();
+            // Strip base64 images — replace with placeholder URLs for hosting
+            let ci = 0;
+            const ciLabels = ['image-1', 'image-2', 'image-3', 'image-4', 'image-5', 'image-6'];
+            html = html.replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+\/=]+/g, () => {
+                const label = ciLabels[ci] || 'image-' + (ci + 1);
+                ci++;
+                return 'https://REPLACE-WITH-HOSTED-URL/' + label + '.png';
+            });
             navigator.clipboard.writeText(html).then(() => {
                 alert('✓ HTML copied to clipboard!');
             }).catch(() => {
@@ -4488,17 +4493,24 @@
             const subjectLine = document.getElementById('finalSubjectLine')?.value || 'Stay In The Loupe - ' + selectedMonth;
             const preheader = document.getElementById('finalPreheader')?.value || 'Your monthly jewelry industry insights from BriteCo';
 
-            // Get images - handle both {url: '...'} objects and direct URL strings
-            const getImageUrl = (img) => {
-                if (!img) return 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
-                return img.hosted_url || img.url || img || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+            // Get images - for preview show base64, for final HTML use placeholder URLs
+            const PLACEHOLDER = 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
+            const getImageUrl = (img, sectionLabel) => {
+                if (!img) return PLACEHOLDER;
+                // For preview: show the actual image (base64 data URI)
+                const dataUrl = (typeof img === 'string') ? img : (img.url || (img.image_data ? 'data:image/png;base64,' + img.image_data : null));
+                return dataUrl || PLACEHOLDER;
             };
-            const goodImage = getImageUrl(generatedImages.the_good || generatedImages.good);
-            const badImage = getImageUrl(generatedImages.the_bad || generatedImages.bad);
-            const uglyImage = getImageUrl(generatedImages.the_ugly || generatedImages.ugly);
-            const briteSpotImage = getImageUrl(generatedImages.brite_spot || generatedImages.briteSpot);
-            const pulseImage = getImageUrl(generatedImages.industry_pulse || generatedImages.pulse);
-            const partnerImage = getImageUrl(generatedImages.partner_advantage || generatedImages.partner);
+            const getPlaceholderUrl = (sectionLabel) => {
+                // Placeholder URL pattern for Ontraport HTML — user will replace with WP URLs
+                return `https://REPLACE-WITH-HOSTED-URL/${sectionLabel}.png`;
+            };
+            const goodImage = getImageUrl(generatedImages.the_good || generatedImages.good, 'good');
+            const badImage = getImageUrl(generatedImages.the_bad || generatedImages.bad, 'bad');
+            const uglyImage = getImageUrl(generatedImages.the_ugly || generatedImages.ugly, 'ugly');
+            const briteSpotImage = getImageUrl(generatedImages.brite_spot || generatedImages.briteSpot, 'brite-spot');
+            const pulseImage = getImageUrl(generatedImages.industry_pulse || generatedImages.pulse, 'industry-pulse');
+            const partnerImage = getImageUrl(generatedImages.partner_advantage || generatedImages.partner, 'partner-advantage');
 
             // Use structured data for GBU (subtitle + copy are separate fields)
             const goodData = generatedContent.the_good || {};
@@ -4826,7 +4838,16 @@ ${newsHtml}
             if (!subject) { alert('Please enter a subject line'); return; }
 
             try {
-                const html = generateNewsletterHTML();
+                let html = generateNewsletterHTML();
+                // Replace any base64 data URIs with placeholder URLs for Ontraport
+                // (Gmail/Outlook strip base64 images — user must host on WP and replace)
+                let imgIndex = 0;
+                const imgLabels = ['image-1', 'image-2', 'image-3', 'image-4', 'image-5', 'image-6'];
+                html = html.replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+\/=]+/g, () => {
+                    const label = imgLabels[imgIndex] || 'image-' + (imgIndex + 1);
+                    imgIndex++;
+                    return 'https://REPLACE-WITH-HOSTED-URL/' + label + '.png';
+                });
                 const response = await fetch(`${API_BASE}/api/push-to-ontraport`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -4845,79 +4866,30 @@ ${newsHtml}
             }
         }
 
-        async function exportImagesToHost() {
-            const btn = document.getElementById('exportImagesBtn');
-            const result = document.getElementById('exportImagesResult');
-            btn.disabled = true;
-            document.getElementById('exportImagesBtnText').textContent = '⏳ Uploading images...';
+        function downloadAllImages() {
+            // Download all generated images as individual PNG files
+            const sections = ['the_good', 'the_bad', 'the_ugly', 'brite_spot', 'industry_pulse', 'partner_advantage'];
+            const labels = { the_good: 'good', the_bad: 'bad', the_ugly: 'ugly', brite_spot: 'brite-spot', industry_pulse: 'industry-pulse', partner_advantage: 'partner-advantage' };
+            let count = 0;
 
-            try {
-                // Collect all base64 images from generatedImages
-                const images = {};
-                for (const [section, data] of Object.entries(generatedImages || {})) {
-                    if (data && data.image_data) {
-                        images[section] = data.image_data;
-                    }
-                }
+            for (const section of sections) {
+                const img = generatedImages[section] || generatedImages[section.replace('the_', '')] || null;
+                if (!img) continue;
+                // img could be a string (data URI) or object with .url
+                const dataUrl = (typeof img === 'string') ? img : (img.url || img.image_data ? 'data:image/png;base64,' + img.image_data : null);
+                if (!dataUrl) continue;
 
-                if (Object.keys(images).length === 0) {
-                    result.style.display = 'block';
-                    result.style.background = '#fef3c7';
-                    result.style.color = '#92400e';
-                    result.textContent = 'No generated images found to upload.';
-                    btn.disabled = false;
-                    document.getElementById('exportImagesBtnText').textContent = '🖼️ Upload & Host Images';
-                    return;
-                }
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = `${selectedMonth}-${labels[section] || section}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                count++;
+            }
 
-                const response = await fetch(`${API_BASE}/api/upload-images`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ images, month: selectedMonth, year: new Date().getFullYear() })
-                });
-                const data = await response.json();
-
-                if (data.success && data.urls) {
-                    // Replace base64 data URIs in generatedImages with hosted URLs
-                    for (const [section, url] of Object.entries(data.urls)) {
-                        if (generatedImages[section]) {
-                            generatedImages[section].hosted_url = url;
-                        }
-                    }
-
-                    // Re-generate the newsletter HTML so it uses hosted URLs
-                    // Update the preview too
-                    const previewEl = document.getElementById('newsletterPreview');
-                    if (previewEl && previewEl.innerHTML) {
-                        let html = previewEl.innerHTML;
-                        for (const [section, url] of Object.entries(data.urls)) {
-                            // Replace data:image/png;base64,... src with hosted URL
-                            if (generatedImages[section]?.image_data) {
-                                const b64Prefix = 'data:image/png;base64,' + generatedImages[section].image_data.substring(0, 50);
-                                // Use a more robust approach - find img tags with base64 data
-                                html = html.replace(new RegExp('data:image/png;base64,[A-Za-z0-9+/=]+', 'g'), (match) => {
-                                    // We'll replace all base64 images sequentially
-                                    return match;
-                                });
-                            }
-                        }
-                    }
-
-                    result.style.display = 'block';
-                    result.style.background = '#f0fdf4';
-                    result.style.color = '#166534';
-                    result.innerHTML = `✅ ${Object.keys(data.urls).length} images uploaded successfully! They will be used in the final HTML.`;
-                    document.getElementById('exportImagesBtnText').textContent = '✅ Images Hosted';
-                } else {
-                    throw new Error(data.error || 'Upload failed');
-                }
-            } catch (e) {
-                result.style.display = 'block';
-                result.style.background = '#fef2f2';
-                result.style.color = '#dc2626';
-                result.textContent = 'Error: ' + e.message;
-                btn.disabled = false;
-                document.getElementById('exportImagesBtnText').textContent = '🖼️ Upload & Host Images';
+            if (count === 0) {
+                alert('No generated images found to download.');
             }
         }
 
@@ -4929,7 +4901,7 @@ ${newsHtml}
             if (!selectedMonth) return;
             try {
                 const userEmail = (window.AUTH_USER && window.AUTH_USER.email) || 'unknown';
-                await fetch(`${API_BASE}/api/save-draft`, {
+                const resp = await fetch(`${API_BASE}/api/save-draft`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -4950,6 +4922,8 @@ ${newsHtml}
                     })
                 });
                 console.log('[Draft] Saved');
+                // Refresh drafts list so the card appears/updates immediately
+                loadDrafts();
             } catch (e) {
                 console.error('[Draft] Save failed:', e);
             }
