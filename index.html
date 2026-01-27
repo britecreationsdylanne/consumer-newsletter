@@ -113,6 +113,7 @@
             gap: 10px;
             margin: 30px auto;
             max-width: 400px;
+            min-height: 600px;
         }
 
         .month-card {
@@ -1213,15 +1214,23 @@
 
         /* Newsletter Preview - Email Client Style */
         #newsletterPreview {
-            background: #f5f5f5;
+            background: #e8e8e8;
             border-radius: 8px;
-            padding: 20px;
-            max-width: 640px;
+            padding: 0;
+            max-width: 100%;
             margin: 20px auto;
+            overflow: hidden;
         }
         #newsletterPreview img {
             max-width: 100%;
             height: auto;
+        }
+        #newsletterPreview > table {
+            width: 100% !important;
+        }
+        #newsletterPreview table[width="600"] {
+            width: 100% !important;
+            max-width: 600px !important;
         }
 
         /* Responsive */
@@ -2267,7 +2276,7 @@
                 </div>
             </div>
 
-            <div id="newsletterPreview" style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; padding: 40px 20px; max-width: 640px; margin: 20px auto;">
+            <div id="newsletterPreview" style="background: #DFE7F0; border: 1px solid #ddd; border-radius: 8px; padding: 0; max-width: 100%; margin: 20px auto; overflow: auto;">
                 <!-- Full newsletter HTML will be displayed here -->
             </div>
 
@@ -4396,17 +4405,48 @@
             const pulseImage = getImageUrl(generatedImages.industry_pulse || generatedImages.pulse);
             const partnerImage = getImageUrl(generatedImages.partner_advantage || generatedImages.partner);
 
-            // Extract titles from Good/Bad/Ugly content (first line is typically the title)
+            // Get GBU article URLs for hyperlinks
+            const goodUrl = selectedArticles.the_good?.url || '';
+            const badUrl = selectedArticles.the_bad?.url || '';
+            const uglyUrl = selectedArticles.the_ugly?.url || '';
+
+            // Extract titles from Good/Bad/Ugly content
+            // Try splitting by newline first, then by period for single-line content
             const extractTitle = (content) => {
                 if (!content) return '';
                 const lines = content.split('\n').filter(l => l.trim());
-                return lines[0] || '';
+                if (lines.length > 1) return lines[0];
+                // Single line: take first sentence or first ~8 words as title
+                const sentences = content.split(/(?<=\.)\s+/);
+                if (sentences.length > 1) return sentences[0];
+                const words = content.split(' ');
+                return words.slice(0, 8).join(' ') + (words.length > 8 ? '...' : '');
             };
             const extractBody = (content) => {
                 if (!content) return '';
                 const lines = content.split('\n').filter(l => l.trim());
-                return lines.slice(1).join(' ') || lines[0] || '';
+                if (lines.length > 1) return lines.slice(1).join(' ');
+                // Single line: everything after first sentence
+                const sentences = content.split(/(?<=\.)\s+/);
+                if (sentences.length > 1) return sentences.slice(1).join(' ');
+                return '';
             };
+
+            // Helper to wrap title in link if URL available
+            const linkTitle = (title, url) => {
+                if (url) return `<a href="${url}" target="_blank" style="color:#3B3B3B;text-decoration:underline;">${title}</a>`;
+                return title;
+            };
+
+            // Split pulse/partner content: first paragraph vs rest
+            const splitFirstParagraph = (html) => {
+                // Find first </p> or first block-level closing tag
+                const match = html.match(/^([\s\S]*?<\/p>)([\s\S]*)$/i);
+                if (match) return { first: match[1], rest: match[2] };
+                return { first: html, rest: '' };
+            };
+            const pulseContent = splitFirstParagraph(pulse);
+            const partnerContent = splitFirstParagraph(partner);
 
             return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -4416,29 +4456,7 @@
 <title>${subjectLine}</title>
 <style>
 body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-serif; background-color: #DFE7F0; }
-.container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-.header { background-color: #037E7F; padding: 40px 20px; text-align: center; }
-.header h1 { color: #ffffff; font-size: 40px; margin: 0 0 20px 0; font-weight: 600; }
-.header p { color: #ffffff; font-size: 16px; line-height: 28px; margin: 0 0 30px 0; }
-.section { padding: 30px 20px; border-bottom: 1px solid #e5e7eb; }
-.section-title { color: #037E7F; font-size: 24px; font-weight: 600; margin: 0 0 20px 0; }
-.gbu-item { display: flex; gap: 20px; margin-bottom: 20px; align-items: flex-start; }
-.gbu-label { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-.gbu-label.good { color: #008181; }
-.gbu-label.bad { color: #FE8916; }
-.gbu-label.ugly { color: #282D3E; }
-.gbu-title { font-size: 20px; font-weight: 600; color: #3B3B3B; margin: 0 0 6px 0; }
-.gbu-text { font-size: 16px; line-height: 28px; color: #3B3B3B; margin: 0; }
-.gbu-image { width: 203px; height: auto; flex-shrink: 0; }
-.content-block { margin-bottom: 20px; }
-.content-block h3 { color: #037E7F; font-size: 20px; margin: 0 0 10px 0; }
-.content-block p { font-size: 16px; line-height: 28px; color: #3B3B3B; margin: 0; }
-.news-item { padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
-.news-item:last-child { border-bottom: none; }
-.btn { display: inline-block; padding: 12px 30px; background-color: #FE8916; color: #ffffff; text-decoration: none; border-radius: 10px; font-weight: 600; text-transform: uppercase; }
-.footer { background-color: #282D3E; padding: 30px 20px; text-align: center; color: #ffffff; }
-.footer p { margin: 10px 0; font-size: 14px; }
-.footer a { color: #ffffff; }
+a { color: #018181; }
 </style>
 </head>
 <body>
@@ -4446,7 +4464,7 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 
 <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#DFE7F0;">
 <tr><td align="center" style="padding:20px 10px;">
-<table class="container" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border:1px solid #282D3E;">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#ffffff;">
 
 <!-- Header -->
 <tr><td align="center" style="padding:35px 20px;background-color:#DFE7F0;">
@@ -4454,109 +4472,159 @@ body { margin: 0; padding: 0; font-family: Montserrat, Helvetica, Arial, sans-se
 </td></tr>
 
 <!-- Hero Banner -->
-<tr><td style="background-color:#037E7F;background-image:url('https://brite.co/wp-content/uploads/2025/10/banner-bg.png');background-size:cover;padding:40px 20px;text-align:center;">
-<h1 style="color:#ffffff;font-size:40px;margin:0 0 20px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;">Stay In The Loupe</h1>
+<tr><td style="background-color:#037E7F;background-image:url('https://accidentpros.linkgama.com/wp-content/uploads/2025/10/banner-bg.png');background-repeat:no-repeat;background-position:center;background-size:cover;padding:40px 20px;text-align:center;">
+<h1 style="color:#ffffff;font-size:40px;margin:0 0 20px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-weight:600;">Stay In The Loupe</h1>
 <p style="color:#ffffff;font-size:16px;line-height:28px;margin:0 0 30px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;max-width:480px;margin-left:auto;margin-right:auto;">${intro}</p>
 </td></tr>
 
+<!-- Spacer -->
+<tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="40">&nbsp;</td></tr>
+
 <!-- Good/Bad/Ugly Section -->
-<tr><td style="padding:0;">
-<img src="https://brite.co/wp-content/uploads/2025/10/good-bad-ugly.png" alt="Good Bad Ugly" width="600" style="width:100%;display:block;">
-<table width="100%" cellpadding="20" cellspacing="0">
+<tr><td style="padding:0;border:1px solid #282D3E;">
+<img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/good-bad-ugly.png" alt="Good Bad Ugly" width="600" style="width:100%;display:block;">
+<!-- Spacer after banner -->
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 <!-- Good -->
-<tr><td>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
-<td valign="top" width="60%">
+<td valign="top" style="padding-right:15px;" width="50%">
 <p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#008181;text-transform:uppercase;letter-spacing:1px;">Good:</p>
-<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">${extractTitle(good)}</h3>
+<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;line-height:30px;">${linkTitle(extractTitle(good), goodUrl)}</h3>
 <p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">${extractBody(good)}</p>
 </td>
-<td valign="top" align="right" width="40%">
+<td valign="top" align="right" width="50%">
 <img src="${goodImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
 </tr></table>
-</td></tr>
+</td></tr></table>
+<!-- Spacer -->
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 <!-- Bad -->
-<tr><td>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
-<td valign="top" align="left" width="40%">
+<td valign="top" align="left" style="padding-right:15px;" width="50%">
 <img src="${badImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
-<td valign="top" width="60%">
+<td valign="top" width="50%">
 <p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#FE8916;text-transform:uppercase;letter-spacing:1px;">Bad:</p>
-<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">${extractTitle(bad)}</h3>
+<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;line-height:30px;">${linkTitle(extractTitle(bad), badUrl)}</h3>
 <p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">${extractBody(bad)}</p>
 </td>
 </tr></table>
-</td></tr>
+</td></tr></table>
+<!-- Spacer -->
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 <!-- Ugly -->
-<tr><td>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
-<td valign="top" width="60%">
+<td valign="top" style="padding-right:15px;" width="50%">
 <p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#282D3E;text-transform:uppercase;letter-spacing:1px;">Ugly:</p>
-<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;">${extractTitle(ugly)}</h3>
+<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;line-height:30px;">${linkTitle(extractTitle(ugly), uglyUrl)}</h3>
 <p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">${extractBody(ugly)}</p>
 </td>
-<td valign="top" align="right" width="40%">
+<td valign="top" align="right" width="50%">
 <img src="${uglyImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
 </tr></table>
-</td></tr>
-</table>
+</td></tr></table>
+<!-- Spacer -->
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
 
+<!-- Spacer -->
+<tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="40">&nbsp;</td></tr>
+
 <!-- Brite Spot Section -->
-<tr><td style="padding:0;">
-<img src="https://brite.co/wp-content/uploads/2025/10/briteco-spot.png" alt="The Brite Spot" width="600" style="width:100%;display:block;">
-</td></tr>
-<tr><td style="padding:30px 20px;background-color:#f9fafb;">
+<tr><td style="padding:0;border:1px solid #282D3E;">
+<img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/briteco-spot.png" alt="The Brite Spot" width="600" style="width:100%;display:block;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr>
-<td valign="top" width="60%">
+<td valign="top" style="padding-right:15px;" width="50%">
 <p style="font-size:16px;line-height:28px;color:#3B3B3B;margin:0;">${briteSpot}</p>
 </td>
-<td valign="top" align="right" width="40%">
+<td valign="top" align="right" width="50%">
 <img src="${briteSpotImage}" alt="" width="203" style="width:203px;height:auto;">
 </td>
 </tr></table>
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
+
+<!-- Spacer -->
+<tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="40">&nbsp;</td></tr>
 
 <!-- Industry Pulse Section -->
-<tr><td style="padding:0;">
-<img src="https://brite.co/wp-content/uploads/2025/10/industry-pulse.png" alt="Industry Pulse" width="600" style="width:100%;display:block;">
+<tr><td style="padding:0;border:1px solid #282D3E;">
+<img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/industry-pulse.png" alt="Industry Pulse" width="600" style="width:100%;display:block;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${pulseContent.first}</div>
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
+<img src="${pulseImage}" alt="" width="490" style="width:100%;max-width:490px;height:auto;display:block;margin:0 auto;border-radius:4px;">
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${pulseContent.rest}</div>
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
-<tr><td style="padding:30px 20px;">
-<img src="${pulseImage}" alt="" width="490" style="width:100%;max-width:490px;height:auto;display:block;margin:0 auto 20px auto;border-radius:4px;">
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${pulse}</div>
-</td></tr>
+
+<!-- Spacer -->
+<tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="40">&nbsp;</td></tr>
 
 <!-- Partner Advantage Section -->
-<tr><td style="padding:0;">
-<img src="https://brite.co/wp-content/uploads/2025/10/partner-advantage.png" alt="Partner Advantage" width="600" style="width:100%;display:block;">
+<tr><td style="padding:0;border:1px solid #282D3E;">
+<img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/partner-advantage.png" alt="Partner Advantage" width="600" style="width:100%;display:block;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${partnerContent.first}</div>
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
+<img src="${partnerImage}" alt="" width="490" style="width:100%;max-width:490px;height:auto;display:block;margin:0 auto;border-radius:4px;">
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
+<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${partnerContent.rest}</div>
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
-<tr><td style="padding:30px 20px;background-color:#f9fafb;">
-<img src="${partnerImage}" alt="" width="490" style="width:100%;max-width:490px;height:auto;display:block;margin:0 auto 20px auto;border-radius:4px;">
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${partner}</div>
-</td></tr>
+
+<!-- Spacer -->
+<tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="30">&nbsp;</td></tr>
 
 <!-- Industry News Section -->
-<tr><td style="padding:0;">
-<img src="https://brite.co/wp-content/uploads/2025/10/industry-news.png" alt="Industry News" width="600" style="width:100%;display:block;">
-</td></tr>
-<tr><td style="padding:30px 20px;">
+<tr><td style="padding:0;border:1px solid #282D3E;">
+<img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/industry-news.png" alt="Industry News" width="600" style="width:100%;display:block;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
 <div style="font-size:16px;line-height:28px;color:#3B3B3B;">${news}</div>
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
+
+<!-- Spacer -->
+<tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="30">&nbsp;</td></tr>
 
 <!-- CTA Section -->
-<tr><td align="center" style="padding:40px 20px;background-color:#037E7F;background-image:url('https://brite.co/wp-content/uploads/2025/09/section-bg.png');background-size:cover;">
-<p style="color:#ffffff;font-size:18px;margin:0 0 20px 0;">Partner with BriteCo today</p>
-<a href="https://brite.co/jewelers" style="display:inline-block;padding:12px 30px;background-color:#FE8916;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;text-transform:uppercase;">LEARN MORE</a>
+<tr><td align="center" style="padding:120px 20px;background-color:#0d5c5c;background-image:url('https://brite.co/wp-content/uploads/2025/09/section-bg.png');background-repeat:no-repeat;background-position:center;background-size:cover;">
+<h2 style="color:#ffffff;font-size:32px;margin:0 0 15px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-weight:600;">Wait Before You Go...</h2>
+<p style="color:#ffffff;font-size:18px;margin:0 0 30px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;">Earn 12% recurring commissions on every policy</p>
+<a href="https://brite.co/partners" style="display:inline-block;padding:11px 29px;background-color:#FE8916;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;text-transform:uppercase;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;">BECOME A PARTNER</a>
 </td></tr>
 
+<!-- Spacer -->
+<tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="45">&nbsp;</td></tr>
+
 <!-- Footer -->
-<tr><td style="padding:30px 20px;background-color:#282D3E;text-align:center;">
-<img src="https://brite.co/wp-content/uploads/2025/09/footer-logo.png" alt="BriteCo" width="80" style="width:80px;margin-bottom:15px;">
-<p style="color:#ffffff;font-size:14px;margin:0 0 10px 0;">BriteCo | Jewelry Insurance Made Simple</p>
-<p style="color:#9ca3af;font-size:12px;margin:0;"><a href="%unsubscribe_url%" style="color:#9ca3af;">Unsubscribe</a> | <a href="https://brite.co/privacy" style="color:#9ca3af;">Privacy Policy</a></p>
+<tr><td align="center" style="padding:0 15px 50px 15px;background-color:#DFE7F0;">
+<img src="https://brite.co/wp-content/uploads/2025/09/footer-logo.png" alt="BriteCo" width="80" style="width:80px;margin-bottom:10px;">
+<p style="color:#444444;font-size:18px;margin:0 0 8px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;">805 Greenwood St Evanston IL 60201</p>
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:18px;"><a href="https://brite.co/" style="color:#008382;">Brite.Co</a></p>
 </td></tr>
 
 </table>
