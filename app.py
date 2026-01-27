@@ -61,7 +61,8 @@ CORS(app)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Session configuration for OAuth (Cloud Run compatible)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
+# Use 'or' to handle empty string case when env var is set but empty
+app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
 app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Required for OAuth redirects
