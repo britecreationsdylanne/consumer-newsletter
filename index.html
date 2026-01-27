@@ -2299,8 +2299,8 @@
 
             <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
                 <div style="padding: 15px; background-color: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e; margin-bottom: 20px;">
-                    <p style="margin: 0; font-weight: 600; color: #166534;">Subject Line:</p>
-                    <p id="ontraportSubjectDisplay" style="margin: 5px 0 0 0; font-size: 16px; color: #272d3f;"></p>
+                    <label style="display: block; font-weight: 600; color: #166534; margin-bottom: 5px;">Subject Line:</label>
+                    <input type="text" id="ontraportSubjectInput" style="width: 100%; padding: 10px; font-size: 16px; color: #272d3f; border: 2px solid #22c55e; border-radius: 6px; background: #ffffff; box-sizing: border-box;" placeholder="Enter subject line..." />
                 </div>
 
                 <button class="btn" onclick="pushToOntraport()" id="ontraportBtn" style="width: 100%; padding: 15px; font-size: 16px;">
@@ -2489,9 +2489,9 @@
             // Populate subject line display when going to step 12 (Ontraport)
             if (step === 12) {
                 const subjectLine = document.getElementById('finalSubjectLine')?.value || 'Stay In The Loupe - ' + selectedMonth;
-                const subjectDisplay = document.getElementById('ontraportSubjectDisplay');
-                if (subjectDisplay) {
-                    subjectDisplay.textContent = subjectLine;
+                const subjectInput = document.getElementById('ontraportSubjectInput');
+                if (subjectInput) {
+                    subjectInput.value = subjectLine;
                 }
             }
             currentStep = step;
@@ -4405,32 +4405,21 @@
             const pulseImage = getImageUrl(generatedImages.industry_pulse || generatedImages.pulse);
             const partnerImage = getImageUrl(generatedImages.partner_advantage || generatedImages.partner);
 
-            // Get GBU article URLs for hyperlinks
+            // Use structured data for GBU (subtitle + copy are separate fields)
+            const goodData = generatedContent.the_good || {};
+            const badData = generatedContent.the_bad || {};
+            const uglyData = generatedContent.the_ugly || {};
+            const goodTitle = goodData.subtitle || good.split('\n')[0] || '';
+            const goodBody = goodData.copy || good.split('\n').slice(1).join(' ') || '';
+            const badTitle = badData.subtitle || bad.split('\n')[0] || '';
+            const badBody = badData.copy || bad.split('\n').slice(1).join(' ') || '';
+            const uglyTitle = uglyData.subtitle || ugly.split('\n')[0] || '';
+            const uglyBody = uglyData.copy || ugly.split('\n').slice(1).join(' ') || '';
+
+            // GBU article URLs for hyperlinks
             const goodUrl = selectedArticles.the_good?.url || '';
             const badUrl = selectedArticles.the_bad?.url || '';
             const uglyUrl = selectedArticles.the_ugly?.url || '';
-
-            // Extract titles from Good/Bad/Ugly content
-            // Try splitting by newline first, then by period for single-line content
-            const extractTitle = (content) => {
-                if (!content) return '';
-                const lines = content.split('\n').filter(l => l.trim());
-                if (lines.length > 1) return lines[0];
-                // Single line: take first sentence or first ~8 words as title
-                const sentences = content.split(/(?<=\.)\s+/);
-                if (sentences.length > 1) return sentences[0];
-                const words = content.split(' ');
-                return words.slice(0, 8).join(' ') + (words.length > 8 ? '...' : '');
-            };
-            const extractBody = (content) => {
-                if (!content) return '';
-                const lines = content.split('\n').filter(l => l.trim());
-                if (lines.length > 1) return lines.slice(1).join(' ');
-                // Single line: everything after first sentence
-                const sentences = content.split(/(?<=\.)\s+/);
-                if (sentences.length > 1) return sentences.slice(1).join(' ');
-                return '';
-            };
 
             // Helper to wrap title in link if URL available
             const linkTitle = (title, url) => {
@@ -4438,15 +4427,60 @@
                 return title;
             };
 
-            // Split pulse/partner content: first paragraph vs rest
-            const splitFirstParagraph = (html) => {
-                // Find first </p> or first block-level closing tag
-                const match = html.match(/^([\s\S]*?<\/p>)([\s\S]*)$/i);
-                if (match) return { first: match[1], rest: match[2] };
-                return { first: html, rest: '' };
-            };
-            const pulseContent = splitFirstParagraph(pulse);
-            const partnerContent = splitFirstParagraph(partner);
+            // Use structured data for Industry Pulse
+            const pulseData = generatedContent.industry_pulse || {};
+            const pulseTitle = pulseData.title || '';
+            const pulseIntro = pulseData.intro || pulse;
+            const pulseH3_1_title = pulseData.h3_1_title || '';
+            const pulseH3_1_content = pulseData.h3_1_content || '';
+            const pulseH3_2_title = pulseData.h3_2_title || '';
+            const pulseH3_2_content = pulseData.h3_2_content || '';
+
+            // Use structured data for Partner Advantage
+            const partnerData = generatedContent.partner_advantage || {};
+            const partnerSubheader = partnerData.subheader || '';
+            const partnerIntro = partnerData.intro || '';
+            const partnerTips = partnerData.tips || [];
+
+            // Build Partner Advantage tips HTML with tick images
+            const tickImg = 'https://brite.co/wp-content/uploads/2025/09/tickk.png';
+            let partnerTipsHtml = '';
+            partnerTips.forEach(tip => {
+                partnerTipsHtml += `
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+<tr>
+<td style="padding-right:15px;" valign="top" width="46"><img alt="" src="${tickImg}" style="display:block;width:31px;height:auto;" width="31" /></td>
+<td valign="top">
+<p style="margin:0 0 4px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:24px;font-weight:600;color:#008181;">${tip.title || ''}</p>
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${tip.content || ''}</p>
+</td>
+</tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="10" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>`;
+            });
+
+            // Use structured data for Industry News
+            const newsData = generatedContent.industry_news || {};
+            const newsBullets = newsData.bullets || [];
+            let newsHtml = '';
+            newsBullets.forEach(b => {
+                let bulletText = b.text || b.headline || b;
+                // Convert markdown links to HTML
+                bulletText = bulletText.replace(
+                    /\[([^\]]+)\]\(([^)]+)\)/g,
+                    '<a href="$2" target="_blank" style="color:#018181;text-decoration:underline;">$1</a>'
+                );
+                newsHtml += `
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+<tr>
+<td style="padding-right:15px;" valign="top" width="46"><img alt="" src="${tickImg}" style="display:block;width:31px;height:auto;" width="31" /></td>
+<td valign="top">
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${bulletText}</p>
+</td>
+</tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="10" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>`;
+            });
 
             return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -4520,55 +4554,52 @@ a { color: #018181; }
 </tr>
 
 <!-- Good/Bad/Ugly Section -->
-<tr><td style="padding:0;border:1px solid #282D3E;">
+<tr><td style="padding:0;border:1px solid #282D3E;background-color:#ffffff;">
 <img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/good-bad-ugly.png" alt="Good Bad Ugly" width="600" style="width:100%;display:block;">
 <!-- Spacer after banner -->
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 <!-- Good -->
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr>
 <td valign="top" style="padding-right:15px;" width="50%">
-<p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#008181;text-transform:uppercase;letter-spacing:1px;">Good:</p>
-<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;line-height:30px;">${linkTitle(extractTitle(good), goodUrl)}</h3>
-<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">${extractBody(good)}</p>
+<p style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#008181;text-transform:uppercase;letter-spacing:1px;">Good:</p>
+<h3 style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:30px;font-weight:600;color:#3B3B3B;">${linkTitle(goodTitle, goodUrl)}</h3>
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${goodBody}</p>
 </td>
 <td valign="top" align="right" width="50%">
-<img src="${goodImage}" alt="" width="203" style="width:203px;height:auto;">
+<img src="${goodImage}" alt="" width="203" style="display:block;width:203px;height:auto;">
 </td>
 </tr></table>
 </td></tr></table>
-<!-- Spacer -->
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 <!-- Bad -->
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr>
 <td valign="top" align="left" style="padding-right:15px;" width="50%">
-<img src="${badImage}" alt="" width="203" style="width:203px;height:auto;">
+<img src="${badImage}" alt="" width="203" style="display:block;width:203px;height:auto;">
 </td>
 <td valign="top" width="50%">
-<p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#FE8916;text-transform:uppercase;letter-spacing:1px;">Bad:</p>
-<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;line-height:30px;">${linkTitle(extractTitle(bad), badUrl)}</h3>
-<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">${extractBody(bad)}</p>
+<p style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#FE8916;text-transform:uppercase;letter-spacing:1px;">Bad:</p>
+<h3 style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:30px;font-weight:600;color:#3B3B3B;">${linkTitle(badTitle, badUrl)}</h3>
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${badBody}</p>
 </td>
 </tr></table>
 </td></tr></table>
-<!-- Spacer -->
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 <!-- Ugly -->
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr>
 <td valign="top" style="padding-right:15px;" width="50%">
-<p style="margin:0 0 6px 0;font-size:14px;font-weight:700;color:#282D3E;text-transform:uppercase;letter-spacing:1px;">Ugly:</p>
-<h3 style="margin:0 0 6px 0;font-size:20px;font-weight:600;color:#3B3B3B;line-height:30px;">${linkTitle(extractTitle(ugly), uglyUrl)}</h3>
-<p style="margin:0;font-size:16px;line-height:28px;color:#3B3B3B;">${extractBody(ugly)}</p>
+<p style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#282D3E;text-transform:uppercase;letter-spacing:1px;">Ugly:</p>
+<h3 style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:30px;font-weight:600;color:#3B3B3B;">${linkTitle(uglyTitle, uglyUrl)}</h3>
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${uglyBody}</p>
 </td>
 <td valign="top" align="right" width="50%">
-<img src="${uglyImage}" alt="" width="203" style="width:203px;height:auto;">
+<img src="${uglyImage}" alt="" width="203" style="display:block;width:203px;height:auto;">
 </td>
 </tr></table>
 </td></tr></table>
-<!-- Spacer -->
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
 
 <!-- Spacer -->
@@ -4595,55 +4626,80 @@ a { color: #018181; }
 <tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="40">&nbsp;</td></tr>
 
 <!-- Industry Pulse Section -->
-<tr><td style="padding:0;border:1px solid #282D3E;">
+<tr><td style="padding:0;border:1px solid #282D3E;background-color:#ffffff;">
 <img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/industry-pulse.png" alt="Industry Pulse" width="600" style="width:100%;display:block;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${pulseContent.first}</div>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<!-- Title -->
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+<h2 style="margin:0 0 8px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:22px;line-height:28px;font-weight:700;color:#282D3E;">${pulseTitle}</h2>
 </td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<img src="${pulseImage}" alt="" width="490" style="width:100%;max-width:490px;height:auto;display:block;margin:0 auto;border-radius:4px;">
+<!-- Intro with image -->
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr>
+<td align="left" valign="top" style="padding-right:15px;" width="50%">
+<img src="${pulseImage}" alt="" width="203" style="display:block;width:203px;max-width:100%;height:auto;">
+</td>
+<td valign="top" width="50%">
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${pulseIntro}</p>
+</td>
+</tr></table>
 </td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${pulseContent.rest}</div>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<!-- H3 Section 1 -->
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+<h3 style="margin:0 0 8px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:18px;line-height:26px;font-weight:600;color:#3B3B3B;">${pulseH3_1_title}</h3>
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${pulseH3_1_content}</p>
 </td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<!-- H3 Section 2 -->
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+<h3 style="margin:0 0 8px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:18px;line-height:26px;font-weight:600;color:#3B3B3B;">${pulseH3_2_title}</h3>
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${pulseH3_2_content}</p>
+</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
 
 <!-- Spacer -->
 <tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="40">&nbsp;</td></tr>
 
 <!-- Partner Advantage Section -->
-<tr><td style="padding:0;border:1px solid #282D3E;">
+<tr><td style="padding:0;border:1px solid #282D3E;background-color:#ffffff;">
 <img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/partner-advantage.png" alt="Partner Advantage" width="600" style="width:100%;display:block;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${partnerContent.first}</div>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<!-- Subheader -->
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+<h3 style="margin:0 0 8px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:28px;font-weight:600;color:#3B3B3B;">${partnerSubheader}</h3>
 </td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<img src="${partnerImage}" alt="" width="490" style="width:100%;max-width:490px;height:auto;display:block;margin:0 auto;border-radius:4px;">
+<!-- Intro with image -->
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr>
+<td valign="top" style="padding-right:15px;" width="50%">
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${partnerIntro}</p>
+</td>
+<td valign="top" align="right" width="50%">
+<img src="${partnerImage}" alt="" width="203" style="display:block;width:203px;max-width:100%;height:auto;">
+</td>
+</tr></table>
 </td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${partnerContent.rest}</div>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="35" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<!-- Tips with tick images -->
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+${partnerTipsHtml}
 </td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="34" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
 
 <!-- Spacer -->
 <tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="30">&nbsp;</td></tr>
 
 <!-- Industry News Section -->
-<tr><td style="padding:0;border:1px solid #282D3E;">
+<tr><td style="padding:0;border:1px solid #282D3E;background-color:#ffffff;">
 <img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/industry-news.png" alt="Industry News" width="600" style="width:100%;display:block;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<div style="font-size:16px;line-height:28px;color:#3B3B3B;">${news}</div>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
+${newsHtml}
 </td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="34" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
 
 <!-- Spacer -->
@@ -4675,7 +4731,7 @@ a { color: #018181; }
 
         // Push to Ontraport
         async function pushToOntraport() {
-            const subject = document.getElementById('finalSubjectLine').value;
+            const subject = document.getElementById('ontraportSubjectInput')?.value || document.getElementById('finalSubjectLine')?.value;
             if (!subject) { alert('Please enter a subject line'); return; }
 
             try {
