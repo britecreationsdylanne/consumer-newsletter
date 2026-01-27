@@ -84,16 +84,23 @@ GOOGLE_DRIVE_FOLDER_ID = "1aXvnR1nqh_0HBXmqLbYSBGnunOi8npsy"
 
 # Brand voice for AI content generation
 BRAND_VOICE = {
-    "tone": "Professional but approachable, knowledgeable about jewelry industry, supportive of jeweler partners",
-    "style": "Clear, concise, actionable",
+    "tone": "Professional but approachable with a touch of wit — clever wordplay and light humor welcome but never forced. Knowledgeable about the jewelry industry, supportive of jeweler partners",
+    "style": "Clear, concise, actionable, with personality — a wink, not a wisecrack",
     "perspective": "We help jewelers protect their clients' most precious possessions",
+    "wit_guidance": [
+        "Light wordplay and puns are encouraged, especially in headlines",
+        "Keep humor subtle — a clever turn of phrase, not a joke",
+        "Never sacrifice clarity for cleverness",
+        "The Good/Bad/Ugly section can be the wittiest; Industry Pulse should stay more analytical"
+    ],
     "avoid": [
         "Overly salesy language",
         "Jargon without explanation",
         "Non-jewelry content",
         "Political content",
         "Competitor bashing",
-        "Personnel/people news (deaths, promotions, etc.)"
+        "Personnel/people news (deaths, promotions, etc.)",
+        "Over-the-top humor or forced jokes"
     ]
 }
 
@@ -183,7 +190,8 @@ WRITING_STYLE_GUIDE = {
             "Happy [Month]! Here's what's sparkling in the jewelry world this month.",
             "Welcome to [Month]'s Stay In The Loupe!",
             "As we head into [season], here's the latest from the jewelry industry.",
-            "[Month] is here, and we've got the insights to keep you ahead of the curve."
+            "[Month] is here, and we've got the insights to keep you ahead of the curve.",
+            "[Month] just arrived — and it brought some gems (pun fully intended)."
         ],
         "phrases_to_use": [
             "keeping you in the loop",
@@ -209,10 +217,11 @@ WRITING_STYLE_GUIDE = {
             "Each section: catchy subtitle (8 words max), brief copy (30 words max)"
         ],
         "tone_notes": [
-            "Fun and engaging",
-            "Clever headlines with wordplay",
+            "Fun and engaging — this is the wittiest section",
+            "Clever headlines with wordplay and light puns",
             "Brief but impactful",
-            "Always include source links"
+            "Always include source links",
+            "A dash of humor in the copy is encouraged"
         ]
     },
     "industry_pulse": {
@@ -227,15 +236,17 @@ WRITING_STYLE_GUIDE = {
             "Analytical but accessible",
             "Data-driven when possible",
             "Connect to jeweler relevance",
-            "Professional industry voice"
+            "Professional industry voice with subtle personality",
+            "A light touch of wit in transitions is fine, but keep analysis sharp"
         ]
     },
     "partner_advantage": {
         "patterns": [
-            "Brief intro paragraph setting up the tips",
+            "Brief intro paragraph setting up the tips — inject light personality",
             "5 bullet points with mini-titles (10 words max)",
             "Each bullet has 1-3 supporting sentences",
-            "Include hyperlinks for further reading"
+            "Include hyperlinks for further reading",
+            "Mini-titles can use clever phrasing where it fits naturally"
         ],
         "categories": [
             "Sales techniques",
@@ -264,8 +275,8 @@ WRITING_STYLE_GUIDE = {
 # Brand check rules for AI content review
 BRAND_CHECK_RULES = {
     "tone_and_voice": {
-        "should_be": "Professional but approachable, knowledgeable, supportive",
-        "should_avoid": "Overly formal, salesy, or condescending language"
+        "should_be": "Professional but approachable with subtle wit, knowledgeable, supportive",
+        "should_avoid": "Overly formal, salesy, condescending language, or forced/over-the-top humor"
     },
     "word_count_limits": {
         "brite_spot_body": 100,

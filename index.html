@@ -568,6 +568,87 @@
             background: #6b7280;
         }
 
+        .research-result-badge.saved {
+            background: #7c3aed;
+        }
+
+        .save-article-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 4px;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+
+        .save-article-btn:hover {
+            opacity: 1;
+        }
+
+        .save-article-btn.is-saved {
+            opacity: 1;
+        }
+
+        .saved-article-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-left: 4px solid #7c3aed;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: #faf5ff;
+        }
+
+        .saved-article-card .sa-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .saved-article-card .sa-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1f2937;
+            margin: 0 0 4px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .saved-article-card .sa-meta {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .saved-article-card .sa-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+
+        .saved-article-card .sa-actions button {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid #d1d5db;
+            background: white;
+        }
+
+        .saved-article-card .sa-actions .sa-use-btn {
+            background: #018181;
+            color: white;
+            border-color: #018181;
+        }
+
+        .saved-article-card .sa-actions .sa-delete-btn {
+            color: #dc2626;
+            border-color: #dc2626;
+        }
+
         .research-result-meta {
             display: flex;
             align-items: center;
@@ -733,6 +814,75 @@
 
         .editable:focus {
             outline: none;
+            border-color: #018181;
+        }
+
+        .link-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+
+        .link-toolbar-btn {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #374151;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .link-toolbar-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .link-popover {
+            display: none;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 6px;
+        }
+
+        .link-popover.show {
+            display: block;
+        }
+
+        .link-popover input {
+            display: block;
+            width: 100%;
+            padding: 6px 8px;
+            margin-bottom: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        .link-popover-actions {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .link-popover-actions button {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid #d1d5db;
+        }
+
+        .link-popover-actions .link-insert-btn {
+            background: #018181;
+            color: white;
             border-color: #018181;
         }
 
@@ -1304,6 +1454,31 @@
         </div>
     </div>
 
+    <!-- Saved Articles Modal -->
+    <div class="modal-overlay" id="savedArticlesModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Saved Articles</h3>
+                <button class="modal-close" onclick="hideSavedArticlesModal()">&times;</button>
+            </div>
+            <p class="modal-description">Articles saved for future newsletters. Click "Use" to add one to your current research.</p>
+
+            <div id="savedArticlesList" style="max-height: 350px; overflow-y: auto; margin-bottom: 15px;">
+                <p style="color: #999; text-align: center; padding: 20px;">Loading saved articles...</p>
+            </div>
+
+            <div style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
+                <p style="font-size: 13px; color: #666; margin: 0 0 8px 0;">Save a new article by URL:</p>
+                <input type="text" class="modal-input" id="savedArticleUrlInput" placeholder="https://example.com/article...">
+                <p class="modal-error" id="savedArticleError" style="display: none;"></p>
+                <div class="modal-actions">
+                    <button class="btn btn-green" onclick="saveArticleByUrl()">+ Save Article</button>
+                    <button class="btn btn-secondary" onclick="hideSavedArticlesModal()">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>Stay In The Loupe</h1>
@@ -1439,6 +1614,7 @@
                     <p id="step3SectionDescription">Positive jewelry news - new designs, trends, sales records, success stories</p>
                 </div>
                 <button class="btn-add-link" onclick="showCustomLinkModal('gbu')">📎 Add Custom Link</button>
+                <button class="btn-add-link" onclick="showSavedArticlesModal('gbu')" style="margin-left: 6px;">📌 Saved Articles</button>
             </div>
 
             <div class="research-tabs">
@@ -1468,6 +1644,7 @@
                         <input type="text" id="gbu-perplexity-query" placeholder="jewelry design trends 2026">
                         <select id="gbu-perplexity-time">
                             <option value="7d">Last 7 days</option>
+                            <option value="15d">Last 15 days</option>
                             <option value="30d" selected>Last 30 days</option>
                             <option value="90d">Last 90 days</option>
                         </select>
@@ -1490,6 +1667,7 @@
                     <div class="research-card-filters">
                         <select id="gbu-insight-time">
                             <option value="7d">Last 7 days</option>
+                            <option value="15d">Last 15 days</option>
                             <option value="30d" selected>Last 30 days</option>
                             <option value="90d">Last 90 days</option>
                         </select>
@@ -1520,6 +1698,7 @@
                     <div class="research-card-filters">
                         <select id="gbu-source-time">
                             <option value="7d">Last 7 days</option>
+                            <option value="15d">Last 15 days</option>
                             <option value="30d" selected>Last 30 days</option>
                             <option value="90d">Last 90 days</option>
                         </select>
@@ -1559,6 +1738,7 @@
                     <p>Deep-dive feature article combining multiple sources into one cohesive story</p>
                 </div>
                 <button class="btn-add-link" onclick="showCustomLinkModal('pulse')">📎 Add Custom Link</button>
+                <button class="btn-add-link" onclick="showSavedArticlesModal('pulse')" style="margin-left: 6px;">📌 Saved Articles</button>
             </div>
 
             <div class="selection-counter">
@@ -1576,6 +1756,8 @@
                     <div class="research-card-filters">
                         <input type="text" id="pulse-perplexity-query" placeholder="jewelry industry trends 2026">
                         <select id="pulse-perplexity-time">
+                            <option value="7d">Last 7 days</option>
+                            <option value="15d">Last 15 days</option>
                             <option value="30d" selected>Last 30 days</option>
                             <option value="90d">Last 90 days</option>
                         </select>
@@ -1593,6 +1775,8 @@
                     <p class="research-card-description">Scans market signals via OpenAI web search, then GPT-5.2 analyzes impact and generates headlines.</p>
                     <div class="research-card-filters">
                         <select id="pulse-insight-time">
+                            <option value="7d">Last 7 days</option>
+                            <option value="15d">Last 15 days</option>
                             <option value="30d" selected>Last 30 days</option>
                             <option value="90d">Last 90 days</option>
                         </select>
@@ -1614,6 +1798,8 @@
                     </div>
                     <div class="research-card-filters">
                         <select id="pulse-source-time">
+                            <option value="7d">Last 7 days</option>
+                            <option value="15d">Last 15 days</option>
                             <option value="30d" selected>Last 30 days</option>
                             <option value="90d">Last 90 days</option>
                         </select>
@@ -1638,6 +1824,7 @@
                     <p id="step5SectionDesc">Select 2-5 articles to combine into one cohesive story</p>
                 </div>
                 <button class="btn-add-link" onclick="showCustomLinkModal(currentStep5Tab)">📎 Add Custom Link</button>
+                <button class="btn-add-link" onclick="showSavedArticlesModal(currentStep5Tab)" style="margin-left: 6px;">📌 Saved Articles</button>
             </div>
 
             <div class="research-tabs">
@@ -1667,6 +1854,8 @@
                     <div class="research-card-filters">
                         <input type="text" id="step5-perplexity-query" placeholder="jeweler business tips">
                         <select id="step5-perplexity-time">
+                            <option value="7d">Last 7 days</option>
+                            <option value="15d">Last 15 days</option>
                             <option value="30d" selected>Last 30 days</option>
                             <option value="90d">Last 90 days</option>
                         </select>
@@ -1683,6 +1872,8 @@
                     <p class="research-card-description">Scans jewelry industry signals via OpenAI, then GPT-5.2 analyzes trends and business impact.</p>
                     <div class="research-card-filters">
                         <select id="step5-insight-time">
+                            <option value="7d">Last 7 days</option>
+                            <option value="15d">Last 15 days</option>
                             <option value="30d" selected>Last 30 days</option>
                             <option value="90d">Last 90 days</option>
                         </select>
@@ -1703,6 +1894,8 @@
                     </div>
                     <div class="research-card-filters">
                         <select id="step5-source-time">
+                            <option value="7d">Last 7 days</option>
+                            <option value="15d">Last 15 days</option>
                             <option value="30d" selected>Last 30 days</option>
                             <option value="90d">Last 90 days</option>
                         </select>
@@ -1781,41 +1974,113 @@
 
             <div class="content-section">
                 <h3>Introduction</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('review-intro')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-review-intro">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('review-intro')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('review-intro')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="review-intro"></div>
             </div>
 
             <div class="content-section">
                 <h3>The Brite Spot</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('review-britespot')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-review-britespot">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('review-britespot')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('review-britespot')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="review-britespot"></div>
             </div>
 
             <div class="content-section">
                 <h3>The Good</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('review-good')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-review-good">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('review-good')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('review-good')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="review-good"></div>
             </div>
 
             <div class="content-section">
                 <h3>The Bad</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('review-bad')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-review-bad">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('review-bad')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('review-bad')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="review-bad"></div>
             </div>
 
             <div class="content-section">
                 <h3>The Ugly</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('review-ugly')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-review-ugly">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('review-ugly')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('review-ugly')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="review-ugly"></div>
             </div>
 
             <div class="content-section">
                 <h3>Industry Pulse</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('review-pulse')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-review-pulse">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('review-pulse')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('review-pulse')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="review-pulse"></div>
             </div>
 
             <div class="content-section">
                 <h3>Partner Advantage</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('review-partner')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-review-partner">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('review-partner')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('review-partner')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="review-partner"></div>
             </div>
 
             <div class="content-section">
                 <h3>Industry News</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('review-news')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-review-news">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('review-news')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('review-news')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="review-news"></div>
             </div>
 
@@ -1902,41 +2167,113 @@
 
             <div class="content-section">
                 <h3>Introduction</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-intro')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-intro">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-intro')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-intro')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="fc-intro"></div>
             </div>
 
             <div class="content-section">
                 <h3>The Brite Spot</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-britespot')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-britespot">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-britespot')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-britespot')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="fc-britespot"></div>
             </div>
 
             <div class="content-section">
                 <h3>The Good</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-good')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-good">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-good')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-good')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="fc-good"></div>
             </div>
 
             <div class="content-section">
                 <h3>The Bad</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-bad')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-bad">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-bad')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-bad')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="fc-bad"></div>
             </div>
 
             <div class="content-section">
                 <h3>The Ugly</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-ugly')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-ugly">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-ugly')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-ugly')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="fc-ugly"></div>
             </div>
 
             <div class="content-section">
                 <h3>Industry Pulse</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-pulse')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-pulse">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-pulse')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-pulse')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="fc-pulse"></div>
             </div>
 
             <div class="content-section">
                 <h3>Partner Advantage</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-partner')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-partner">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-partner')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-partner')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="fc-partner"></div>
             </div>
 
             <div class="content-section">
                 <h3>Industry News</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-news')" type="button">🔗 Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-news">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-news')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-news')">Insert</button>
+                    </div>
+                </div>
                 <div class="editable" contenteditable="true" id="fc-news"></div>
             </div>
 
@@ -3353,6 +3690,223 @@
             updateAddedLinksDisplay();
         }
 
+        // ========== SAVED ARTICLES FEATURE ==========
+        let savedArticlesCache = [];
+        let savedArticlesModalSection = null;
+
+        async function loadSavedArticles() {
+            try {
+                const res = await fetch(`${API_BASE}/api/saved-articles`);
+                const data = await res.json();
+                if (data.success) savedArticlesCache = data.articles || [];
+            } catch (e) {
+                console.log('[SavedArticles] Load error:', e);
+                savedArticlesCache = [];
+            }
+        }
+
+        // Load on page init
+        loadSavedArticles();
+
+        function showSavedArticlesModal(section) {
+            savedArticlesModalSection = section;
+            document.getElementById('savedArticlesModal').classList.add('show');
+            document.getElementById('savedArticleUrlInput').value = '';
+            document.getElementById('savedArticleError').style.display = 'none';
+            renderSavedArticlesList();
+        }
+
+        function hideSavedArticlesModal() {
+            document.getElementById('savedArticlesModal').classList.remove('show');
+            savedArticlesModalSection = null;
+        }
+
+        function renderSavedArticlesList() {
+            const container = document.getElementById('savedArticlesList');
+            if (savedArticlesCache.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No saved articles yet. Save articles from search results or add a URL below.</p>';
+                return;
+            }
+            container.innerHTML = savedArticlesCache.map((article, i) => `
+                <div class="saved-article-card">
+                    <div class="sa-info">
+                        <div class="sa-title">${article.title || article.url}</div>
+                        <div class="sa-meta">${article.publisher || ''} ${article.dateSaved ? '· Saved ' + new Date(article.dateSaved).toLocaleDateString() : ''}</div>
+                    </div>
+                    <div class="sa-actions">
+                        <button class="sa-use-btn" onclick="useSavedArticle(${i})">Use</button>
+                        <button class="sa-delete-btn" onclick="deleteSavedArticle('${article.url.replace(/'/g, "\\'")}')">×</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function useSavedArticle(index) {
+            const article = savedArticlesCache[index];
+            if (!article) return;
+
+            const articleObj = {
+                url: article.url,
+                title: article.title || article.url,
+                headline: article.title || article.url,
+                snippet: article.snippet || '',
+                publisher: article.publisher || '',
+                impact: 'SAVED',
+                isSavedArticle: true
+            };
+
+            const section = savedArticlesModalSection;
+            addSavedArticleToResults(section, articleObj);
+            hideSavedArticlesModal();
+        }
+
+        function addSavedArticleToResults(section, article) {
+            let resultsDiv;
+            let stateCache;
+
+            if (section === 'gbu') {
+                resultsDiv = document.getElementById('gbu-perplexity-results');
+                stateCache = gbuSearchState[currentGBUTab];
+            } else if (section === 'pulse' || section === 'partner' || section === 'news') {
+                resultsDiv = document.getElementById('step5-perplexity-results');
+                stateCache = step5SearchState[currentStep5Tab];
+            } else {
+                resultsDiv = document.getElementById(section + '-perplexity-results');
+            }
+
+            if (!resultsDiv) return;
+
+            const item = document.createElement('div');
+            item.className = 'research-result-item';
+            item.style.borderLeft = '4px solid #7c3aed';
+            item.innerHTML = `
+                <div class="research-result-header">
+                    <span class="research-result-badge saved">SAVED</span>
+                    <div class="research-result-meta">
+                        <span>${article.publisher}</span>
+                        <a href="${article.url}" target="_blank">Source →</a>
+                        <input type="checkbox" class="research-result-checkbox" onclick="event.stopPropagation()">
+                    </div>
+                </div>
+                <div class="research-result-title">${article.headline}</div>
+                ${article.snippet ? `
+                    <div class="research-result-keydata">
+                        <div class="research-result-keydata-label">SUMMARY</div>
+                        <p>${article.snippet.substring(0, 250)}${article.snippet.length > 250 ? '...' : ''}</p>
+                    </div>
+                ` : ''}
+            `;
+            item.onclick = () => selectArticle(section === 'pulse' || section === 'partner' || section === 'news' ? 'step5' : section, article, item);
+
+            if (resultsDiv.firstChild) {
+                resultsDiv.insertBefore(item, resultsDiv.firstChild);
+            } else {
+                resultsDiv.appendChild(item);
+            }
+
+            if (stateCache) {
+                stateCache.htmlCache.perplexity = resultsDiv.innerHTML;
+            }
+        }
+
+        async function toggleSaveArticle(btn, article) {
+            const url = article.url;
+            const alreadySaved = savedArticlesCache.some(sa => sa.url === url);
+            if (alreadySaved) {
+                await deleteSavedArticle(url);
+                btn.classList.remove('is-saved');
+                btn.title = 'Save for later';
+            } else {
+                await saveArticleToBank(article);
+                btn.classList.add('is-saved');
+                btn.title = 'Saved';
+            }
+        }
+
+        async function saveArticleToBank(article) {
+            try {
+                const res = await fetch(`${API_BASE}/api/saved-articles`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ article: {
+                        url: article.url,
+                        title: article.title || article.headline || article.url,
+                        snippet: article.snippet || '',
+                        publisher: article.publisher || ''
+                    }})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    savedArticlesCache = data.articles || [];
+                }
+            } catch (e) {
+                console.error('[SavedArticles] Save error:', e);
+            }
+        }
+
+        async function deleteSavedArticle(url) {
+            try {
+                const res = await fetch(`${API_BASE}/api/saved-articles`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    savedArticlesCache = data.articles || [];
+                    renderSavedArticlesList();
+                }
+            } catch (e) {
+                console.error('[SavedArticles] Delete error:', e);
+            }
+        }
+
+        async function saveArticleByUrl() {
+            const urlInput = document.getElementById('savedArticleUrlInput');
+            const errorDiv = document.getElementById('savedArticleError');
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                errorDiv.textContent = 'Please enter a URL';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                errorDiv.textContent = 'Please enter a valid URL starting with http:// or https://';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            errorDiv.style.display = 'none';
+
+            try {
+                // Fetch metadata
+                const metaRes = await fetch(`${API_BASE}/api/fetch-article-metadata`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const meta = await metaRes.json();
+
+                await saveArticleToBank({
+                    url: url,
+                    title: meta.title || url,
+                    snippet: meta.description || '',
+                    publisher: meta.publisher || new URL(url).hostname
+                });
+            } catch (e) {
+                // Save even without metadata
+                await saveArticleToBank({
+                    url: url,
+                    title: url,
+                    snippet: '',
+                    publisher: new URL(url).hostname
+                });
+            }
+
+            urlInput.value = '';
+            renderSavedArticlesList();
+        }
+
         // Search functions
         async function searchPerplexity(section) {
             const queryInput = document.getElementById(section + '-perplexity-query');
@@ -3462,12 +4016,17 @@
 
                 const item = document.createElement('div');
                 item.className = 'research-result-item';
+                const isSaved = savedArticlesCache.some(sa => sa.url === r.url);
+                const articleIdx = window._displayedArticles ? window._displayedArticles.length : 0;
+                if (!window._displayedArticles) window._displayedArticles = [];
+                window._displayedArticles.push(r);
                 item.innerHTML = `
                     <div class="research-result-header">
                         <span class="research-result-badge ${badgeClass}">${impact}</span>
                         <div class="research-result-meta">
                             <span>${r.publisher || ''}</span>
                             <a href="${r.url || '#'}" target="_blank">Source →</a>
+                            <button class="save-article-btn ${isSaved ? 'is-saved' : ''}" onclick="event.stopPropagation(); toggleSaveArticle(this, window._displayedArticles[${articleIdx}])" title="${isSaved ? 'Saved' : 'Save for later'}">📌</button>
                             <input type="checkbox" class="research-result-checkbox" onclick="event.stopPropagation()">
                         </div>
                     </div>
@@ -5094,6 +5653,119 @@ ${newsHtml}
                 });
                 fcNews.innerHTML = newsHtml;
             }
+        }
+
+        // ========== LINK TOOLBAR FUNCTIONS ==========
+        let linkTargetEditorId = null;
+        let savedSelection = null;
+
+        function saveSelection() {
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                savedSelection = sel.getRangeAt(0).cloneRange();
+            }
+        }
+
+        function restoreSelection() {
+            if (savedSelection) {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedSelection);
+            }
+        }
+
+        function showLinkPopover(editorId) {
+            // Save current cursor position in the editor
+            const editor = document.getElementById(editorId);
+            if (editor) editor.focus();
+            saveSelection();
+
+            linkTargetEditorId = editorId;
+            // Hide all other popovers first
+            document.querySelectorAll('.link-popover').forEach(p => p.classList.remove('show'));
+            const popover = document.getElementById('lp-' + editorId);
+            if (popover) {
+                popover.classList.add('show');
+                // Pre-fill display text with selected text
+                const sel = window.getSelection();
+                const selectedText = sel.toString().trim();
+                const textInput = popover.querySelector('.lp-text');
+                const urlInput = popover.querySelector('.lp-url');
+                if (textInput) textInput.value = selectedText || '';
+                if (urlInput) { urlInput.value = ''; urlInput.focus(); }
+            }
+        }
+
+        function hideLinkPopover(editorId) {
+            const popover = document.getElementById('lp-' + editorId);
+            if (popover) popover.classList.remove('show');
+            linkTargetEditorId = null;
+        }
+
+        function insertLink(editorId) {
+            const popover = document.getElementById('lp-' + editorId);
+            if (!popover) return;
+            const text = popover.querySelector('.lp-text').value.trim();
+            const url = popover.querySelector('.lp-url').value.trim();
+            if (!url) return;
+
+            const displayText = text || url;
+            const linkHtml = `<a href="${url}" style="color:#008181;text-decoration:underline;" target="_blank">${displayText}</a>`;
+
+            const editor = document.getElementById(editorId);
+            if (editor) {
+                editor.focus();
+                restoreSelection();
+                document.execCommand('insertHTML', false, linkHtml);
+            }
+
+            hideLinkPopover(editorId);
+        }
+
+        // Track cursor in editable divs so we can restore position after popover
+        document.addEventListener('selectionchange', function() {
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                const node = sel.anchorNode;
+                if (node) {
+                    const editable = node.nodeType === 1 ? node.closest('.editable') : (node.parentElement ? node.parentElement.closest('.editable') : null);
+                    if (editable) {
+                        savedSelection = sel.getRangeAt(0).cloneRange();
+                    }
+                }
+            }
+        });
+
+        function sanitizeEditableHtml(html) {
+            // Strip all tags except <a>, <strong>, <br>, <b>, <em>, <i>
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            const walk = (node) => {
+                const children = Array.from(node.childNodes);
+                children.forEach(child => {
+                    if (child.nodeType === 1) { // element
+                        const tag = child.tagName.toLowerCase();
+                        const allowed = ['a', 'strong', 'br', 'b', 'em', 'i'];
+                        if (!allowed.includes(tag)) {
+                            // Replace with its children
+                            while (child.firstChild) {
+                                node.insertBefore(child.firstChild, child);
+                            }
+                            node.removeChild(child);
+                        } else {
+                            // For <a> tags, ensure inline styling for email
+                            if (tag === 'a') {
+                                child.style.color = '#008181';
+                                child.style.textDecoration = 'underline';
+                                child.setAttribute('target', '_blank');
+                            }
+                            walk(child);
+                        }
+                    }
+                });
+            };
+            walk(tmp);
+            return tmp.innerHTML;
         }
 
         function saveFinalCopyToState() {

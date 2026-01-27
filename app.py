@@ -613,6 +613,7 @@ def search_perplexity_v2():
         # Build query description for UI
         time_desc = {
             '7d': 'past week',
+            '15d': 'past 2 weeks',
             '30d': 'past month',
             '90d': 'past 3 months'
         }.get(time_window, 'recent')
@@ -736,6 +737,7 @@ def search_sources_v2():
         # Convert time window to human-readable for query
         time_desc = {
             '7d': 'past week',
+            '15d': 'past 2 weeks',
             '30d': 'past month',
             '90d': 'past 3 months'
         }.get(time_window, 'recent')
@@ -2780,6 +2782,91 @@ def delete_draft():
     except Exception as e:
         safe_print(f"[DRAFT DELETE ERROR] {str(e)}")
         return jsonify({'success': True})  # Non-critical, don't fail
+
+
+# ============================================================================
+# ROUTES - SAVED ARTICLES (Google Cloud Storage)
+# ============================================================================
+
+SAVED_ARTICLES_BLOB = 'saved-articles/global.json'
+
+@app.route('/api/saved-articles', methods=['GET'])
+def get_saved_articles():
+    """Get all saved articles from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True, 'articles': []})
+    try:
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(SAVED_ARTICLES_BLOB)
+        if blob.exists():
+            data = json.loads(blob.download_as_text())
+            return jsonify({'success': True, 'articles': data.get('articles', [])})
+        return jsonify({'success': True, 'articles': []})
+    except Exception as e:
+        safe_print(f"[SAVED ARTICLES] Error loading: {str(e)}")
+        return jsonify({'success': True, 'articles': []})
+
+
+@app.route('/api/saved-articles', methods=['POST'])
+def add_saved_article():
+    """Add an article to the saved articles list"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        article = request.json.get('article')
+        if not article or not article.get('url'):
+            return jsonify({'success': False, 'error': 'Article with URL required'}), 400
+
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(SAVED_ARTICLES_BLOB)
+
+        # Load existing
+        articles = []
+        if blob.exists():
+            data = json.loads(blob.download_as_text())
+            articles = data.get('articles', [])
+
+        # Check for duplicate URL
+        if any(a.get('url') == article['url'] for a in articles):
+            return jsonify({'success': True, 'message': 'Already saved', 'articles': articles})
+
+        # Add with timestamp
+        article['dateSaved'] = datetime.now().isoformat()
+        articles.insert(0, article)
+
+        blob.upload_from_string(json.dumps({'articles': articles}), content_type='application/json')
+        return jsonify({'success': True, 'articles': articles})
+
+    except Exception as e:
+        safe_print(f"[SAVED ARTICLES] Error saving: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/saved-articles', methods=['DELETE'])
+def delete_saved_article():
+    """Remove an article from saved articles by URL"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        url = request.json.get('url')
+        if not url:
+            return jsonify({'success': False, 'error': 'URL required'}), 400
+
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(SAVED_ARTICLES_BLOB)
+
+        articles = []
+        if blob.exists():
+            data = json.loads(blob.download_as_text())
+            articles = data.get('articles', [])
+
+        articles = [a for a in articles if a.get('url') != url]
+        blob.upload_from_string(json.dumps({'articles': articles}), content_type='application/json')
+        return jsonify({'success': True, 'articles': articles})
+
+    except Exception as e:
+        safe_print(f"[SAVED ARTICLES] Error deleting: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================

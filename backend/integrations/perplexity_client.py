@@ -56,6 +56,7 @@ class PerplexityClient:
             # Build the search prompt
             time_context = {
                 '7d': 'from the past week',
+                '15d': 'from the past 2 weeks',
                 '30d': 'from the past month',
                 '90d': 'from the past 3 months'
             }.get(time_window, 'recent')
