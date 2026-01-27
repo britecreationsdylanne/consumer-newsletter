@@ -1886,7 +1886,94 @@
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="showStep('6b')">← Back to Edit</button>
                 <button class="btn btn-secondary" onclick="exportBrandCheckResults()">📋 Export Brand Check</button>
-                <button class="btn" onclick="generateImagePrompts()">Continue to Image Prompts →</button>
+                <button class="btn" onclick="populateFinalCopy(); showStep('7b');">Continue to Final Copy →</button>
+            </div>
+        </div>
+
+        <!-- Step 7b: Final Copy -->
+        <div class="step" id="step7b">
+            <h2>📝 Final Copy</h2>
+            <p class="step-description">Review and edit all content before generating images. This is the source of truth.</p>
+
+            <!-- Introduction -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0; color: #008181;">Introduction</h3>
+                <textarea id="fc-intro" rows="3" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+            </div>
+
+            <!-- Brite Spot -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0; color: #008181;">Brite Spot</h3>
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Title</label>
+                <input id="fc-bs-title" type="text" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:10px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Body</label>
+                <textarea id="fc-bs-body" rows="4" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+            </div>
+
+            <!-- The Good / Bad / Ugly -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 15px 0; color: #008181;">The Good, The Bad &amp; The Ugly</h3>
+                <div id="fc-gbu-blocks">
+                    <div style="margin-bottom:16px;padding:12px;background:#f9fafb;border-radius:6px;">
+                        <h4 style="margin:0 0 8px 0;color:#16a34a;">The Good</h4>
+                        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Subtitle (max 8 words)</label>
+                        <input id="fc-good-subtitle" type="text" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:8px;">
+                        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Copy (max 30 words)</label>
+                        <textarea id="fc-good-copy" rows="2" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+                    <div style="margin-bottom:16px;padding:12px;background:#f9fafb;border-radius:6px;">
+                        <h4 style="margin:0 0 8px 0;color:#dc2626;">The Bad</h4>
+                        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Subtitle (max 8 words)</label>
+                        <input id="fc-bad-subtitle" type="text" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:8px;">
+                        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Copy (max 30 words)</label>
+                        <textarea id="fc-bad-copy" rows="2" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+                    <div style="padding:12px;background:#f9fafb;border-radius:6px;">
+                        <h4 style="margin:0 0 8px 0;color:#9333ea;">The Ugly</h4>
+                        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Subtitle (max 8 words)</label>
+                        <input id="fc-ugly-subtitle" type="text" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:8px;">
+                        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Copy (max 30 words)</label>
+                        <textarea id="fc-ugly-copy" rows="2" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Industry Pulse -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0; color: #008181;">Industry Pulse</h3>
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Title</label>
+                <input id="fc-pulse-title" type="text" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:10px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Intro</label>
+                <textarea id="fc-pulse-intro" rows="3" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;margin-bottom:10px;"></textarea>
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">H3 #1 Title</label>
+                <input id="fc-pulse-h3-1-title" type="text" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:8px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">H3 #1 Content</label>
+                <textarea id="fc-pulse-h3-1-content" rows="3" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;margin-bottom:10px;"></textarea>
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">H3 #2 Title</label>
+                <input id="fc-pulse-h3-2-title" type="text" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:8px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">H3 #2 Content</label>
+                <textarea id="fc-pulse-h3-2-content" rows="3" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+            </div>
+
+            <!-- Partner Advantage -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0; color: #008181;">Partner Advantage</h3>
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Subheader</label>
+                <input id="fc-partner-subheader" type="text" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:10px;">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">Intro</label>
+                <textarea id="fc-partner-intro" rows="2" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;margin-bottom:10px;"></textarea>
+                <div id="fc-partner-tips"></div>
+            </div>
+
+            <!-- Industry News -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0; color: #008181;">Industry News</h3>
+                <div id="fc-news-bullets"></div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(7)">← Back to Brand Check</button>
+                <button class="btn" onclick="saveFinalCopyToState(); generateImagePrompts();">Continue to Image Prompts →</button>
             </div>
         </div>
 
@@ -2316,6 +2403,17 @@
         </div>
     </div>
 
+    <!-- Saved Drafts Section -->
+    <div id="draftsSection" class="previous-newsletters-section" style="display: none;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="margin-bottom: 40px; text-align: center;">
+                <h2>Saved Drafts</h2>
+                <p class="subtitle">Resume an in-progress newsletter</p>
+            </div>
+            <div id="draftsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px;"></div>
+        </div>
+    </div>
+
     <!-- Previous Newsletters Section -->
     <div class="previous-newsletters-section">
         <div style="max-width: 1200px; margin: 0 auto;">
@@ -2404,6 +2502,7 @@
             '6b': 'Review Content',
             '6c': 'Brand Check...',
             7: 'Brand Check',
+            '7b': 'Final Copy',
             8: 'Image Prompts',
             '8b': 'Generating Images...',
             9: 'Review Images',
@@ -2434,6 +2533,7 @@
             initMonthGrid();
             populateRecipientList();
             setupWordCounters();
+            loadDrafts();
             loadArchive();
         }
 
@@ -2477,6 +2577,11 @@
 
         // Navigation
         function goToStep(step) {
+            // Auto-save draft at key transitions
+            const savePoints = [5, '6b', 7, '7b', 9, 10, 11];
+            if (selectedMonth && (savePoints.includes(step) || savePoints.includes(String(step)))) {
+                saveDraft();
+            }
             // Auto-run brand check when going to step 7
             if (step === 7) {
                 runBrandCheckAuto();
@@ -2515,10 +2620,15 @@
         }
 
         function showStep(stepId) {
+            // Auto-save at key transitions
+            if (selectedMonth && ['6b', '7b'].includes(String(stepId))) {
+                saveDraft();
+            }
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             document.getElementById('step' + stepId).classList.add('active');
             currentStep = stepId;
             updateProgressBar();
+            window.scrollTo(0, 0);
         }
 
         function updateProgressBar() {
@@ -2526,6 +2636,7 @@
             let stepNum = currentStep;
             if (typeof currentStep === 'string') {
                 if (currentStep === '6b' || currentStep === '6c') stepNum = 6;
+                else if (currentStep === '7b') stepNum = 7;
                 else if (currentStep === '8b') stepNum = 8;
                 else stepNum = parseInt(currentStep) || 7;
             }
@@ -4744,6 +4855,7 @@ ${newsHtml}
 
                 const data = await response.json();
                 if (data.success) {
+                    deleteDraft(); // Remove draft after successful push
                     alert('Newsletter pushed to Ontraport successfully!');
                 } else {
                     alert('Failed to push to Ontraport: ' + (data.error || 'Unknown error'));
@@ -4751,6 +4863,259 @@ ${newsHtml}
             } catch (error) {
                 alert('Error: ' + error.message);
             }
+        }
+
+        // ============================================================
+        // DRAFTS - Auto-save & Load
+        // ============================================================
+
+        async function saveDraft() {
+            if (!selectedMonth) return;
+            try {
+                const userEmail = (window.AUTH_USER && window.AUTH_USER.email) || 'unknown';
+                await fetch(`${API_BASE}/api/save-draft`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        month: selectedMonth,
+                        year: new Date().getFullYear(),
+                        currentStep: currentStep,
+                        selectedArticles: selectedArticles,
+                        generatedContent: generatedContent,
+                        generatedImages: generatedImages,
+                        generatedPrompts: generatedPrompts,
+                        introText: document.getElementById('introContent')?.value || '',
+                        briteSpotTitle: document.getElementById('briteSpotTitle')?.value || '',
+                        briteSpotBody: document.getElementById('briteSpotBody')?.value || '',
+                        subjectLine: document.getElementById('finalSubjectLine')?.value || '',
+                        preheader: document.getElementById('finalPreheader')?.value || '',
+                        customLinks: customLinks,
+                        savedBy: userEmail
+                    })
+                });
+                console.log('[Draft] Saved');
+            } catch (e) {
+                console.error('[Draft] Save failed:', e);
+            }
+        }
+
+        async function loadDrafts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/list-drafts`);
+                const data = await response.json();
+                if (data.success && data.drafts && data.drafts.length > 0) {
+                    const section = document.getElementById('draftsSection');
+                    const grid = document.getElementById('draftsGrid');
+                    section.style.display = 'block';
+                    grid.innerHTML = '';
+                    data.drafts.forEach(d => {
+                        const monthCap = d.month ? d.month.charAt(0).toUpperCase() + d.month.slice(1) : '?';
+                        const stepName = stepLabels[d.currentStep] || `Step ${d.currentStep}`;
+                        const savedBy = d.lastSavedBy || 'unknown';
+                        const savedAt = d.lastSavedAt ? new Date(d.lastSavedAt).toLocaleString() : '';
+                        const card = document.createElement('div');
+                        card.className = 'archive-card';
+                        card.style.cursor = 'pointer';
+                        card.innerHTML = `
+                            <h4>${monthCap} ${d.year}</h4>
+                            <p style="margin:4px 0;color:#008181;font-weight:600;">${stepName}</p>
+                            <p style="margin:4px 0;font-size:13px;color:#666;">Created by: ${savedBy}</p>
+                            <p style="margin:4px 0;font-size:12px;color:#999;">${savedAt}</p>
+                        `;
+                        card.onclick = () => loadDraft(d.filename);
+                        grid.appendChild(card);
+                    });
+                }
+            } catch (e) {
+                console.error('[Drafts] Load list failed:', e);
+            }
+        }
+
+        async function loadDraft(filename) {
+            try {
+                const response = await fetch(`${API_BASE}/api/load-draft?file=${encodeURIComponent(filename)}`);
+                const data = await response.json();
+                if (!data.success || !data.draft) { alert('Failed to load draft'); return; }
+                const d = data.draft;
+
+                // Restore state
+                selectedMonth = d.month || '';
+                selectedArticles = d.selectedArticles || { the_good: null, the_bad: null, the_ugly: null, industry_pulse: [], partner_advantage: [], industry_news: [] };
+                generatedContent = d.generatedContent || {};
+                generatedImages = d.generatedImages || {};
+                generatedPrompts = d.generatedPrompts || {};
+                customLinks = d.customLinks || { gbu: [], pulse: [], partner: [], news: [] };
+
+                // Restore textarea values
+                const introEl = document.getElementById('introContent');
+                if (introEl && d.introText) introEl.value = d.introText;
+                const bsTitleEl = document.getElementById('briteSpotTitle');
+                if (bsTitleEl && d.briteSpotTitle) bsTitleEl.value = d.briteSpotTitle;
+                const bsBodyEl = document.getElementById('briteSpotBody');
+                if (bsBodyEl && d.briteSpotBody) bsBodyEl.value = d.briteSpotBody;
+                const subjectEl = document.getElementById('finalSubjectLine');
+                if (subjectEl && d.subjectLine) subjectEl.value = d.subjectLine;
+                const preheaderEl = document.getElementById('finalPreheader');
+                if (preheaderEl && d.preheader) preheaderEl.value = d.preheader;
+
+                // Highlight selected month card
+                document.querySelectorAll('.month-card').forEach(c => {
+                    c.classList.remove('selected');
+                    if (c.textContent.toLowerCase().includes(selectedMonth)) c.classList.add('selected');
+                });
+
+                // Navigate to saved step
+                const step = d.currentStep || 1;
+                if (step === '6b' || step === '7b') {
+                    showStep(step);
+                    if (step === '7b') populateFinalCopy();
+                } else {
+                    goToStep(typeof step === 'string' ? step : parseInt(step));
+                }
+            } catch (e) {
+                console.error('[Draft] Load failed:', e);
+                alert('Error loading draft');
+            }
+        }
+
+        async function deleteDraft() {
+            if (!selectedMonth) return;
+            try {
+                const year = new Date().getFullYear();
+                await fetch(`${API_BASE}/api/delete-draft`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file: `drafts/${selectedMonth}-${year}.json` })
+                });
+                console.log('[Draft] Deleted');
+            } catch (e) {
+                console.error('[Draft] Delete failed:', e);
+            }
+        }
+
+        // ============================================================
+        // FINAL COPY - Populate & Save
+        // ============================================================
+
+        function populateFinalCopy() {
+            const c = generatedContent;
+            // Intro
+            const fcIntro = document.getElementById('fc-intro');
+            if (fcIntro) fcIntro.value = c.intro || '';
+
+            // Brite Spot
+            const bs = c.brite_spot || {};
+            document.getElementById('fc-bs-title').value = bs.title || '';
+            document.getElementById('fc-bs-body').value = bs.body || '';
+
+            // GBU
+            ['good', 'bad', 'ugly'].forEach(key => {
+                const d = c['the_' + key] || {};
+                document.getElementById('fc-' + key + '-subtitle').value = d.subtitle || '';
+                document.getElementById('fc-' + key + '-copy').value = d.copy || '';
+            });
+
+            // Pulse
+            const p = c.industry_pulse || {};
+            document.getElementById('fc-pulse-title').value = p.title || '';
+            document.getElementById('fc-pulse-intro').value = p.intro || '';
+            document.getElementById('fc-pulse-h3-1-title').value = p.h3_1_title || '';
+            document.getElementById('fc-pulse-h3-1-content').value = p.h3_1_content || '';
+            document.getElementById('fc-pulse-h3-2-title').value = p.h3_2_title || '';
+            document.getElementById('fc-pulse-h3-2-content').value = p.h3_2_content || '';
+
+            // Partner Advantage
+            const pa = c.partner_advantage || {};
+            document.getElementById('fc-partner-subheader').value = pa.subheader || '';
+            document.getElementById('fc-partner-intro').value = pa.intro || '';
+            const tipsContainer = document.getElementById('fc-partner-tips');
+            tipsContainer.innerHTML = '';
+            (pa.tips || []).forEach((tip, i) => {
+                tipsContainer.innerHTML += `
+                    <div style="margin-bottom:10px;padding:10px;background:#f9fafb;border-radius:6px;">
+                        <label style="font-weight:600;font-size:13px;">Tip ${i+1} Title</label>
+                        <input id="fc-partner-tip-${i}-title" type="text" value="${(tip.title || '').replace(/"/g, '&quot;')}" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;margin-bottom:6px;">
+                        <label style="font-weight:600;font-size:13px;">Tip ${i+1} Content</label>
+                        <textarea id="fc-partner-tip-${i}-content" rows="2" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;">${tip.content || ''}</textarea>
+                    </div>`;
+            });
+
+            // Industry News
+            const news = c.industry_news || {};
+            const bulletsContainer = document.getElementById('fc-news-bullets');
+            bulletsContainer.innerHTML = '';
+            (news.bullets || []).forEach((b, i) => {
+                const text = b.text || b.headline || (typeof b === 'string' ? b : '');
+                const url = b.url || '';
+                bulletsContainer.innerHTML += `
+                    <div style="margin-bottom:10px;padding:10px;background:#f9fafb;border-radius:6px;">
+                        <label style="font-weight:600;font-size:13px;">Bullet ${i+1} Text</label>
+                        <textarea id="fc-news-${i}-text" rows="2" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;">${text}</textarea>
+                        <label style="font-weight:600;font-size:13px;">URL</label>
+                        <input id="fc-news-${i}-url" type="text" value="${(url || '').replace(/"/g, '&quot;')}" style="width:100%;padding:8px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;">
+                    </div>`;
+            });
+        }
+
+        function saveFinalCopyToState() {
+            // Write all Final Copy fields back into generatedContent
+            generatedContent.intro = document.getElementById('fc-intro')?.value || '';
+
+            generatedContent.brite_spot = {
+                ...(generatedContent.brite_spot || {}),
+                title: document.getElementById('fc-bs-title')?.value || '',
+                body: document.getElementById('fc-bs-body')?.value || ''
+            };
+
+            ['good', 'bad', 'ugly'].forEach(key => {
+                generatedContent['the_' + key] = {
+                    ...(generatedContent['the_' + key] || {}),
+                    subtitle: document.getElementById('fc-' + key + '-subtitle')?.value || '',
+                    copy: document.getElementById('fc-' + key + '-copy')?.value || ''
+                };
+            });
+
+            generatedContent.industry_pulse = {
+                ...(generatedContent.industry_pulse || {}),
+                title: document.getElementById('fc-pulse-title')?.value || '',
+                intro: document.getElementById('fc-pulse-intro')?.value || '',
+                h3_1_title: document.getElementById('fc-pulse-h3-1-title')?.value || '',
+                h3_1_content: document.getElementById('fc-pulse-h3-1-content')?.value || '',
+                h3_2_title: document.getElementById('fc-pulse-h3-2-title')?.value || '',
+                h3_2_content: document.getElementById('fc-pulse-h3-2-content')?.value || ''
+            };
+
+            // Partner tips
+            const tips = [];
+            let i = 0;
+            while (document.getElementById('fc-partner-tip-' + i + '-title')) {
+                tips.push({
+                    title: document.getElementById('fc-partner-tip-' + i + '-title').value || '',
+                    content: document.getElementById('fc-partner-tip-' + i + '-content').value || ''
+                });
+                i++;
+            }
+            generatedContent.partner_advantage = {
+                ...(generatedContent.partner_advantage || {}),
+                subheader: document.getElementById('fc-partner-subheader')?.value || '',
+                intro: document.getElementById('fc-partner-intro')?.value || '',
+                tips: tips
+            };
+
+            // News bullets
+            const bullets = [];
+            let j = 0;
+            while (document.getElementById('fc-news-' + j + '-text')) {
+                bullets.push({
+                    text: document.getElementById('fc-news-' + j + '-text').value || '',
+                    url: document.getElementById('fc-news-' + j + '-url').value || ''
+                });
+                j++;
+            }
+            generatedContent.industry_news = {
+                ...(generatedContent.industry_news || {}),
+                bullets: bullets
+            };
         }
 
         // Load archive
