@@ -1613,8 +1613,10 @@
                     <h3>Researching for: <strong>The Good</strong> section. Search and select one article below.</h3>
                     <p id="step3SectionDescription">Positive jewelry news - new designs, trends, sales records, success stories</p>
                 </div>
-                <button class="btn-add-link" onclick="showCustomLinkModal('gbu')">📎 Add Custom Link</button>
-                <button class="btn-add-link" onclick="showSavedArticlesModal('gbu')" style="margin-left: 6px;">📌 Saved Articles</button>
+                <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                    <button class="btn-add-link" onclick="showCustomLinkModal('gbu')">📎 Add Custom Link</button>
+                    <button class="btn-add-link" onclick="showSavedArticlesModal('gbu')">📌 Saved Articles</button>
+                </div>
             </div>
 
             <div class="research-tabs">
@@ -1737,8 +1739,10 @@
                     <h3>Researching for: <strong>Industry Pulse</strong> section. Search and select 2-5 articles below.</h3>
                     <p>Deep-dive feature article combining multiple sources into one cohesive story</p>
                 </div>
-                <button class="btn-add-link" onclick="showCustomLinkModal('pulse')">📎 Add Custom Link</button>
-                <button class="btn-add-link" onclick="showSavedArticlesModal('pulse')" style="margin-left: 6px;">📌 Saved Articles</button>
+                <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                    <button class="btn-add-link" onclick="showCustomLinkModal('pulse')">📎 Add Custom Link</button>
+                    <button class="btn-add-link" onclick="showSavedArticlesModal('pulse')">📌 Saved Articles</button>
+                </div>
             </div>
 
             <div class="selection-counter">
@@ -1823,8 +1827,10 @@
                     <h3>Researching for: <strong id="step5SectionTitle">Industry Pulse</strong> section.</h3>
                     <p id="step5SectionDesc">Select 2-5 articles to combine into one cohesive story</p>
                 </div>
-                <button class="btn-add-link" onclick="showCustomLinkModal(currentStep5Tab)">📎 Add Custom Link</button>
-                <button class="btn-add-link" onclick="showSavedArticlesModal(currentStep5Tab)" style="margin-left: 6px;">📌 Saved Articles</button>
+                <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                    <button class="btn-add-link" onclick="showCustomLinkModal(currentStep5Tab)">📎 Add Custom Link</button>
+                    <button class="btn-add-link" onclick="showSavedArticlesModal(currentStep5Tab)">📌 Saved Articles</button>
+                </div>
             </div>
 
             <div class="research-tabs">
@@ -4035,8 +4041,8 @@
                         <div class="research-result-meta">
                             <span>${r.publisher || ''}</span>
                             <a href="${r.url || '#'}" target="_blank">Source →</a>
-                            <button class="save-article-btn ${isSaved ? 'is-saved' : ''}" onclick="event.stopPropagation(); toggleSaveArticle(this, window._displayedArticles[${articleIdx}])" title="${isSaved ? 'Saved' : 'Save for later'}">📌</button>
-                            <input type="checkbox" class="research-result-checkbox" onclick="event.stopPropagation()">
+                            <button class="save-article-btn ${isSaved ? 'is-saved' : ''}" onclick="event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); toggleSaveArticle(this, window._displayedArticles[${articleIdx}])" title="${isSaved ? 'Saved' : 'Save for later'}">📌</button>
+                            <input type="checkbox" class="research-result-checkbox" onclick="event.stopPropagation(); event.stopImmediatePropagation();">
                         </div>
                     </div>
                     <div class="research-result-title">${headline}</div>
