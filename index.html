@@ -5054,11 +5054,11 @@
 
         function generateNewsletterHTML() {
             // Get content from generated sections and editable areas
-            const intro = document.getElementById('review-intro')?.innerText || generatedContent.intro || '';
-            const briteSpot = document.getElementById('review-britespot')?.innerText || generatedContent.brite_spot || '';
-            const good = document.getElementById('review-good')?.innerText || generatedContent.the_good || '';
-            const bad = document.getElementById('review-bad')?.innerText || generatedContent.the_bad || '';
-            const ugly = document.getElementById('review-ugly')?.innerText || generatedContent.the_ugly || '';
+            const intro = document.getElementById('review-intro')?.innerHTML || generatedContent.intro || '';
+            const briteSpot = document.getElementById('review-britespot')?.innerHTML || generatedContent.brite_spot || '';
+            const good = document.getElementById('review-good')?.innerHTML || generatedContent.the_good || '';
+            const bad = document.getElementById('review-bad')?.innerHTML || generatedContent.the_bad || '';
+            const ugly = document.getElementById('review-ugly')?.innerHTML || generatedContent.the_ugly || '';
             const pulse = document.getElementById('review-pulse')?.innerHTML || generatedContent.industry_pulse || '';
             const partner = document.getElementById('review-partner')?.innerHTML || generatedContent.partner_advantage || '';
             const news = document.getElementById('review-news')?.innerHTML || generatedContent.industry_news || '';
@@ -5090,12 +5090,20 @@
             const goodData = generatedContent.the_good || {};
             const badData = generatedContent.the_bad || {};
             const uglyData = generatedContent.the_ugly || {};
-            const goodTitle = goodData.subtitle || good.split('\n')[0] || '';
-            const goodBody = goodData.copy || good.split('\n').slice(1).join(' ') || '';
-            const badTitle = badData.subtitle || bad.split('\n')[0] || '';
-            const badBody = badData.copy || bad.split('\n').slice(1).join(' ') || '';
-            const uglyTitle = uglyData.subtitle || ugly.split('\n')[0] || '';
-            const uglyBody = uglyData.copy || ugly.split('\n').slice(1).join(' ') || '';
+            // Parse GBU HTML: "<strong>subtitle</strong><br>copy with links"
+            function parseGbuHtml(html) {
+                const m = html.match(/^<strong>(.*?)<\/strong>(?:<br\s*\/?>)*([\s\S]*)$/i);
+                return m ? { subtitle: m[1], copy: m[2].replace(/^(<br\s*\/?>)+/, '') } : { subtitle: '', copy: html };
+            }
+            const goodParsed = parseGbuHtml(good);
+            const badParsed = parseGbuHtml(bad);
+            const uglyParsed = parseGbuHtml(ugly);
+            const goodTitle = goodData.subtitle || goodParsed.subtitle || '';
+            const goodBody = goodData.copy || goodParsed.copy || '';
+            const badTitle = badData.subtitle || badParsed.subtitle || '';
+            const badBody = badData.copy || badParsed.copy || '';
+            const uglyTitle = uglyData.subtitle || uglyParsed.subtitle || '';
+            const uglyBody = uglyData.copy || uglyParsed.copy || '';
 
             // GBU article URLs for hyperlinks
             const goodUrl = selectedArticles.the_good?.url || '';
@@ -5190,13 +5198,13 @@ a { color: #018181; }
 
 <!-- SECTION 1: HERO BANNER -->
 <tr>
-    <td style="padding: 0; background-color: #037E7F;">
+    <td align="center" style="padding:0;background-color:#037E7F;background-image:url('https://accidentpros.linkgama.com/wp-content/uploads/2025/10/banner-bg.png');background-repeat:no-repeat;background-position:center;background-size:cover;">
         <!--[if mso]>
         <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;">
         <v:fill type="frame" src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/banner-bg.png" color="#037E7F"/>
         <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
         <![endif]-->
-        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #037E7F; background-image: url('https://accidentpros.linkgama.com/wp-content/uploads/2025/10/banner-bg.png'); background-repeat: no-repeat; background-position: center; background-size: cover;" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
             <tbody>
                 <tr>
                     <td align="center" style="padding: 40px 20px;">
