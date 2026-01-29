@@ -4092,20 +4092,30 @@
         function handleItemClick(item) {
             const idx = parseInt(item.getAttribute('data-article-idx'));
             const section = item.getAttribute('data-section');
+            console.log('[Click] handleItemClick:', { idx, section, hasArticles: !!window._displayedArticles, count: window._displayedArticles?.length });
             if (!isNaN(idx) && window._displayedArticles && window._displayedArticles[idx]) {
-                selectArticle(section, window._displayedArticles[idx], item);
+                try {
+                    selectArticle(section, window._displayedArticles[idx], item);
+                } catch (err) {
+                    console.error('[Click] selectArticle error:', err);
+                }
+            } else {
+                console.warn('[Click] handleItemClick skipped - idx:', idx, 'articles:', window._displayedArticles?.length);
             }
         }
 
         // Helper to handle checkbox clicks - triggers parent item's selection
         function handleCheckboxClick(checkbox, e) {
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            e._checkboxHandled = true;
+            console.log('[Click] handleCheckboxClick fired');
             const item = checkbox.closest('.research-result-item');
             if (item) {
                 handleItemClick(item);
-                // Sync checkbox to match actual selection state
-                checkbox.checked = item.classList.contains('selected');
+                // Use setTimeout to sync AFTER browser finishes processing the click event
+                setTimeout(function() {
+                    checkbox.checked = item.classList.contains('selected');
+                }, 0);
             }
         }
 
@@ -6132,6 +6142,30 @@ ${newsHtml}
         loadPublishedNewsletters();
 
         window.scrollTo(0, 0);
+
+        // === BACKUP: Event delegation for checkbox clicks ===
+        // If inline onclick handlers fail (CSP, script errors, etc.), this catches the click
+        document.addEventListener('click', function(e) {
+            // Only handle research-result-checkbox clicks
+            if (e.target && e.target.classList && e.target.classList.contains('research-result-checkbox')) {
+                // Skip if inline handler already processed this
+                if (e._checkboxHandled) return;
+                console.log('[Delegation] Checkbox click caught by backup delegation');
+                var checkbox = e.target;
+                var item = checkbox.closest('.research-result-item');
+                if (item) {
+                    e.stopPropagation();
+                    try {
+                        handleItemClick(item);
+                    } catch (err) {
+                        console.error('[Delegation] handleItemClick error:', err);
+                    }
+                    setTimeout(function() {
+                        checkbox.checked = item.classList.contains('selected');
+                    }, 0);
+                }
+            }
+        });
     </script>
 </body>
 </html>
