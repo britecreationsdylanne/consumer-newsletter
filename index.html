@@ -534,6 +534,7 @@
             padding: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            position: relative;
         }
 
         .research-result-item:hover {
@@ -574,72 +575,48 @@
             background: #7c3aed;
         }
 
-        .save-article-btn {
+        .dots-btn {
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
+            color: #9ca3af;
             padding: 2px 4px;
-            opacity: 0.5;
-            transition: opacity 0.2s;
+            border-radius: 4px;
+            transition: all 0.15s;
+            line-height: 1;
         }
-
-        .save-article-btn:hover {
-            opacity: 1;
+        .dots-btn:hover {
+            background: #f3f4f6;
+            color: #4b5563;
         }
-
-        .save-article-btn.is-saved {
-            opacity: 1;
-        }
-
-        .result-row {
-            display: flex;
-            align-items: stretch;
-            margin-bottom: 0;
-        }
-
-        .pin-gutter {
-            width: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .pin-btn {
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            border: 1.5px solid #d1d5db;
+        .dots-menu {
+            position: absolute;
+            right: 10px;
+            top: 38px;
             background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10;
+            min-width: 170px;
+            overflow: hidden;
+            display: none;
+        }
+        .dots-menu-item {
+            padding: 10px 14px;
+            font-size: 13px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            transition: all 0.2s;
-            padding: 0;
+            gap: 8px;
+            transition: background 0.1s;
         }
-        .pin-btn::after {
-            content: '\uD83D\uDCCC';
-            font-size: 12px;
-            opacity: 0.35;
-        }
-        .pin-btn:hover {
-            border-color: #f59e0b;
-            background: #fef3c7;
-            transform: scale(1.1);
-        }
-        .pin-btn:hover::after {
-            opacity: 1;
-        }
-        .pin-btn.pinned {
-            border-color: #f59e0b;
-            background: #f59e0b;
-        }
-        .pin-btn.pinned::after {
-            opacity: 1;
-        }
+        .dots-menu-item:hover { background: #f3f4f6; }
+        .dots-menu-item.save { color: #f59e0b; font-weight: 500; }
+        .dots-menu-item.notfit { color: #6b7280; }
+        .dots-menu-item .icon { font-size: 14px; }
+        .dots-menu-divider { height: 1px; background: #e5e7eb; }
 
         .saved-article-card {
             display: flex;
@@ -3671,12 +3648,6 @@
             window._displayedArticles.push(article);
             const effectiveSection = section === 'pulse' || section === 'partner' || section === 'news' ? 'step5' : section;
 
-            const row = document.createElement('div');
-            row.className = 'result-row';
-
-            const pinGutter = document.createElement('div');
-            pinGutter.className = 'pin-gutter';
-
             const item = document.createElement('div');
             item.className = 'research-result-item';
             item.style.borderLeft = '4px solid #059669';
@@ -3691,6 +3662,7 @@
                         <span>${article.publisher}</span>
                         <a href="${article.url}" target="_blank" onclick="event.stopPropagation()">Source →</a>
                         <input type="checkbox" class="research-result-checkbox" onclick="handleCheckboxClick(this, event)">
+                        <button class="dots-btn" onclick="event.stopPropagation(); toggleDotsMenu(this, ${customArticleIdx})">⋮</button>
                     </div>
                 </div>
                 <div class="research-result-title">${article.headline}</div>
@@ -3702,13 +3674,10 @@
                 ` : ''}
             `;
 
-            row.appendChild(pinGutter);
-            row.appendChild(item);
-
             if (resultsDiv.firstChild) {
-                resultsDiv.insertBefore(row, resultsDiv.firstChild);
+                resultsDiv.insertBefore(item, resultsDiv.firstChild);
             } else {
-                resultsDiv.appendChild(row);
+                resultsDiv.appendChild(item);
             }
 
             // Update cache if available
@@ -3823,19 +3792,13 @@
             window._displayedArticles.push(article);
             const actualSection = section === 'pulse' || section === 'partner' || section === 'news' ? 'step5' : section;
 
-            const row = document.createElement('div');
-            row.className = 'result-row';
-
-            const pinGutter = document.createElement('div');
-            pinGutter.className = 'pin-gutter';
-            pinGutter.innerHTML = `<button class="pin-btn pinned" onclick="event.stopPropagation(); toggleSaveArticle(this, window._displayedArticles[${savedArticleIdx}])" title="Saved"></button>`;
-
             const item = document.createElement('div');
             item.className = 'research-result-item';
             item.style.borderLeft = '4px solid #7c3aed';
             item.setAttribute('data-article-idx', savedArticleIdx);
             item.setAttribute('data-section', actualSection);
             item.setAttribute('data-preserved', 'true');
+            item.setAttribute('data-saved', 'true');
             item.setAttribute('onclick', 'handleItemClick(this)');
             item.innerHTML = `
                 <div class="research-result-header">
@@ -3844,6 +3807,7 @@
                         <span>${article.publisher}</span>
                         <a href="${article.url}" target="_blank" onclick="event.stopPropagation()">Source →</a>
                         <input type="checkbox" class="research-result-checkbox" onclick="handleCheckboxClick(this, event)">
+                        <button class="dots-btn" style="color: #f59e0b;" onclick="event.stopPropagation(); toggleDotsMenu(this, ${savedArticleIdx})">⋮</button>
                     </div>
                 </div>
                 <div class="research-result-title">${article.headline}</div>
@@ -3855,13 +3819,10 @@
                 ` : ''}
             `;
 
-            row.appendChild(pinGutter);
-            row.appendChild(item);
-
             if (resultsDiv.firstChild) {
-                resultsDiv.insertBefore(row, resultsDiv.firstChild);
+                resultsDiv.insertBefore(item, resultsDiv.firstChild);
             } else {
-                resultsDiv.appendChild(row);
+                resultsDiv.appendChild(item);
             }
 
             if (stateCache) {
@@ -3874,35 +3835,80 @@
             }, 50);
         }
 
-        async function toggleSaveArticle(btn, article) {
-            const url = article.url;
-            const alreadySaved = savedArticlesCache.some(sa => sa.url === url);
-            if (alreadySaved) {
-                await deleteSavedArticle(url);
-                btn.classList.remove('is-saved');
-                btn.classList.remove('pinned');
-                btn.title = 'Save for later';
-                showPinTooltip(btn, 'Removed');
-            } else {
-                await saveArticleToBank(article);
-                btn.classList.add('is-saved');
-                btn.classList.add('pinned');
-                btn.title = 'Saved';
-                showPinTooltip(btn, 'Pinned for later');
-            }
+        function toggleDotsMenu(btn, articleIdx) {
+            // Close any existing menus
+            document.querySelectorAll('.dots-menu').forEach(m => m.remove());
+
+            const card = btn.closest('.research-result-item');
+            const article = window._displayedArticles[articleIdx];
+            if (!article) return;
+
+            const alreadySaved = savedArticlesCache.some(sa => sa.url === article.url);
+
+            const menu = document.createElement('div');
+            menu.className = 'dots-menu';
+            menu.style.display = 'block';
+            menu.innerHTML = `
+                <div class="dots-menu-item save" onclick="event.stopPropagation(); doSaveForLater(${articleIdx}); this.closest('.dots-menu').remove();">
+                    <span class="icon">${alreadySaved ? '✓' : '📌'}</span> ${alreadySaved ? 'Already Saved' : 'Save for Later'}
+                </div>
+                <div class="dots-menu-divider"></div>
+                <div class="dots-menu-item notfit" onclick="event.stopPropagation(); doNotGoodFit(${articleIdx}); this.closest('.dots-menu').remove();">
+                    <span class="icon">👎</span> Not a Good Fit
+                </div>
+            `;
+            card.appendChild(menu);
+
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!menu.contains(e.target) && e.target !== btn) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 10);
         }
 
-        function showPinTooltip(btn, text) {
-            const parent = btn.closest('.pin-gutter') || btn.parentElement;
-            const existing = parent.querySelector('.pin-tooltip');
+        async function doSaveForLater(articleIdx) {
+            const article = window._displayedArticles[articleIdx];
+            if (!article) return;
+            const alreadySaved = savedArticlesCache.some(sa => sa.url === article.url);
+            if (alreadySaved) return; // Already saved, nothing to do
+            await saveArticleToBank(article);
+            // Update the dots button color to indicate saved
+            const cards = document.querySelectorAll(`.research-result-item[data-article-idx="${articleIdx}"]`);
+            cards.forEach(card => {
+                const dotsBtn = card.querySelector('.dots-btn');
+                if (dotsBtn) dotsBtn.style.color = '#f59e0b';
+            });
+            showCardToast('Saved for later');
+        }
+
+        async function doNotGoodFit(articleIdx) {
+            const article = window._displayedArticles[articleIdx];
+            if (!article) return;
+            try {
+                await fetch(`${API_BASE}/api/not-good-fit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ article: { url: article.url, title: article.title || article.headline || '', publisher: article.publisher || '' } })
+                });
+            } catch (e) {
+                console.error('[NotGoodFit] Error:', e);
+            }
+            showCardToast('Marked as not a good fit');
+        }
+
+        function showCardToast(text) {
+            const existing = document.querySelector('.card-toast');
             if (existing) existing.remove();
-            const tip = document.createElement('span');
-            tip.className = 'pin-tooltip';
-            tip.textContent = text;
-            tip.style.cssText = 'position: absolute; top: 50%; left: 36px; transform: translateY(-50%); background: #272d3f; color: white; font-size: 11px; padding: 4px 10px; border-radius: 4px; white-space: nowrap; z-index: 100; pointer-events: none;';
-            parent.style.position = 'relative';
-            parent.appendChild(tip);
-            setTimeout(() => tip.remove(), 1500);
+            const toast = document.createElement('div');
+            toast.className = 'card-toast';
+            toast.textContent = text;
+            toast.style.cssText = 'position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #272d3f; color: white; font-size: 13px; padding: 8px 20px; border-radius: 8px; z-index: 10000; pointer-events: none;';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
         }
 
         async function saveArticleToBank(article) {
@@ -4086,10 +4092,9 @@
             const resultsDiv = document.getElementById(section + '-' + source + '-results');
 
             // Preserve saved/custom article cards before clearing
-            const preservedItems = resultsDiv.querySelectorAll('.research-result-item[data-preserved="true"]');
-            const preservedRows = Array.from(preservedItems).map(item => item.closest('.result-row') || item);
+            const preservedItems = Array.from(resultsDiv.querySelectorAll('.research-result-item[data-preserved="true"]'));
             resultsDiv.innerHTML = '';
-            preservedRows.forEach(row => resultsDiv.appendChild(row));
+            preservedItems.forEach(item => resultsDiv.appendChild(item));
 
             if (results.length === 0) {
                 resultsDiv.innerHTML = '<p style="color: #666; font-size: 13px; padding: 20px; text-align: center;">No results found</p>';
@@ -4118,18 +4123,15 @@
                 window._displayedArticles.push(r);
                 const isSaved = savedArticlesCache.some(sa => sa.url === r.url);
 
-                const row = document.createElement('div');
-                row.className = 'result-row';
-
-                const pinGutter = document.createElement('div');
-                pinGutter.className = 'pin-gutter';
-                pinGutter.innerHTML = `<button class="pin-btn ${isSaved ? 'pinned' : ''}" onclick="event.stopPropagation(); toggleSaveArticle(this, window._displayedArticles[${articleIdx}])" title="${isSaved ? 'Saved' : 'Save for later'}"></button>`;
-
                 const item = document.createElement('div');
                 item.className = 'research-result-item';
                 item.setAttribute('data-article-idx', articleIdx);
                 item.setAttribute('data-section', section);
                 item.setAttribute('onclick', 'handleItemClick(this)');
+                if (isSaved) {
+                    item.setAttribute('data-saved', 'true');
+                    item.style.borderLeft = '4px solid #f59e0b';
+                }
                 item.innerHTML = `
                     <div class="research-result-header">
                         <span class="research-result-badge ${badgeClass}">${impact}</span>
@@ -4137,6 +4139,7 @@
                             <span>${r.publisher || ''}</span>
                             <a href="${r.url || '#'}" target="_blank" onclick="event.stopPropagation()">Source →</a>
                             <input type="checkbox" class="research-result-checkbox" onclick="handleCheckboxClick(this, event)">
+                            <button class="dots-btn" ${isSaved ? 'style="color: #f59e0b;"' : ''} onclick="event.stopPropagation(); toggleDotsMenu(this, ${articleIdx})">⋮</button>
                         </div>
                     </div>
                     <div class="research-result-title">${headline}</div>
@@ -4153,9 +4156,7 @@
                         </div>
                     ` : ''}
                 `;
-                row.appendChild(pinGutter);
-                row.appendChild(item);
-                resultsDiv.appendChild(row);
+                resultsDiv.appendChild(item);
             });
 
             // Save results to cache for GBU tabs
