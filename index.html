@@ -5090,15 +5090,22 @@
         }
 
         function generateNewsletterHTML() {
+            // Helper: extract string from content that may be a string or structured object
+            function contentStr(val) {
+                if (!val) return '';
+                if (typeof val === 'string') return val;
+                // Structured object - try common string fields
+                return val.copy || val.content || val.text || val.intro || '';
+            }
             // Get content from generated sections and editable areas
-            const intro = document.getElementById('review-intro')?.innerHTML || generatedContent.intro || '';
-            const briteSpot = document.getElementById('review-britespot')?.innerHTML || generatedContent.brite_spot || '';
-            const good = document.getElementById('review-good')?.innerHTML || generatedContent.the_good || '';
-            const bad = document.getElementById('review-bad')?.innerHTML || generatedContent.the_bad || '';
-            const ugly = document.getElementById('review-ugly')?.innerHTML || generatedContent.the_ugly || '';
-            const pulse = document.getElementById('review-pulse')?.innerHTML || generatedContent.industry_pulse || '';
-            const partner = document.getElementById('review-partner')?.innerHTML || generatedContent.partner_advantage || '';
-            const news = document.getElementById('review-news')?.innerHTML || generatedContent.industry_news || '';
+            const intro = document.getElementById('review-intro')?.innerHTML || contentStr(generatedContent.intro) || '';
+            const briteSpot = document.getElementById('review-britespot')?.innerHTML || contentStr(generatedContent.brite_spot) || '';
+            const good = document.getElementById('review-good')?.innerHTML || contentStr(generatedContent.the_good) || '';
+            const bad = document.getElementById('review-bad')?.innerHTML || contentStr(generatedContent.the_bad) || '';
+            const ugly = document.getElementById('review-ugly')?.innerHTML || contentStr(generatedContent.the_ugly) || '';
+            const pulse = document.getElementById('review-pulse')?.innerHTML || contentStr(generatedContent.industry_pulse) || '';
+            const partner = document.getElementById('review-partner')?.innerHTML || contentStr(generatedContent.partner_advantage) || '';
+            const news = document.getElementById('review-news')?.innerHTML || contentStr(generatedContent.industry_news) || '';
 
             // Get subject and preheader
             const subjectLine = document.getElementById('finalSubjectLine')?.value || 'Stay In The Loupe - ' + selectedMonth;
@@ -5129,6 +5136,7 @@
             const uglyData = generatedContent.the_ugly || {};
             // Parse GBU HTML: "<strong>subtitle</strong><br>copy with links"
             function parseGbuHtml(html) {
+                if (typeof html !== 'string') return { subtitle: '', copy: '' };
                 const m = html.match(/^<strong>(.*?)<\/strong>(?:<br\s*\/?>)*([\s\S]*)$/i);
                 return m ? { subtitle: m[1], copy: m[2].replace(/^(<br\s*\/?>)+/, '') } : { subtitle: '', copy: html };
             }
