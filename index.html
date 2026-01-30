@@ -2928,6 +2928,40 @@
             // Generate and display newsletter preview
             const previewHtml = generateNewsletterHTML();
             document.getElementById('newsletterPreview').innerHTML = previewHtml;
+            enableNewsletterEditing();
+        }
+
+        // Global variable to store edited HTML
+        let savedEditedHTML = null;
+
+        function enableNewsletterEditing() {
+            const preview = document.getElementById('newsletterPreview');
+            if (!preview) return;
+            const textElements = preview.querySelectorAll('p, div[style*="font-size"], h2, h3, h4, h5');
+            textElements.forEach(el => {
+                if (el.children.length > 0 && el.textContent.trim().length < 50) return;
+                el.setAttribute('contenteditable', 'true');
+                el.style.cursor = 'text';
+                el.style.transition = 'background-color 0.2s';
+                el.addEventListener('focus', () => {
+                    el.style.backgroundColor = '#fef3c7';
+                    el.style.outline = '2px solid #f59e0b';
+                });
+                el.addEventListener('blur', () => {
+                    el.style.backgroundColor = '';
+                    el.style.outline = '';
+                    updateNewsletterHTML();
+                });
+            });
+        }
+
+        function updateNewsletterHTML() {
+            const preview = document.getElementById('newsletterPreview');
+            if (!preview) return;
+            const updatedHTML = preview.innerHTML;
+            const htmlCode = document.getElementById('htmlCode');
+            if (htmlCode) htmlCode.textContent = updatedHTML;
+            savedEditedHTML = updatedHTML;
         }
 
         function showStep(stepId) {
@@ -3269,8 +3303,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         image_url: imageUrl,
-                        width: 203,
-                        height: 203,
+                        width: 560,
+                        height: 315,
                         section: imageKey
                     })
                 });
@@ -3283,7 +3317,7 @@
                     if (previewDiv) {
                         previewDiv.innerHTML = `<img src="${data.resized_url}" style="max-width: 100%; border-radius: 8px;" alt="${section} image">`;
                     }
-                    alert('Image resized to 203x203px');
+                    alert('Image resized to 560x315px');
                 } else {
                     throw new Error(data.error || 'Failed to resize image');
                 }
@@ -5035,8 +5069,8 @@
             btnText.textContent = 'Sending...';
 
             try {
-                // Generate the newsletter HTML
-                const html = generateNewsletterHTML();
+                // Generate the newsletter HTML (use edited version if available)
+                const html = savedEditedHTML || generateNewsletterHTML();
                 const subjectLine = document.getElementById('finalSubjectLine')?.value || 'Stay In The Loupe - ' + selectedMonth;
 
                 const response = await fetch(`${API_BASE}/api/send-preview`, {
@@ -5196,7 +5230,7 @@
             const codeView = document.getElementById('htmlCodeView');
             const btn = document.getElementById('htmlViewBtn');
             if (htmlViewVisible) {
-                document.getElementById('htmlCode').textContent = generateNewsletterHTML();
+                document.getElementById('htmlCode').textContent = savedEditedHTML || generateNewsletterHTML();
                 codeView.style.display = 'block';
                 btn.textContent = '🖼️ Hide HTML Code';
             } else {
@@ -5207,7 +5241,7 @@
 
         // Copy HTML code
         function copyHTMLCode() {
-            let html = generateNewsletterHTML();
+            let html = savedEditedHTML || generateNewsletterHTML();
             // Strip base64 images — replace with placeholder URLs for hosting
             let ci = 0;
             const ciLabels = ['image-1', 'image-2', 'image-3', 'image-4', 'image-5', 'image-6'];
@@ -5455,73 +5489,63 @@ a { color: #018181; }
     <td class="email-bg" height="40" style="font-size: 1px; line-height: 1px; background-color: #DFE7F0;">&nbsp;</td>
 </tr>
 
-<!-- Good/Bad/Ugly Section -->
+<!-- Good/Bad/Ugly Section - Color-Bar Cards (full-width stacked for mobile) -->
 <tr><td style="padding:0;border:1px solid #282D3E;background-color:#ffffff;">
 <img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/good-bad-ugly.png" alt="Good Bad Ugly" width="600" style="width:100%;display:block;">
-<!-- Spacer after banner -->
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 <!-- Good -->
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr>
-<td valign="top" style="padding-right:15px;" width="50%">
-<p style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#008181;text-transform:uppercase;letter-spacing:1px;">Good:</p>
-<h3 style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:30px;font-weight:600;color:#3B3B3B;">${linkTitle(goodTitle, goodUrl)}</h3>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="height:4px;background-color:#008181;font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:20px 20px 10px;">
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#008181;text-transform:uppercase;letter-spacing:1px;">Good:</p>
+</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 20px;">
+<img src="${goodImage}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;border-radius:4px;">
+</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:15px 20px 25px;">
+<h3 style="margin:0 0 8px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:30px;font-weight:600;color:#3B3B3B;">${linkTitle(goodTitle, goodUrl)}</h3>
 <p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${goodBody}</p>
-</td>
-<td valign="top" align="right" width="50%">
-<img src="${goodImage}" alt="" width="203" style="display:block;width:203px;height:auto;">
-</td>
-</tr></table>
 </td></tr></table>
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 <!-- Bad -->
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr>
-<td valign="top" align="left" style="padding-right:15px;" width="50%">
-<img src="${badImage}" alt="" width="203" style="display:block;width:203px;height:auto;">
-</td>
-<td valign="top" width="50%">
-<p style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#FE8916;text-transform:uppercase;letter-spacing:1px;">Bad:</p>
-<h3 style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:30px;font-weight:600;color:#3B3B3B;">${linkTitle(badTitle, badUrl)}</h3>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="height:4px;background-color:#FE8916;font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:20px 20px 10px;">
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#FE8916;text-transform:uppercase;letter-spacing:1px;">Bad:</p>
+</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 20px;">
+<img src="${badImage}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;border-radius:4px;">
+</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:15px 20px 25px;">
+<h3 style="margin:0 0 8px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:30px;font-weight:600;color:#3B3B3B;">${linkTitle(badTitle, badUrl)}</h3>
 <p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${badBody}</p>
-</td>
-</tr></table>
 </td></tr></table>
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 <!-- Ugly -->
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 15px;">
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr>
-<td valign="top" style="padding-right:15px;" width="50%">
-<p style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#282D3E;text-transform:uppercase;letter-spacing:1px;">Ugly:</p>
-<h3 style="margin:0 0 6px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:30px;font-weight:600;color:#3B3B3B;">${linkTitle(uglyTitle, uglyUrl)}</h3>
-<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${uglyBody}</p>
-</td>
-<td valign="top" align="right" width="50%">
-<img src="${uglyImage}" alt="" width="203" style="display:block;width:203px;height:auto;">
-</td>
-</tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="height:4px;background-color:#282D3E;font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:20px 20px 10px;">
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#282D3E;text-transform:uppercase;letter-spacing:1px;">Ugly:</p>
 </td></tr></table>
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:0 20px;">
+<img src="${uglyImage}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;border-radius:4px;">
+</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td style="padding:15px 20px 25px;">
+<h3 style="margin:0 0 8px 0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:20px;line-height:30px;font-weight:600;color:#3B3B3B;">${linkTitle(uglyTitle, uglyUrl)}</h3>
+<p style="margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;font-size:16px;line-height:28px;font-weight:400;color:#3B3B3B;">${uglyBody}</p>
+</td></tr></table>
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr><td height="10" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
 
 <!-- Spacer -->
 <tr><td style="background-color:#DFE7F0;font-size:1px;line-height:1px;" height="40">&nbsp;</td></tr>
 
-<!-- Brite Spot Section -->
-<tr><td style="padding:0;border:1px solid #282D3E;">
+<!-- Brite Spot Section - Full-width image layout -->
+<tr><td style="padding:0;border:1px solid #282D3E;background-color:#ffffff;">
 <img src="https://accidentpros.linkgama.com/wp-content/uploads/2025/10/briteco-spot.png" alt="The Brite Spot" width="600" style="width:100%;display:block;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 15px;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr>
-<td valign="top" style="padding-right:15px;" width="50%">
-<p style="font-size:16px;line-height:28px;color:#3B3B3B;margin:0;">${briteSpot}</p>
-</td>
-<td valign="top" align="right" width="50%">
-<img src="${briteSpotImage}" alt="" width="254" style="width:254px;height:auto;">
-</td>
-</tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="20" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 20px;">
+<img src="${briteSpotImage}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;border-radius:4px;">
 </td></tr></table>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="30" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="15" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:0 20px;">
+<p style="font-size:16px;line-height:28px;color:#3B3B3B;margin:0;font-family:Montserrat,Helvetica,Arial,sans-serif;">${briteSpot}</p>
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td height="25" style="font-size:1px;line-height:1px;">&nbsp;</td></tr></table>
 </td></tr>
 
 <!-- Spacer -->
@@ -5680,9 +5704,9 @@ ${newsHtml}
                 const gcsUrls = uploadResult.success ? uploadResult.urls : {};
                 console.log('GCS upload result:', uploadResult);
 
-                // Step 2: Generate HTML
+                // Step 2: Generate HTML (use edited version if available)
                 btnText.textContent = '📝 Generating HTML...';
-                let html = generateNewsletterHTML();
+                let html = savedEditedHTML || generateNewsletterHTML();
 
                 // Step 3: Replace base64 images with GCS URLs or placeholders
                 const sectionMap = {
