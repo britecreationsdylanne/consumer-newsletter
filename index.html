@@ -3688,6 +3688,7 @@
             item.setAttribute('data-article-idx', customArticleIdx);
             item.setAttribute('data-section', effectiveSection);
             item.setAttribute('data-preserved', 'true');
+            item.dataset.url = article.url || '';
             item.setAttribute('onclick', 'handleItemClick(this)');
             item.innerHTML = `
                 <div class="research-result-header">
@@ -3811,11 +3812,10 @@
 
             if (!resultsDiv) return;
 
-            // Check for duplicate - don't add if article URL already exists in results
+            // Check for duplicate by comparing data-url attribute (raw string, not browser-resolved)
             const existingItems = resultsDiv.querySelectorAll('.research-result-item');
             for (const existing of existingItems) {
-                const link = existing.querySelector('a[href]');
-                if (link && link.href === article.url) {
+                if (existing.dataset.url && article.url && existing.dataset.url === article.url) {
                     alert('This article is already in the results.');
                     return;
                 }
@@ -3833,6 +3833,7 @@
             item.setAttribute('data-section', actualSection);
             item.setAttribute('data-preserved', 'true');
             item.setAttribute('data-saved', 'true');
+            item.dataset.url = article.url || '';
             item.setAttribute('onclick', 'handleItemClick(this)');
             item.innerHTML = `
                 <div class="research-result-header">
@@ -4196,6 +4197,7 @@
                 item.className = 'research-result-item';
                 item.setAttribute('data-article-idx', articleIdx);
                 item.setAttribute('data-section', section);
+                item.dataset.url = r.url || '';
                 item.setAttribute('onclick', 'handleItemClick(this)');
                 if (isSaved) {
                     item.setAttribute('data-saved', 'true');
