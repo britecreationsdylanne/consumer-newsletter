@@ -1,6 +1,6 @@
 """
-Stay In The Loupe - Jeweler Newsletter Generator
-Flask backend API for generating monthly jeweler newsletters
+BriteCo Consumer Newsletter Generator
+Flask backend API for generating monthly consumer jewelry newsletters
 """
 
 import os
@@ -42,18 +42,27 @@ from backend.integrations.openai_client import OpenAIClient
 from backend.integrations.claude_client import ClaudeClient
 from backend.integrations.gemini_client import GeminiClient
 from backend.integrations.perplexity_client import PerplexityClient
+from backend.integrations.youtube_client import get_youtube_client
+from backend.integrations.blog_scraper import get_blog_scraper
 
 # Import config
-from config.brand_guidelines import (
-    JEWELRY_NEWS_SOURCES,
+from config.consumer_brand_guidelines import (
+    CONSUMER_CONTENT_TOPICS,
     CONTENT_FILTERS,
     ONTRAPORT_CONFIG,
     TEAM_MEMBERS,
     GOOGLE_DRIVE_FOLDER_ID,
+    GCS_CONFIG,
+    YOUTUBE_CONFIG,
+    BLOG_CONFIG,
     BRAND_VOICE,
     SECTION_SPECS,
     WRITING_STYLE_GUIDE,
-    BRAND_CHECK_RULES
+    BRAND_CHECK_RULES,
+    EMAIL_TEMPLATE_CONFIG,
+    AI_PROMPTS,
+    MONTH_TO_SEASON,
+    EDITORIAL_STYLE_GUIDE,
 )
 from config.model_config import get_model_for_task
 
@@ -61,15 +70,14 @@ from config.model_config import get_model_for_task
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
-# Fix for running behind Cloud Run's proxy - ensures correct HTTPS URLs
+# Fix for running behind Cloud Run's proxy
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Session configuration for OAuth (Cloud Run compatible)
-# Use 'or' to handle empty string case when env var is set but empty
+# Session configuration for OAuth
 app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
-app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
+app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Required for OAuth redirects
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # OAuth configuration
 oauth = OAuth(app)
@@ -87,7 +95,7 @@ def get_current_user():
     """Get current authenticated user from session"""
     return session.get('user')
 
-# Initialize AI clients with error handling
+# Initialize AI clients
 openai_client = None
 claude_client = None
 gemini_client = None
@@ -120,9 +128,13 @@ try:
 except Exception as e:
     print(f"[WARNING] Perplexity not available: {e}")
 
-# Google Cloud Storage for drafts and images
-GCS_BUCKET_NAME = 'stay-in-the-loupe-drafts'
-GCS_IMAGES_BUCKET = 'stay-in-the-loupe-images'  # Public bucket for newsletter images
+# Initialize YouTube and Blog clients
+youtube_client = get_youtube_client()
+blog_scraper = get_blog_scraper()
+
+# Google Cloud Storage
+GCS_DRAFTS_BUCKET = GCS_CONFIG['drafts_bucket']
+GCS_IMAGES_BUCKET = GCS_CONFIG['images_bucket']
 gcs_client = None
 try:
     from google.cloud import storage as gcs_storage
@@ -131,7 +143,7 @@ try:
 except Exception as e:
     print(f"[WARNING] GCS not available: {e}")
 
-# Safe print function for Unicode
+# Safe print for Unicode
 def safe_print(text):
     try:
         print(text)
@@ -164,7 +176,6 @@ def auth_callback():
 
         email = user_info.get('email', '')
 
-        # Enforce domain restriction
         if not email.endswith(f'@{ALLOWED_DOMAIN}'):
             return f'''
             <html>
@@ -180,7 +191,6 @@ def auth_callback():
             </html>
             ''', 403
 
-        # Store user in session
         session['user'] = {
             'email': email,
             'name': user_info.get('name', ''),
@@ -212,11 +222,9 @@ def serve_index():
     if not user:
         return redirect('/auth/login')
 
-    # Read and serve the index.html with user info injected
     with open('index.html', 'r', encoding='utf-8') as f:
         html = f.read()
 
-    # Inject user info for the frontend
     user_script = f'''<script>
     window.AUTH_USER = {json.dumps(user)};
     </script>
@@ -227,879 +235,40 @@ def serve_index():
 
 @app.route('/health')
 def health_check():
-    return jsonify({"status": "healthy", "app": "Stay In The Loupe", "timestamp": datetime.now().isoformat()})
+    return jsonify({"status": "healthy", "app": "BriteCo Consumer Newsletter", "timestamp": datetime.now().isoformat()})
 
 
 # ============================================================================
-# HELPER FUNCTIONS - LLM ENRICHMENT (Matching BriteCo Brief)
+# HELPER FUNCTIONS
 # ============================================================================
-
-def enrich_results_with_llm(results: list, original_query: str, section: str = 'general') -> list:
-    """
-    Use LLM to generate newsletter-ready content from research results.
-    Produces three-section format: headline, industry_data, so_what
-    Section-specific prompts for The Good, The Bad, The Ugly.
-    """
-    if not results:
-        return results
-
-    try:
-        model_config = get_model_for_task('research_enrichment')
-        model_id = model_config.get('id', 'gpt-5.2')
-        max_tokens_param = model_config.get('max_tokens_param', 'max_tokens')
-
-        safe_print(f"[Enrichment] Using model: {model_id} for section: {section}")
-
-        results_text = ""
-        for i, r in enumerate(results):
-            results_text += f"""
-Result {i+1}:
-- URL: {r.get('url', '')}
-- Publisher: {r.get('publisher', '')}
-- Raw snippet: {r.get('snippet', '')[:500]}
-"""
-
-        # Section-specific prompts from style guide
-        section_prompts = {
-            'the_good': """You are analyzing research findings for "The Good" section of a jewelry newsletter.
-This section features POSITIVE jewelry news: new designs, trends, sales records, success stories, innovations, positive industry developments.
-
-Focus on uplifting, inspiring stories that jewelers can share with their customers or use to feel good about the industry.
-Headlines should be catchy and fun with wordplay when possible (max 8 words).
-Copy should be brief but impactful (max 30 words).
-Always include the source link relevance.""",
-
-            'the_bad': """You are analyzing research findings for "The Bad" section of a jewelry newsletter.
-This section features CAUTIONARY TALES: heists, thefts, scams, fraud, market downturns, security breaches, negative news that jewelers should know about.
-
-Focus on stories that serve as warnings or lessons for jewelers to protect their business.
-Headlines should be catchy with a serious undertone (max 8 words).
-Copy should be brief but impactful (max 30 words).
-Always include the source link relevance.""",
-
-            'the_ugly': """You are analyzing research findings for "The Ugly" section of a jewelry newsletter.
-This section features BIZARRE, UNUSUAL, or EYEBROW-RAISING jewelry stories: weird finds, strange news, unusual circumstances, quirky stories, celebrity jewelry drama, odd discoveries.
-
-Focus on stories that are entertaining, surprising, or make people say "wow, really?"
-Headlines should be catchy and fun with humor when appropriate (max 8 words).
-Copy should be brief but impactful (max 30 words).
-Always include the source link relevance."""
-        }
-
-        section_context = section_prompts.get(section, f"""You are analyzing research findings for a jewelry industry newsletter. The user searched for: "{original_query}"
-
-Focus on content relevant to jewelers and their business.""")
-
-        prompt = f"""{section_context}
-
-Here are research findings to transform into newsletter-ready content:
-{results_text}
-
-For EACH result, extract/generate:
-1. headline: A compelling newsletter headline (5-8 words max, catchy with wordplay)
-2. industry_data: The key fact or story hook (1-2 sentences, max 30 words). Extract the most interesting detail.
-3. so_what: Why this matters to jewelers (1 actionable sentence)
-4. impact: HIGH (must read), MEDIUM (interesting), or LOW (nice to know)
-
-Return a JSON array with exactly {len(results)} objects:
-[
-  {{"headline": "...", "industry_data": "...", "so_what": "...", "impact": "HIGH|MEDIUM|LOW"}},
-  ...
-]
-
-Guidelines:
-- Headlines should be catchy, clever, with wordplay when possible
-- industry_data should be the compelling story hook, not dry facts
-- so_what should connect to jeweler relevance
-- Prioritize stories that fit the section theme perfectly
-
-Return ONLY the JSON array, no other text."""
-
-        api_params = {
-            "model": model_id,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3,
-        }
-        api_params[max_tokens_param] = 2000
-
-        response = openai_client.client.chat.completions.create(**api_params)
-        content = response.choices[0].message.content.strip()
-
-        if content.startswith("```"):
-            content = re.sub(r"^```[a-zA-Z]*\n", "", content)
-            content = re.sub(r"\n```$", "", content).strip()
-
-        enriched = json.loads(content)
-
-        for i, r in enumerate(results):
-            if i < len(enriched):
-                r['headline'] = enriched[i].get('headline', r.get('title', ''))
-                r['title'] = r['headline']
-                r['industry_data'] = enriched[i].get('industry_data', r.get('snippet', ''))
-                r['so_what'] = enriched[i].get('so_what', '')
-                r['impact'] = enriched[i].get('impact', 'MEDIUM')
-                r['snippet'] = r['industry_data']
-
-        impact_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
-        results.sort(key=lambda x: impact_order.get(x.get('impact', 'LOW'), 2))
-
-        safe_print(f"[LLM Enrichment] Successfully enriched {len(results)} results")
-        return results
-
-    except Exception as e:
-        safe_print(f"[LLM Enrichment] Error: {e} - returning original results")
-        import traceback
-        traceback.print_exc()
-        return results
-
-
-def analyze_industry_impact(results: list) -> list:
-    """
-    Use LLM to analyze each result for jewelry industry impact.
-    Generates newsletter-ready headlines and impact scores.
-    """
-    if not results:
-        return results
-
-    try:
-        model_config = get_model_for_task('research_enrichment')
-        model_id = model_config.get('id', 'gpt-5.2')
-        max_tokens_param = model_config.get('max_tokens_param', 'max_tokens')
-
-        safe_print(f"[Insight Builder] Analyzing {len(results)} results with {model_id}...")
-
-        results_text = ""
-        for i, r in enumerate(results):
-            results_text += f"""
-Result {i+1}:
-- Signal: {r.get('signal_source', 'unknown')}
-- Publisher: {r.get('publisher', '')}
-- Raw title: {r.get('title', '')[:100]}
-- Snippet: {r.get('description', r.get('snippet', ''))[:400]}
-"""
-
-        prompt = f"""You are analyzing news articles for a jewelry industry newsletter.
-
-For each article, determine its impact on jewelers and their business.
-
-Here are the articles:
-{results_text}
-
-For EACH article, provide:
-1. headline: A newsletter-ready headline (5-12 words, actionable for jewelers)
-2. impact: HIGH (immediate action needed), MEDIUM (worth monitoring), or LOW (FYI only)
-3. signals: Array of affected categories from [gold_prices, diamond_market, luxury_trends, retail, design_trends, economic, heists_security, technology]
-4. so_what: One sentence explaining what jewelers should do about this
-
-Return a JSON array with exactly {len(results)} objects:
-[
-  {{"headline": "...", "impact": "HIGH|MEDIUM|LOW", "signals": ["..."], "so_what": "..."}},
-  ...
-]
-
-Guidelines:
-- HIGH impact: significant price changes, market shifts, security alerts
-- MEDIUM impact: emerging trends, technology changes, forecasts
-- LOW impact: general news, minor updates
-
-Return ONLY the JSON array, no other text."""
-
-        api_params = {
-            "model": model_id,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3,
-        }
-        api_params[max_tokens_param] = 2000
-
-        response = openai_client.client.chat.completions.create(**api_params)
-        content = response.choices[0].message.content.strip()
-
-        if content.startswith("```"):
-            content = re.sub(r"^```[a-zA-Z]*\n", "", content)
-            content = re.sub(r"\n```$", "", content).strip()
-
-        enriched = json.loads(content)
-
-        for i, r in enumerate(results):
-            if i < len(enriched):
-                r['headline'] = enriched[i].get('headline', r.get('title', ''))
-                r['impact'] = enriched[i].get('impact', 'MEDIUM')
-                r['signals'] = enriched[i].get('signals', [])
-                r['so_what'] = enriched[i].get('so_what', '')
-                r['industry_data'] = r.get('description', r.get('snippet', ''))
-
-        impact_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
-        results.sort(key=lambda x: impact_order.get(x.get('impact', 'LOW'), 2))
-
-        safe_print(f"[Insight Builder] Analysis complete - enriched {len(results)} results")
-        return results
-
-    except Exception as e:
-        safe_print(f"[Insight Builder] Analysis error: {e} - returning original results")
-        for r in results:
-            r['headline'] = r.get('title', 'Industry Update')
-            r['impact'] = 'MEDIUM'
-            r['signals'] = [r.get('signal_source', 'general')]
-            r['so_what'] = 'Monitor this trend for potential business impact.'
-        return results
-
-
-def analyze_story_angles(results: list, user_query: str) -> list:
-    """
-    Use LLM to analyze articles and surface interesting story angles for newsletters.
-    """
-    if not results:
-        return results
-
-    try:
-        model_config = get_model_for_task('research_enrichment')
-        model_id = model_config.get('id', 'gpt-5.2')
-        max_tokens_param = model_config.get('max_tokens_param', 'max_tokens')
-
-        safe_print(f"[Source Explorer] Analyzing {len(results)} results with {model_id}...")
-
-        results_text = ""
-        for i, r in enumerate(results):
-            results_text += f"""
-Article {i+1}:
-- Title: {r.get('title', '')[:100]}
-- Publisher: {r.get('publisher', '')}
-- Snippet: {r.get('snippet', r.get('description', ''))[:400]}
-"""
-
-        prompt = f"""You are a newsletter editor for jewelers. The user searched for: "{user_query}"
-
-Analyze these articles and surface the most interesting story angles for a jeweler newsletter.
-
-Here are the articles:
-{results_text}
-
-For EACH article, provide:
-1. story_angle: A compelling newsletter story angle (1-2 sentences) - what's the interesting hook for jewelers?
-2. headline: A catchy headline (5-10 words) that would grab a jeweler's attention
-3. why_it_matters: One sentence on why jewelers should care about this
-4. content_type: One of [trend, tip, news, insight, case_study]
-5. impact: HIGH, MEDIUM, or LOW
-
-Return a JSON array with exactly {len(results)} objects:
-[
-  {{"story_angle": "...", "headline": "...", "why_it_matters": "...", "content_type": "...", "impact": "MEDIUM"}},
-  ...
-]
-
-Guidelines:
-- Focus on actionable insights jewelers can use with customers
-- Look for data points, trends, or tips that can be turned into content
-- Headlines should be specific and engaging (not generic)
-
-Return ONLY the JSON array, no other text."""
-
-        api_params = {
-            "model": model_id,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.4,
-        }
-        api_params[max_tokens_param] = 2000
-
-        response = openai_client.client.chat.completions.create(**api_params)
-        content = response.choices[0].message.content.strip()
-
-        if content.startswith("```"):
-            content = re.sub(r"^```[a-zA-Z]*\n", "", content)
-            content = re.sub(r"\n```$", "", content).strip()
-
-        enriched = json.loads(content)
-
-        for i, r in enumerate(results):
-            if i < len(enriched):
-                r['story_angle'] = enriched[i].get('story_angle', '')
-                r['headline'] = enriched[i].get('headline', r.get('title', ''))
-                r['why_it_matters'] = enriched[i].get('why_it_matters', '')
-                r['content_type'] = enriched[i].get('content_type', 'insight')
-                r['so_what'] = enriched[i].get('why_it_matters', r.get('so_what', ''))
-                r['industry_data'] = r.get('snippet', r.get('description', ''))
-                r['impact'] = enriched[i].get('impact', 'MEDIUM')
-
-        safe_print(f"[Source Explorer] Story analysis complete - enriched {len(results)} results")
-        return results
-
-    except Exception as e:
-        safe_print(f"[Source Explorer] Analysis error: {e} - returning original results")
-        for r in results:
-            r['story_angle'] = r.get('snippet', '')[:150]
-            r['headline'] = r.get('title', 'Industry Update')
-            r['why_it_matters'] = 'Review this article for potential newsletter content.'
-            r['content_type'] = 'insight'
-            r['impact'] = 'MEDIUM'
-        return results
-
-
-def transform_to_shared_schema(results: list, source_card: str) -> list:
-    """Transform results to shared schema matching BriteCo Brief"""
-    return [{
-        'title': r.get('title', ''),
-        'headline': r.get('headline', r.get('title', '')),
-        'url': r.get('url', r.get('source_url', '')),
-        'publisher': r.get('publisher', ''),
-        'published_at': r.get('published_date', r.get('published_at', '')),
-        'snippet': r.get('snippet', r.get('description', '')),
-        'industry_data': r.get('industry_data', r.get('snippet', r.get('description', ''))),
-        'so_what': r.get('so_what', ''),
-        'source_card': source_card,
-        'content_type': r.get('content_type', 'news'),
-        'impact': r.get('impact', 'MEDIUM'),
-        'signals': r.get('signals', []),
-        'signal_source': r.get('signal_source', '')
-    } for r in results]
-
-
-# ============================================================================
-# ROUTES - RESEARCH (Perplexity, Insights, Source Explorer)
-# ============================================================================
-
-@app.route('/api/v2/search-perplexity', methods=['POST'])
-def search_perplexity_v2():
-    """
-    Perplexity Research Card - uses Perplexity sonar model for research with citations
-    Section-specific searches for The Good, The Bad, The Ugly
-    """
-    try:
-        data = request.json
-        query = data.get('query', 'jewelry industry news')
-        time_window = data.get('time_window', '30d')
-        section = data.get('section', 'general')
-        exclude_urls = data.get('exclude_urls', [])
-
-        safe_print(f"\n[API v2] Perplexity Research: query='{query}', section={section}, time_window={time_window}")
-
-        # Check if Perplexity is available
-        if not perplexity_client or not perplexity_client.is_available():
-            return jsonify({
-                'success': False,
-                'error': 'Perplexity API not configured. Add PERPLEXITY_API_KEY to .env',
-                'results': []
-            }), 503
-
-        # Section-specific search queries based on style guide
-        section_queries = {
-            'the_good': 'positive jewelry news new designs trends sales records success stories innovations awards',
-            'the_bad': 'jewelry heists thefts scams fraud robbery security breaches crime negative news',
-            'the_ugly': 'bizarre unusual strange jewelry stories weird finds quirky celebrity jewelry drama odd discoveries'
-        }
-
-        # Build section-specific query
-        section_focus = section_queries.get(section, '')
-        if section_focus:
-            search_query = f"jewelry {section_focus} {query}"
-        else:
-            search_query = f"jewelry industry {query}"
-
-        safe_print(f"[API v2] Search query: {search_query}")
-
-        # Search using Perplexity
-        search_results = perplexity_client.search(
-            query=search_query,
-            time_window=time_window,
-            max_results=8
-        )
-
-        # Filter out excluded URLs
-        if exclude_urls:
-            search_results = [r for r in search_results if r.get('url') not in exclude_urls]
-
-        # Take top 8 results
-        results = search_results[:8]
-
-        # Enrich results with LLM-generated titles and jeweler guidance (section-specific)
-        if results:
-            safe_print(f"[API v2] Enriching {len(results)} Perplexity results for section: {section}")
-            results = enrich_results_with_llm(results, query, section)
-
-        # Build query description for UI
-        time_desc = {
-            '7d': 'past week',
-            '15d': 'past 2 weeks',
-            '30d': 'past month',
-            '90d': 'past 3 months'
-        }.get(time_window, 'recent')
-
-        section_label = {
-            'the_good': 'The Good (positive news)',
-            'the_bad': 'The Bad (cautionary tales)',
-            'the_ugly': 'The Ugly (bizarre stories)'
-        }.get(section, 'general news')
-
-        return jsonify({
-            'success': True,
-            'results': results,
-            'queries_used': [f"Jewelry {section_label} from {time_desc}: {query}"],
-            'source': 'perplexity',
-            'section': section,
-            'generated_at': datetime.now().isoformat()
-        })
-
-    except Exception as e:
-        safe_print(f"[API v2 ERROR] Perplexity Research: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e), 'results': []}), 500
-
-
-@app.route('/api/v2/search-insights', methods=['POST'])
-def search_insights_v2():
-    """
-    Insight Builder Card - searches ALL 8 signals and analyzes industry impact
-    """
-    try:
-        data = request.json
-        time_window = data.get('time_window', '30d')
-        exclude_urls = data.get('exclude_urls', [])
-
-        safe_print(f"\n[API v2] Insight Builder: Searching ALL 8 signals")
-
-        # Jewelry-specific signal queries
-        SIGNAL_QUERIES = {
-            'gold_prices': 'US gold prices market precious metals jewelry industry recent news',
-            'diamond_market': 'US diamond prices market trends lab-grown natural recent',
-            'luxury_trends': 'US luxury jewelry market consumer spending trends recent',
-            'retail': 'US jewelry retail sales trends brick mortar online recent',
-            'design_trends': 'jewelry design trends fashion styles 2024 2025 recent',
-            'economic': 'US consumer spending economy jewelry luxury goods recent',
-            'heists_security': 'jewelry heists theft security robbery crime recent news',
-            'technology': 'jewelry technology 3D printing CAD design innovation recent'
-        }
-
-        all_results = []
-        seen_urls = set(exclude_urls)
-
-        safe_print(f"[Insight Builder] Searching all 8 jewelry signals...")
-
-        for signal, query_terms in SIGNAL_QUERIES.items():
-            try:
-                prompt = f"""Search for recent US news about {signal.replace('_', ' ')} in jewelry industry.
-
-Find articles about the United States with data points, statistics, and business impact.
-Focus on jewelry retail and wholesale markets.
-Search terms: {query_terms}
-
-Return results with title, url, publisher, published_date, and summary with key data points."""
-
-                results = openai_client.search_web_responses_api(prompt, max_results=4, exclude_urls=list(seen_urls))
-
-                for r in results:
-                    url = r.get('url', '')
-                    if url and url not in seen_urls:
-                        r['signal_source'] = signal
-                        all_results.append(r)
-                        seen_urls.add(url)
-
-                safe_print(f"[Insight Builder] Signal '{signal}' returned {len(results)} results")
-
-            except Exception as e:
-                safe_print(f"[Insight Builder] Error searching signal '{signal}': {e}")
-                continue
-
-        safe_print(f"[Insight Builder] Total unique results: {len(all_results)}")
-
-        # Analyze results with GPT for industry impact
-        enriched_results = analyze_industry_impact(all_results)
-
-        # Transform to shared schema
-        results = transform_to_shared_schema(enriched_results, 'insight')
-
-        # Get signals searched
-        signals_searched = list(SIGNAL_QUERIES.keys())
-
-        return jsonify({
-            'success': True,
-            'results': results[:12],
-            'signals_searched': signals_searched,
-            'source': 'insight',
-            'generated_at': datetime.now().isoformat()
-        })
-
-    except Exception as e:
-        safe_print(f"[API v2 ERROR] Insight Builder: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e), 'results': []}), 500
-
-
-@app.route('/api/v2/search-sources', methods=['POST'])
-def search_sources_v2():
-    """
-    Source Explorer Card - searches specific industry sites with 3-query cascade
-    """
-    try:
-        data = request.json
-        query = data.get('query', 'jewelry industry news')
-        source_packs = data.get('source_packs', ['jewelry'])
-        time_window = data.get('time_window', '30d')
-        exclude_urls = data.get('exclude_urls', [])
-
-        safe_print(f"\n[API v2] Source Explorer: query='{query}', packs={source_packs}, time_window={time_window}")
-
-        # Convert time window to human-readable for query
-        time_desc = {
-            '7d': 'past week',
-            '15d': 'past 2 weeks',
-            '30d': 'past month',
-            '90d': 'past 3 months'
-        }.get(time_window, 'recent')
-
-        # Jewelry industry source packs
-        SITE_PACKS = {
-            'jewelry': JEWELRY_NEWS_SOURCES,
-            'luxury': [
-                'luxurydaily.com', 'jckonline.com', 'nationaljeweler.com',
-                'rapaport.com', 'professionaljeweler.com'
-            ],
-            'retail': [
-                'retaildive.com', 'chainstoreage.com', 'jckonline.com',
-                'nationaljeweler.com'
-            ],
-            'design': [
-                'jckonline.com', 'nationaljeweler.com', 'jewellerynet.com',
-                'rapaport.com'
-            ]
-        }
-
-        # Collect sites from selected packs
-        sites = []
-        for pack in source_packs:
-            sites.extend(SITE_PACKS.get(pack, []))
-        sites = list(set(sites))
-
-        if not sites:
-            sites = JEWELRY_NEWS_SOURCES
-
-        # Build site: queries with 3-query cascade
-        site_query = ' OR '.join([f'site:{s}' for s in sites[:6]])
-
-        queries = [
-            f"""Search for: ({site_query}) {query}
-
-Find articles from the {time_desc} from these jewelry industry sources.
-Return results with title, url, publisher, published_date, and summary.""",
-
-            f"""Search for: ({site_query}) jewelry industry news trends
-
-Find business news from the {time_desc} about jewelry retail and wholesale.
-Return results with title, url, publisher, published_date, and summary.""",
-
-            f"""Search for jewelry industry news from trade publications.
-
-Find articles from the {time_desc} about: {query}
-Focus on business insights, trends, and industry analysis.
-Return results with title, url, publisher, published_date, and summary."""
-        ]
-
-        safe_print(f"[API v2] Source Explorer using {len(sites)} sites from packs: {source_packs}")
-
-        # Multi-search with cascade
-        all_results = []
-        seen_urls = set(exclude_urls)
-
-        for q in queries:
-            if len(all_results) >= 8:
-                break
-
-            try:
-                results = openai_client.search_web_responses_api(
-                    q,
-                    max_results=6,
-                    exclude_urls=list(seen_urls)
-                )
-
-                for r in results:
-                    url = r.get('url', '')
-                    if url and url not in seen_urls:
-                        all_results.append(r)
-                        seen_urls.add(url)
-
-            except Exception as e:
-                safe_print(f"[API v2] Source query error: {e}")
-                continue
-
-        # Transform to shared schema
-        results = transform_to_shared_schema(all_results[:8], 'explorer')
-
-        # Enrich with GPT story angle analysis
-        results = analyze_story_angles(results, query)
-
-        # Query summaries for UI display
-        query_summaries = [
-            f"1. Site-specific: {query} from {', '.join(sites[:3])}...",
-            "2. Broader: jewelry industry news from sites",
-            "3. Fallback: jewelry news (any source)"
-        ]
-
-        return jsonify({
-            'success': True,
-            'results': results,
-            'queries_used': query_summaries,
-            'source_packs': source_packs,
-            'source': 'explorer',
-            'generated_at': datetime.now().isoformat()
-        })
-
-    except Exception as e:
-        safe_print(f"[API v2 ERROR] Source Explorer: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e), 'results': []}), 500
-
 
 def extract_domain(url):
-    """Extract domain from URL for publisher name"""
-    if not url:
-        return ''
+    """Extract domain name from URL"""
     try:
         from urllib.parse import urlparse
         parsed = urlparse(url)
-        domain = parsed.netloc.replace('www.', '')
+        domain = parsed.netloc
+        if domain.startswith('www.'):
+            domain = domain[4:]
         return domain
     except:
-        return ''
-
-
-
-
-# ============================================================================
-# ROUTES - CONTENT GENERATION
-# ============================================================================
-
-@app.route('/api/research-articles', methods=['POST'])
-def research_articles():
-    """Deep research on selected articles using GPT"""
-    try:
-        data = request.json
-        articles = data.get('articles', {})
-        month = data.get('month', '')
-
-        safe_print(f"\n[API] Researching articles for {month}...")
-
-        researched = {}
-
-        for section, article_data in articles.items():
-            if not article_data:
-                continue
-
-            # Handle lists of articles (industry_pulse, partner_advantage)
-            if isinstance(article_data, list):
-                if not article_data:
-                    continue
-                safe_print(f"  Researching {section}: {len(article_data)} articles...")
-
-                researched_list = []
-                for i, art in enumerate(article_data[:5]):  # Limit to first 5
-                    if not art or not isinstance(art, dict):
-                        continue
-                    title = art.get('title', '')
-                    url = art.get('url', '')
-                    snippet = art.get('snippet', '')
-
-                    prompt = f"""Research this article for a jewelry newsletter:
-
-Title: {title}
-URL: {url}
-Snippet: {snippet}
-
-Provide a concise summary (75-100 words) covering the key facts and why it matters to jewelry professionals."""
-
-                    try:
-                        response = openai_client.client.chat.completions.create(
-                            model="gpt-5.2",
-                            messages=[{"role": "user", "content": prompt}],
-                            temperature=0.5,
-                            max_completion_tokens=200
-                        )
-                        researched_list.append({
-                            'title': title,
-                            'url': url,
-                            'research': response.choices[0].message.content.strip()
-                        })
-                    except Exception as e:
-                        safe_print(f"    Error researching article {i+1}: {e}")
-                        researched_list.append({
-                            'title': title,
-                            'url': url,
-                            'research': snippet
-                        })
-
-                researched[section] = researched_list
-                continue
-
-            # Handle single article (dict) - the_good, the_bad, the_ugly
-            article = article_data
-            if not isinstance(article, dict):
-                continue
-
-            safe_print(f"  Researching {section}: {article.get('title', '')[:50]}...")
-
-            prompt = f"""Research this article for a jewelry newsletter:
-
-Title: {article.get('title', '')}
-URL: {article.get('url', '')}
-Snippet: {article.get('snippet', '')}
-
-Provide a detailed summary (200-300 words) covering:
-1. Key facts and statistics
-2. Why this matters to jewelry professionals
-3. Implications for the industry
-
-Write in a professional but engaging tone."""
-
-            try:
-                response = openai_client.client.chat.completions.create(
-                    model="gpt-5.2",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.5,
-                    max_completion_tokens=500
-                )
-
-                researched[section] = {
-                    'title': article.get('title', ''),
-                    'url': article.get('url', ''),
-                    'research': response.choices[0].message.content.strip()
-                }
-
-            except Exception as e:
-                safe_print(f"  Error researching {section}: {e}")
-                researched[section] = {
-                    'title': article.get('title', ''),
-                    'url': article.get('url', ''),
-                    'research': article.get('snippet', '')
-                }
-
-        return jsonify({
-            'success': True,
-            'researched': researched
-        })
-
-    except Exception as e:
-        safe_print(f"[API ERROR] Research: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/api/rewrite-content', methods=['POST'])
-def rewrite_content():
-    """AI rewrite for intro and brite spot content with strict word limits"""
-    try:
-        data = request.json
-        content = data.get('content', '')
-        tone = data.get('tone', 'professional')
-        section = data.get('section', 'intro')
-
-        safe_print(f"\n[API] AI Rewrite: section={section}, tone={tone}")
-
-        tone_prompts = {
-            'professional': 'Use a professional, authoritative tone that conveys expertise.',
-            'friendly': 'Use a warm, approachable tone that feels personable and engaging.',
-            'exciting': 'Use an enthusiastic, energetic tone that creates excitement.',
-            'informative': 'Use a clear, educational tone that emphasizes key facts.',
-            'witty': 'Use a clever, witty tone with subtle humor — smart wordplay welcome but keep it tasteful and professional. Think confident newsletter voice, not comedy routine.'
-        }
-
-        # Section-specific context and STRICT word limits
-        section_specs = {
-            'intro': {
-                'context': 'This is the newsletter introduction that welcomes readers to the monthly edition.',
-                'max_words': 50,
-                'description': '2-3 sentences maximum'
-            },
-            'brite_spot': {
-                'context': 'This is "The Brite Spot" section highlighting BriteCo/company news and announcements.',
-                'max_words': 100,
-                'description': '3-4 sentences maximum'
-            },
-            'brite_spot_title': {
-                'context': 'This is the sub-header title for "The Brite Spot" section.',
-                'max_words': 15,
-                'description': '1 short headline (under 15 words)'
-            }
-        }
-
-        spec = section_specs.get(section, section_specs['intro'])
-
-        prompt = f"""Rewrite the following content for a jewelry industry newsletter called "Stay In The Loupe".
-
-{spec['context']}
-
-TONE: {tone_prompts.get(tone, tone_prompts['professional'])}
-
-CRITICAL WORD LIMIT: Maximum {spec['max_words']} words ({spec['description']})
-
-Original content:
-{content}
-
-Instructions:
-1. Keep the core message and information
-2. STRICTLY stay within {spec['max_words']} words - this is non-negotiable
-3. Match the requested tone
-4. Use active voice
-5. Make it relevant to jewelry professionals
-6. Do NOT add any notes, explanations, or suggestions - output ONLY the rewritten content
-
-Rewritten version (max {spec['max_words']} words):"""
-
-        try:
-            response = claude_client.generate_content(
-                prompt=prompt,
-                max_tokens=500,
-                temperature=0.7
-            )
-            rewritten = response.get('content', '').strip()
-        except Exception as e:
-            safe_print(f"[API] Claude error, falling back to OpenAI: {e}")
-            response = openai_client.client.chat.completions.create(
-                model="gpt-5.2",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_completion_tokens=500
-            )
-            rewritten = response.choices[0].message.content.strip()
-
-        # Strip markdown formatting for textarea display (don't convert to HTML)
-        # Remove **bold** markers but keep the text
-        import re
-        rewritten = re.sub(r'\*\*([^*]+)\*\*', r'\1', rewritten)
-        # Remove *italic* markers but keep the text
-        rewritten = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'\1', rewritten)
-
-        return jsonify({
-            'success': True,
-            'rewritten': rewritten,
-            'original': content,
-            'tone': tone
-        })
-
-    except Exception as e:
-        safe_print(f"[API ERROR] Rewrite: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return 'Unknown'
 
 
 def convert_markdown_to_html(text):
-    """Convert markdown formatting to HTML (bold, italic, links)"""
-    import re
+    """Convert markdown formatting to HTML"""
     if not text:
         return text
     text = str(text)
-    # Convert markdown links [text](url) to HTML links
     text = re.sub(
         r'\[([^\]]+)\]\(([^)]+)\)',
         r'<a href="\2" target="_blank" style="color: #008181; text-decoration: underline;">\1</a>',
         text
     )
-    # Convert **bold** to <strong>
     text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
-    # Convert *italic* to <em> (but not if it's already part of bold)
     text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<em>\1</em>', text)
     return text
+
 
 def process_generated_content(content):
     """Process generated content to convert markdown to HTML"""
@@ -1112,279 +281,514 @@ def process_generated_content(content):
     return content
 
 
+def html_to_plain_text(html_content):
+    """Convert HTML to plain text for email"""
+    if not html_content:
+        return ''
+    text = str(html_content)
+    text = re.sub(r'<a[^>]*href=["\']([^"\']*)["\'][^>]*>([^<]*)</a>', r'\2 (\1)', text)
+    text = re.sub(r'<li[^>]*>', '- ', text)
+    text = re.sub(r'</li>', '\n', text)
+    text = re.sub(r'<p[^>]*>', '', text)
+    text = re.sub(r'</p>', '\n\n', text)
+    text = re.sub(r'<br\s*/?>', '\n', text)
+    text = re.sub(r'<[^>]+>', '', text)
+    text = text.replace('&amp;', '&')
+    text = text.replace('&lt;', '<')
+    text = text.replace('&gt;', '>')
+    text = text.replace('&quot;', '"')
+    text = text.replace('&#39;', "'")
+    text = text.replace('&nbsp;', ' ')
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def parse_json_from_llm(content):
+    """Extract JSON from LLM response that may contain markdown code blocks"""
+    if not content:
+        return {}
+    content = content.strip()
+    if '```json' in content:
+        content = content.split('```json')[1].split('```')[0].strip()
+    elif '```' in content:
+        content = content.split('```')[1].split('```')[0].strip()
+    return json.loads(content)
+
+
+def resize_image(base64_data, target_size):
+    """Resize image to target dimensions"""
+    try:
+        from PIL import Image, ImageOps
+        image_bytes = base64.b64decode(base64_data)
+        pil_image = Image.open(BytesIO(image_bytes))
+        resized = ImageOps.fit(pil_image, target_size, method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+        buffer = BytesIO()
+        resized.save(buffer, format='PNG', optimize=True)
+        return base64.b64encode(buffer.getvalue()).decode('utf-8')
+    except Exception as e:
+        safe_print(f"  Resize error: {e}")
+        return base64_data
+
+
+# ============================================================================
+# ROUTES - YOUTUBE VIDEOS
+# ============================================================================
+
+@app.route('/api/youtube/videos', methods=['GET'])
+def get_youtube_videos():
+    """Get BriteCo YouTube channel videos"""
+    try:
+        sort = request.args.get('sort', 'popular')
+        max_results = int(request.args.get('max_results', '20'))
+
+        if not youtube_client.is_available():
+            return jsonify({'success': False, 'error': 'YouTube API key not configured'}), 503
+
+        videos = youtube_client.get_videos_sorted(
+            sort=sort,
+            channel_id=YOUTUBE_CONFIG['channel_id'],
+            max_results=max_results
+        )
+
+        return jsonify({'success': True, 'videos': videos})
+
+    except Exception as e:
+        safe_print(f"[API ERROR] YouTube videos: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/youtube/video-by-url', methods=['POST'])
+def get_youtube_video_by_url():
+    """Get video details from a YouTube URL"""
+    try:
+        url = request.json.get('url', '')
+        if not url:
+            return jsonify({'success': False, 'error': 'URL required'}), 400
+
+        if not youtube_client.is_available():
+            return jsonify({'success': False, 'error': 'YouTube API key not configured'}), 503
+
+        video = youtube_client.get_video_by_url(url)
+        if video:
+            return jsonify({'success': True, 'video': video})
+        else:
+            return jsonify({'success': False, 'error': 'Video not found'}), 404
+
+    except Exception as e:
+        safe_print(f"[API ERROR] YouTube video by URL: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# ROUTES - BLOG POSTS
+# ============================================================================
+
+@app.route('/api/blog/posts', methods=['GET'])
+def get_blog_posts():
+    """Get recent BriteCo blog posts"""
+    try:
+        count = int(request.args.get('count', '10'))
+        category = request.args.get('category', None)
+        search = request.args.get('search', None)
+
+        posts = blog_scraper.get_recent_posts(
+            count=count,
+            category=category,
+            search=search
+        )
+
+        return jsonify({'success': True, 'posts': posts})
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Blog posts: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/blog/categories', methods=['GET'])
+def get_blog_categories():
+    """Get blog categories"""
+    try:
+        categories = blog_scraper.get_categories()
+        return jsonify({'success': True, 'categories': categories})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# ROUTES - GUESS THE PRICE
+# ============================================================================
+
+@app.route('/api/guess-the-price/search', methods=['POST'])
+def gtp_search():
+    """Search for Guess the Price items via Perplexity"""
+    try:
+        data = request.json
+        query = data.get('query', 'rare expensive jewelry 2026')
+        time_window = data.get('time_window', '30d')
+
+        if not perplexity_client or not perplexity_client.is_available():
+            return jsonify({'success': False, 'error': 'Perplexity API not configured'}), 503
+
+        search_query = f"""Find notable, expensive, or famous jewelry pieces: {query}
+
+Focus on:
+- Celebrity-owned jewelry
+- Auction records and rare pieces
+- Famous diamonds, gems, and collections
+- High-value jewelry in the news
+- Pieces with interesting backstories
+
+Include specific details about materials, provenance, and estimated values when available."""
+
+        results = perplexity_client.search(
+            query=search_query,
+            time_window=time_window,
+            max_results=6
+        )
+
+        return jsonify({'success': True, 'results': results})
+
+    except Exception as e:
+        safe_print(f"[API ERROR] GTP search: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/guess-the-price/generate-details', methods=['POST'])
+def gtp_generate_details():
+    """Generate Guess the Price details using Claude"""
+    try:
+        data = request.json
+        title = data.get('title', '')
+        url = data.get('url', '')
+        snippet = data.get('snippet', '')
+
+        if not claude_client:
+            return jsonify({'success': False, 'error': 'Claude not available'}), 503
+
+        prompt = AI_PROMPTS['generate_guess_the_price_details'].format(
+            title=title,
+            url=url,
+            snippet=snippet
+        )
+
+        response = claude_client.generate_content(
+            prompt=prompt,
+            max_tokens=400,
+            temperature=0.5
+        )
+
+        details = parse_json_from_llm(response.get('content', '{}'))
+
+        return jsonify({'success': True, 'details': details})
+
+    except Exception as e:
+        safe_print(f"[API ERROR] GTP generate details: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# ROUTES - QUICK TIP GENERATION
+# ============================================================================
+
+@app.route('/api/generate-quick-tip', methods=['POST'])
+def generate_quick_tip():
+    """Generate a seasonal quick tip"""
+    try:
+        data = request.json
+        month = data.get('month', datetime.now().strftime('%B')).lower()
+        season = MONTH_TO_SEASON.get(month, 'winter')
+
+        themes = SECTION_SPECS['quick_tip']['seasonal_themes'].get(month, ['jewelry care tips'])
+        themes_str = ', '.join(themes)
+
+        if not claude_client:
+            return jsonify({'success': False, 'error': 'Claude not available'}), 503
+
+        prompt = AI_PROMPTS['generate_quick_tip'].format(
+            month=month.title(),
+            season=season,
+            themes=themes_str
+        )
+
+        response = claude_client.generate_content(
+            prompt=prompt,
+            max_tokens=200,
+            temperature=0.7
+        )
+
+        tip_text = response.get('content', '').strip()
+
+        # Generate an image prompt for the tip
+        image_prompt = f"Photorealistic jewelry care photography, {season} setting, elegant flat lay with jewelry cleaning supplies and fine jewelry, soft natural lighting, stock photo quality, {themes[0] if themes else 'jewelry care'}"
+
+        return jsonify({
+            'success': True,
+            'tip': tip_text,
+            'image_prompt': image_prompt
+        })
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Generate quick tip: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# ROUTES - CONTENT GENERATION
+# ============================================================================
+
+@app.route('/api/rewrite-content', methods=['POST'])
+def rewrite_content():
+    """AI rewrite for consumer newsletter sections"""
+    try:
+        data = request.json
+        content = data.get('content', '')
+        tone = data.get('tone', 'friendly')
+        section = data.get('section', 'general')
+
+        if not claude_client:
+            return jsonify({'success': False, 'error': 'Claude not available'}), 503
+
+        tone_map = {
+            'friendly': 'Friendly and warm, like texting a knowledgeable friend',
+            'witty': 'Witty and clever, with wordplay and pop culture references',
+            'informative': 'Informative but engaging, clear and accessible',
+            'playful': 'Playful and fun, light-hearted with personality',
+            'professional': 'Professional but approachable, polished yet warm'
+        }
+
+        word_limits = {
+            'intro': 40,
+            'video_description': 80,
+            'quick_tip': 60,
+            'guess_the_price_question': 30,
+        }
+
+        max_words = word_limits.get(section, 100)
+
+        prompt = f"""Rewrite this content for a consumer jewelry newsletter.
+
+Section: {section}
+Tone: {tone_map.get(tone, tone)}
+Max words: {max_words}
+
+Original content:
+{content}
+
+Guidelines:
+- Consumer-friendly language (not B2B)
+- Engaging, conversational tone
+- Max {max_words} words
+- Follow BriteCo editorial style (serial commas, em dashes with no spaces, lab-grown hyphenated)
+
+Return ONLY the rewritten text, nothing else."""
+
+        response = claude_client.generate_content(
+            prompt=prompt,
+            max_tokens=300,
+            temperature=0.7
+        )
+
+        rewritten = response.get('content', content).strip()
+
+        return jsonify({
+            'success': True,
+            'rewritten': rewritten,
+            'tone': tone,
+            'section': section
+        })
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Rewrite: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/generate-newsletter', methods=['POST'])
 def generate_newsletter():
-    """Generate newsletter content using Claude Opus 4.5"""
+    """Generate consumer newsletter content using Claude"""
     try:
         data = request.json
         month = data.get('month', '')
-        sections_data = data.get('sections', {})
-        research_data = data.get('research', {})  # GPT-5.2 research results
-        brite_spot_content = data.get('brite_spot', '')
-        intro_content = data.get('intro', '')
+        intro = data.get('intro', '')
+        news_of_month = data.get('news_of_month', {})
+        trend_alert = data.get('trend_alert', {})
+        blog_articles = data.get('blog_articles', [])
+        guess_the_price = data.get('guess_the_price', {})
+        quick_tip = data.get('quick_tip', '')
 
-        safe_print(f"\n[API] Generating newsletter content for {month}...")
+        safe_print(f"\n[API] Generating consumer newsletter for {month}...")
 
-        # Merge research results into sections data
-        for section_key, research in research_data.items():
-            if section_key in sections_data and sections_data[section_key]:
-                # Handle list research (for industry_pulse, partner_advantage)
-                if isinstance(research, list):
-                    # For list sections, merge research into each article
-                    section_articles = sections_data[section_key]
-                    if isinstance(section_articles, list):
-                        for i, art in enumerate(section_articles):
-                            if i < len(research) and isinstance(art, dict):
-                                art['research'] = research[i].get('research', '') if isinstance(research[i], dict) else ''
-                    safe_print(f"  Merged research for {section_key}: {len(research)} articles")
-                elif isinstance(research, dict):
-                    # Single article research
-                    if isinstance(sections_data[section_key], dict):
-                        sections_data[section_key]['research'] = research.get('research', '')
-                        safe_print(f"  Merged research for {section_key}: {len(research.get('research', ''))} chars")
+        generated = {}
 
-        generated = {
-            'intro': intro_content,
-            'brite_spot': brite_spot_content
-        }
-
-        # Generate The Good, The Bad, The Ugly
-        for section_key in ['the_good', 'the_bad', 'the_ugly']:
-            if section_key in sections_data and sections_data[section_key]:
-                article = sections_data[section_key]
-
-                section_type = {
-                    'the_good': 'positive, uplifting jewelry news',
-                    'the_bad': 'cautionary tale about jewelry heists, thefts, or scams',
-                    'the_ugly': 'bizarre or unusual jewelry story'
-                }
-
-                prompt = f"""Write content for "The {section_key.split('_')[1].title()}" section of a jewelry newsletter.
-
-Article: {article.get('title', '')}
-Research: {article.get('research', article.get('snippet', ''))}
-URL: {article.get('url', '')}
-
-Requirements:
-- Subtitle: Maximum 8 words, catchy and engaging
-- Copy: 1-2 sentences, maximum 30 words total
-- Tone: {section_type.get(section_key, 'engaging')}
-
-Return JSON:
-{{"subtitle": "...", "copy": "...", "url": "{article.get('url', '')}"}}"""
-
-                try:
-                    response = claude_client.generate_content(
-                        prompt=prompt,
-                        max_tokens=200,
-                        temperature=0.7
-                    )
-
-                    content = response.get('content', '{}')
-                    if '```json' in content:
-                        content = content.split('```json')[1].split('```')[0].strip()
-                    elif '```' in content:
-                        content = content.split('```')[1].split('```')[0].strip()
-
-                    generated[section_key] = json.loads(content)
-
-                except Exception as e:
-                    safe_print(f"  Error generating {section_key}: {e}")
-                    generated[section_key] = {
-                        'subtitle': article.get('title', '')[:50],
-                        'copy': article.get('snippet', '')[:100],
-                        'url': article.get('url', '')
-                    }
-
-        # Generate Industry Pulse (combined story from multiple articles)
-        if 'industry_pulse' in sections_data and sections_data['industry_pulse']:
-            articles = sections_data['industry_pulse']
-            if not isinstance(articles, list):
-                articles = [articles]
-
-            articles_text = ""
-            for i, art in enumerate(articles):
-                articles_text += f"""
-Article {i+1}: {art.get('title', '')}
-Research: {art.get('research', art.get('snippet', ''))}
-URL: {art.get('url', '')}
-"""
-
-            prompt = f"""Write an "Industry Pulse" section combining these jewelry industry articles into one cohesive story.
-
-Articles:
-{articles_text}
-
-Requirements:
-- Title: Compelling headline for the combined story (max 15 words)
-- Intro: 1-2 paragraphs, 1-4 sentences each, max 50 words per paragraph
-- H3 Section 1: Heading (max 10 words) + 1-2 paragraphs (max 60 words each)
-- H3 Section 2: Heading (max 10 words) + 1-2 paragraphs (max 60 words each)
-- IMPORTANT: Include hyperlinks to source articles using markdown format [link text](URL) whenever referencing data or claims
-
-Return JSON:
-{{
-    "title": "...",
-    "intro": "...",
-    "h3_1_title": "...",
-    "h3_1_content": "...",
-    "h3_2_title": "...",
-    "h3_2_content": "...",
-    "sources": [list of URLs used]
-}}"""
+        # 1. Generate intro if not provided
+        if intro:
+            generated['intro'] = intro
+        else:
+            highlights = []
+            if news_of_month.get('title'):
+                highlights.append(f"News of Month: {news_of_month['title']}")
+            if trend_alert.get('title'):
+                highlights.append(f"Trend Alert: {trend_alert['title']}")
+            if guess_the_price.get('title'):
+                highlights.append(f"Guess the Price: {guess_the_price['title']}")
 
             try:
-                response = claude_client.generate_content(
-                    prompt=prompt,
-                    max_tokens=800,
-                    temperature=0.6
+                prompt = AI_PROMPTS['generate_intro'].format(
+                    month=month,
+                    highlights='; '.join(highlights) if highlights else 'jewelry news and trends'
                 )
-
-                content = response.get('content', '{}')
-                if '```json' in content:
-                    content = content.split('```json')[1].split('```')[0].strip()
-                elif '```' in content:
-                    content = content.split('```')[1].split('```')[0].strip()
-
-                generated['industry_pulse'] = json.loads(content)
-
+                response = claude_client.generate_content(prompt=prompt, max_tokens=150, temperature=0.8)
+                generated['intro'] = response.get('content', '').strip()
             except Exception as e:
-                safe_print(f"  Error generating industry_pulse: {e}")
-                generated['industry_pulse'] = {
-                    'title': 'Industry Pulse',
-                    'intro': articles[0].get('snippet', '') if articles else '',
-                    'h3_1_title': 'Key Developments',
-                    'h3_1_content': '',
-                    'h3_2_title': 'What This Means',
-                    'h3_2_content': ''
-                }
+                safe_print(f"  Error generating intro: {e}")
+                generated['intro'] = f"Welcome to the {month} edition of BriteCo's newsletter!"
 
-        # Generate Partner Advantage
-        if 'partner_advantage' in sections_data and sections_data['partner_advantage']:
-            articles = sections_data['partner_advantage']
-            if not isinstance(articles, list):
-                articles = [articles]
+        # 2. Generate What's Inside agenda
+        try:
+            sections_to_tease = []
+            if news_of_month.get('title'):
+                sections_to_tease.append(f"News of Month video: {news_of_month['title']}")
+            if trend_alert.get('title'):
+                sections_to_tease.append(f"Trend Alert video: {trend_alert['title']}")
+            if blog_articles:
+                titles = [a.get('title', '') for a in blog_articles[:2]]
+                sections_to_tease.append(f"Blog articles: {', '.join(titles)}")
+            if guess_the_price.get('title'):
+                sections_to_tease.append(f"Guess the Price: {guess_the_price['title']}")
 
-            articles_text = ""
-            for art in articles:
-                articles_text += f"- {art.get('title', '')}: {art.get('research', art.get('snippet', ''))}\n"
+            prompt = AI_PROMPTS['generate_whats_inside'].format(
+                sections='\n'.join(f"- {s}" for s in sections_to_tease)
+            )
+            response = claude_client.generate_content(prompt=prompt, max_tokens=300, temperature=0.8)
+            content = response.get('content', '')
 
-            prompt = f"""Write a "Partner Advantage" section for jewelers based on these articles:
+            # Parse bullet items from response
+            items = []
+            for line in content.strip().split('\n'):
+                line = line.strip()
+                if line.startswith('-') or line.startswith('*'):
+                    line = line.lstrip('-* ').strip()
+                if line and len(line) > 5:
+                    items.append(line)
+            generated['agenda_items'] = items[:4]
 
-{articles_text}
+        except Exception as e:
+            safe_print(f"  Error generating agenda: {e}")
+            generated['agenda_items'] = [
+                f"The latest jewelry news from BriteCo",
+                f"A trend you need to know about",
+                f"Two must-read blog articles",
+                f"Can you guess the price of this famous piece?"
+            ]
 
-Requirements:
-- Subheader: Max 15 words, describes the tips theme
-- Intro: 1 short paragraph introducing the tips
-- 5 bullet points, each with:
-  - Mini-title: Max 10 words
-  - Supporting text: 1-3 sentences with markdown links [text](URL) to sources
-- IMPORTANT: Include hyperlinks using markdown format [link text](URL) in the content
-
-Return JSON:
-{{
-    "subheader": "...",
-    "intro": "...",
-    "tips": [
-        {{"title": "...", "content": "...", "url": "..."}},
-        ...
-    ]
-}}"""
-
+        # 3. Generate News of Month description
+        if news_of_month.get('title'):
             try:
-                response = claude_client.generate_content(
-                    prompt=prompt,
-                    max_tokens=800,
-                    temperature=0.6
+                prompt = AI_PROMPTS['generate_video_description'].format(
+                    max_words=80,
+                    title=news_of_month.get('title', ''),
+                    description=news_of_month.get('description', '')[:500]
                 )
-
-                content = response.get('content', '{}')
-                if '```json' in content:
-                    content = content.split('```json')[1].split('```')[0].strip()
-                elif '```' in content:
-                    content = content.split('```')[1].split('```')[0].strip()
-
-                generated['partner_advantage'] = json.loads(content)
-
+                response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=0.6)
+                generated['news_of_month'] = {
+                    'title': news_of_month.get('title', ''),
+                    'description': response.get('content', '').strip(),
+                    'thumbnail_url': news_of_month.get('thumbnail_url', ''),
+                    'video_url': news_of_month.get('url', '')
+                }
             except Exception as e:
-                safe_print(f"  Error generating partner_advantage: {e}")
-                generated['partner_advantage'] = {
-                    'subheader': 'Tips for Success',
-                    'intro': '',
-                    'tips': []
+                safe_print(f"  Error generating news_of_month desc: {e}")
+                generated['news_of_month'] = {
+                    'title': news_of_month.get('title', ''),
+                    'description': news_of_month.get('description', '')[:200],
+                    'thumbnail_url': news_of_month.get('thumbnail_url', ''),
+                    'video_url': news_of_month.get('url', '')
                 }
 
-        # Generate Industry News (5 bullet points)
-        if 'industry_news' in sections_data and sections_data['industry_news']:
-            articles = sections_data['industry_news']
-            if not isinstance(articles, list):
-                articles = [articles]
-
-            # Deduplicate articles by URL
-            seen_urls = set()
-            unique_articles = []
-            for art in articles[:5]:
-                url = art.get('url', '')
-                if url and url not in seen_urls:
-                    seen_urls.add(url)
-                    unique_articles.append(art)
-                elif not url:
-                    unique_articles.append(art)
-
-            articles_text = ""
-            for i, art in enumerate(unique_articles, 1):
-                # Use research summary if available (from GPT-5.2), otherwise snippet
-                detail = art.get('research', '') or art.get('snippet', art.get('content', ''))
-                articles_text += f"ARTICLE {i}: \"{art.get('title', '')}\"\n  Source URL: {art.get('url', '')}\n  Key Details: {str(detail)[:400]}\n\n"
-
-            prompt = f"""You must write exactly {len(unique_articles)} DIFFERENT "Industry News" bullet points — one per article below.
-
-{articles_text}
-
-CRITICAL RULES:
-1. Bullet 1 MUST be about ARTICLE 1's specific topic: "{unique_articles[0].get('title', '')}" — and ONLY that topic
-2. Bullet 2 MUST be about ARTICLE 2's specific topic: "{unique_articles[1].get('title', '') if len(unique_articles) > 1 else ''}" — and ONLY that topic
-3. Bullet 3 MUST be about ARTICLE 3's specific topic: "{unique_articles[2].get('title', '') if len(unique_articles) > 2 else ''}" — and ONLY that topic
-4. Bullet 4 MUST be about ARTICLE 4's specific topic: "{unique_articles[3].get('title', '') if len(unique_articles) > 3 else ''}" — and ONLY that topic
-5. Bullet 5 MUST be about ARTICLE 5's specific topic: "{unique_articles[4].get('title', '') if len(unique_articles) > 4 else ''}" — and ONLY that topic
-6. NO TWO BULLETS can have similar phrasing, structure, or topic — they must all be completely different
-7. Each bullet naturally incorporates a markdown hyperlink [link text](url) to its article URL
-8. Link text should be organic (source name, key phrase, or trend name) — NOT the full sentence
-9. Each bullet: ONE sentence, 15-25 words
-
-Return JSON only:
-{{
-    "bullets": [
-        {{"text": "Sentence with [link text](article1_url) embedded.", "url": "article1_url"}},
-        {{"text": "Different sentence with [link text](article2_url) embedded.", "url": "article2_url"}},
-        ...
-    ]
-}}
-"""
-
+        # 4. Generate Trend Alert description
+        if trend_alert.get('title'):
             try:
-                response = claude_client.generate_content(
-                    prompt=prompt,
-                    max_tokens=600,
-                    temperature=0.8
+                prompt = AI_PROMPTS['generate_video_description'].format(
+                    max_words=80,
+                    title=trend_alert.get('title', ''),
+                    description=trend_alert.get('description', '')[:500]
                 )
-
-                content = response.get('content', '{}')
-                if '```json' in content:
-                    content = content.split('```json')[1].split('```')[0].strip()
-                elif '```' in content:
-                    content = content.split('```')[1].split('```')[0].strip()
-
-                generated['industry_news'] = json.loads(content)
-
+                response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=0.6)
+                generated['trend_alert'] = {
+                    'title': trend_alert.get('title', ''),
+                    'description': response.get('content', '').strip(),
+                    'thumbnail_url': trend_alert.get('thumbnail_url', ''),
+                    'video_url': trend_alert.get('url', '')
+                }
             except Exception as e:
-                safe_print(f"  Error generating industry_news: {e}")
-                # Fallback: use article titles as link text in a sentence
-                generated['industry_news'] = {
-                    'bullets': [{'text': f"[{art.get('title', '')}]({art.get('url', '')}) offers insights for jewelry professionals.", 'url': art.get('url', '')} for art in articles[:5]]
+                safe_print(f"  Error generating trend_alert desc: {e}")
+                generated['trend_alert'] = {
+                    'title': trend_alert.get('title', ''),
+                    'description': trend_alert.get('description', '')[:200],
+                    'thumbnail_url': trend_alert.get('thumbnail_url', ''),
+                    'video_url': trend_alert.get('url', '')
                 }
 
-        # Convert markdown links to HTML in all generated content
+        # 5. Blog articles (pass through - titles/images come from the blog)
+        generated['blog_articles'] = []
+        for article in blog_articles[:2]:
+            generated['blog_articles'].append({
+                'title': article.get('title', ''),
+                'url': article.get('url', ''),
+                'featured_image_url': article.get('featured_image_url', ''),
+                'excerpt': article.get('excerpt', '')
+            })
+
+        # 6. Guess the Price question text
+        if guess_the_price.get('title'):
+            try:
+                prompt = f"""Write a teasing question for a "Guess the Price" section about this jewelry piece.
+
+Item: {guess_the_price.get('title', '')}
+Material: {guess_the_price.get('material', '')}
+Fun Fact: {guess_the_price.get('fun_fact', '')}
+
+Write ONE short, teasing question (max 15 words) that builds suspense about the price.
+Examples: "Think you know what this rare gem is worth?", "Can you guess the price tag on this iconic piece?"
+
+Return ONLY the question text."""
+
+                response = claude_client.generate_content(prompt=prompt, max_tokens=60, temperature=0.7)
+                gtp_question = response.get('content', 'Think you know the price?').strip().strip('"')
+            except:
+                gtp_question = "Think you know the price?"
+
+            generated['guess_the_price'] = {
+                'title': guess_the_price.get('title', ''),
+                'image_url': guess_the_price.get('image_url', ''),
+                'material': guess_the_price.get('material', ''),
+                'found_in': guess_the_price.get('found_in', ''),
+                'where_it_lives': guess_the_price.get('where_it_lives', ''),
+                'fun_fact': guess_the_price.get('fun_fact', ''),
+                'question': gtp_question,
+                'link': guess_the_price.get('source_link', guess_the_price.get('url', '#'))
+            }
+
+        # 7. Quick tip
+        if quick_tip:
+            generated['quick_tip'] = quick_tip
+        else:
+            # Auto-generate if not provided
+            season = MONTH_TO_SEASON.get(month.lower(), 'winter')
+            themes = SECTION_SPECS['quick_tip']['seasonal_themes'].get(month.lower(), ['jewelry care'])
+            try:
+                prompt = AI_PROMPTS['generate_quick_tip'].format(
+                    month=month,
+                    season=season,
+                    themes=', '.join(themes)
+                )
+                response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=0.7)
+                generated['quick_tip'] = response.get('content', '').strip()
+            except:
+                generated['quick_tip'] = f"Keep your jewelry sparkling this {season}!"
+
+        # Convert markdown links to HTML
         generated = process_generated_content(generated)
 
         return jsonify({
@@ -1406,7 +810,7 @@ Return JSON only:
 
 @app.route('/api/check-brand-guidelines', methods=['POST'])
 def check_brand_guidelines():
-    """Check content against brand guidelines"""
+    """Check content against consumer brand guidelines"""
     try:
         data = request.json
         content = data.get('content', {})
@@ -1414,90 +818,25 @@ def check_brand_guidelines():
 
         safe_print(f"\n[API] Checking brand guidelines for {month}...")
 
-        # Build content summary
-        content_text = json.dumps(content, indent=2)
+        content_text = json.dumps(content, indent=2)[:4000]
 
-        prompt = f"""Review this jewelry newsletter content against brand guidelines.
-
-Content:
-{content_text[:4000]}
-
-BRAND GUIDELINES FOR "STAY IN THE LOUPE" NEWSLETTER:
-
-1. VOICE & TONE:
-- Professional but personable - like a well-connected colleague sharing the latest scoop
-- Industry-savvy and knowledgeable about jewelry trends, materials, and market dynamics
-- Warm and helpful - uses "we" and "you" frequently
-- Playful but professional - incorporates wordplay and light humor without being corny
-
-2. CONTENT RESTRICTIONS:
-- EXCLUDE: Personnel announcements, deaths/obituaries, political content
-- EXCLUDE: Non-jewelry topics, overly salesy language
-- Word limits: Good/Bad/Ugly copy max 30 words each, paragraphs max 60 words
-
-3. PUNCTUATION & FORMATTING:
-- Use serial comma in lists (red, white, and blue)
-- Use em dash (—) with spaces around it
-- Put punctuation inside quotation marks
-
-4. BRITECO BRAND TERMINOLOGY:
-- DO: Call BriteCo an "insurtech company" or "insurance provider"
-- DO: Say "backed by an AM Best A+ rated Insurance Carrier"
-- DON'T: Call BriteCo an "insurance company"
-- DON'T: Say "we have AM Best policies" or "we are AM Best"
-
-Review the content and identify SPECIFIC phrases that need to be changed.
-
-IMPORTANT: Skip over hyperlinks and URLs - do not flag them as issues. Hyperlinks in formats like [text](url) or <a href="...">text</a> should be left as-is.
-
-Return JSON:
-{{
-    "suggestions": [
-        {{
-            "section": "intro" | "brite_spot" | "the_good" | "the_bad" | "the_ugly" | "industry_pulse" | "partner_advantage" | "industry_news",
-            "issue": "Brief description of the issue",
-            "original": "exact phrase from content that needs changing",
-            "suggested": "what it should be changed to",
-            "reason": "why this change is needed per brand guidelines"
-        }}
-    ]
-}}
-
-Only include items that actually need to be changed. If the content is perfect, return an empty suggestions array."""
+        prompt = AI_PROMPTS['brand_check'].format(content=content_text)
 
         response = claude_client.generate_content(
             prompt=prompt,
-            max_tokens=1500,
-            temperature=0.2
+            max_tokens=1000,
+            temperature=0.3
         )
 
-        result_content = response.get('content', '{}')
-        if '```json' in result_content:
-            result_content = result_content.split('```json')[1].split('```')[0].strip()
-        elif '```' in result_content:
-            result_content = result_content.split('```')[1].split('```')[0].strip()
-
-        try:
-            check_results = json.loads(result_content)
-        except json.JSONDecodeError as e:
-            safe_print(f"[API WARNING] Failed to parse brand check JSON: {e}")
-            check_results = {"suggestions": []}
-
-        num_suggestions = len(check_results.get('suggestions', []))
-        passed = num_suggestions == 0
-
-        safe_print(f"[API] Brand check complete - {num_suggestions} suggestions found")
+        result = parse_json_from_llm(response.get('content', '{}'))
 
         return jsonify({
             'success': True,
-            'passed': passed,
-            'check_results': check_results
+            'brand_check': result
         })
 
     except Exception as e:
         safe_print(f"[API ERROR] Brand check: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1507,7 +846,7 @@ Only include items that actually need to be changed. If the content is perfect, 
 
 @app.route('/api/generate-image-prompts', methods=['POST'])
 def generate_image_prompts():
-    """Generate image prompts for newsletter sections"""
+    """Generate image prompts for consumer newsletter sections"""
     try:
         data = request.json
         sections = data.get('sections', {})
@@ -1522,66 +861,50 @@ def generate_image_prompts():
 
             safe_print(f"  - Creating image prompt for {section}")
 
-            title = content.get('title', content.get('subtitle', ''))
-            body = content.get('content', content.get('copy', content.get('intro', '')))
-
-            # Handle case where body is a dict/object instead of string
+            title = content.get('title', content.get('tip', ''))
+            body = content.get('content', content.get('description', content.get('tip', '')))
             if isinstance(body, dict):
-                body = body.get('intro', '') or body.get('content', '') or body.get('copy', '') or str(body)
-
-            # Ensure body is a string before slicing
+                body = body.get('description', '') or body.get('content', '') or str(body)
             body = str(body) if body else ''
 
-            prompt_request = f"""Create a text-to-image prompt for a jewelry newsletter image.
+            prompt_request = f"""Create a text-to-image prompt for a consumer jewelry newsletter image.
 
 Section: {section}
 Title: "{title}"
 Content: "{body[:400]}..."
 
 Requirements:
-- Photorealistic, professional photography style (NOT cartoon, NOT illustration, NOT digital art)
-- Stock photo aesthetic - like images from Shutterstock or Getty Images
-- Luxury jewelry aesthetic with elegant lighting and composition
-- Teal/gold color accents where appropriate (BriteCo brand colors)
+- Photorealistic, professional photography style
+- Stock photo aesthetic - luxury jewelry photography
+- Elegant lighting, warm tones, aspirational feel
+- Teal/gold color accents where appropriate (BriteCo brand)
 - No text overlays in the image
-- Suitable for professional email newsletter
-- Clean, well-lit, high-quality photography look
-- Focus on jewelry, gemstones, watches, or luxury retail settings
+- Clean, well-lit, high-quality imagery
+- Consumer-facing aesthetic (not B2B)
 
 Output ONLY the image generation prompt, nothing else."""
 
             try:
                 response = claude_client.generate_content(
                     prompt=prompt_request,
-                    model="claude-opus-4-5-20251101",
                     max_tokens=150,
                     temperature=0.5
                 )
-
                 prompts[section] = {
                     'prompt': response.get('content', '').strip(),
                     'title': title
                 }
-
             except Exception as e:
                 safe_print(f"  Error generating prompt for {section}: {e}")
                 prompts[section] = {
-                    'prompt': f"Photorealistic professional jewelry photography, elegant luxury display with soft lighting, high-end retail aesthetic, {title}, stock photo quality",
+                    'prompt': f"Photorealistic luxury jewelry photography, elegant display, soft warm lighting, {title}, high-end aesthetic",
                     'title': title
                 }
 
-        safe_print(f"[API] Generated {len(prompts)} image prompts")
-
-        return jsonify({
-            'success': True,
-            'prompts': prompts,
-            'generated_at': datetime.now().isoformat()
-        })
+        return jsonify({'success': True, 'prompts': prompts})
 
     except Exception as e:
         safe_print(f"[API ERROR] Image prompts: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1594,33 +917,19 @@ def generate_images():
 
         safe_print(f"\n[API] Generating {len(prompts)} images...")
 
-        # Check if Gemini client is available
         if not gemini_client or not gemini_client.is_available():
-            safe_print("[API ERROR] Gemini client not available")
             return jsonify({'success': False, 'error': 'Gemini image generation not available'}), 500
 
         images = {}
 
-        # Image sizes for different sections
-        # Square (180x180) for side images: GBU, Brite Spot
-        # Full width (490x263) for: Industry Pulse, Partner Advantage
         IMAGE_SIZES = {
-            'the_good': (180, 180),
-            'the_bad': (180, 180),
-            'the_ugly': (180, 180),
-            'brite_spot': (180, 180),
-            'industry_pulse': (490, 263),
-            'partner_advantage': (490, 263)
+            'quick_tip': (490, 300),
+            'guess_the_price': (250, 250),
         }
 
-        # Aspect ratios: square for side images, landscape for full-width
         ASPECT_RATIOS = {
-            'the_good': '1:1',
-            'the_bad': '1:1',
-            'the_ugly': '1:1',
-            'brite_spot': '1:1',
-            'industry_pulse': '16:9',
-            'partner_advantage': '16:9'
+            'quick_tip': '16:9',
+            'guess_the_price': '1:1',
         }
 
         for section, prompt_data in prompts.items():
@@ -1632,7 +941,6 @@ def generate_images():
 
             try:
                 aspect_ratio = ASPECT_RATIOS.get(section, '1:1')
-                # Use default model (gemini-2.5-flash-image) from gemini_client
                 result = gemini_client.generate_image(
                     prompt=prompt,
                     aspect_ratio=aspect_ratio
@@ -1640,58 +948,24 @@ def generate_images():
 
                 image_data = result.get('image_data', '')
 
-                # Resize to target dimensions
                 if image_data:
-                    target_size = IMAGE_SIZES.get(section, (180, 180))
+                    target_size = IMAGE_SIZES.get(section, (300, 300))
                     image_data = resize_image(image_data, target_size)
 
                 images[section] = {
                     'url': f"data:image/png;base64,{image_data}" if image_data else '',
                     'prompt': prompt
                 }
-                safe_print(f"    Generated image for {section}")
 
             except Exception as e:
                 safe_print(f"  Error generating image for {section}: {e}")
-                import traceback
-                traceback.print_exc()
-                images[section] = {
-                    'url': '',
-                    'prompt': prompt,
-                    'error': str(e)
-                }
+                images[section] = {'url': '', 'prompt': prompt, 'error': str(e)}
 
-        return jsonify({
-            'success': True,
-            'images': images
-        })
+        return jsonify({'success': True, 'images': images})
 
     except Exception as e:
         safe_print(f"[API ERROR] Generate images: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
-
-def resize_image(base64_data, target_size):
-    """Resize image to target dimensions"""
-    try:
-        from PIL import Image, ImageOps
-
-        image_bytes = base64.b64decode(base64_data)
-        pil_image = Image.open(BytesIO(image_bytes))
-
-        # Use fit to maintain aspect ratio
-        resized = ImageOps.fit(pil_image, target_size, method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
-
-        # Convert back to base64
-        buffer = BytesIO()
-        resized.save(buffer, format='PNG', optimize=True)
-        return base64.b64encode(buffer.getvalue()).decode('utf-8')
-
-    except Exception as e:
-        safe_print(f"  Resize error: {e}")
-        return base64_data
 
 
 @app.route('/api/generate-single-image', methods=['POST'])
@@ -1705,56 +979,33 @@ def generate_single_image():
         if not prompt:
             return jsonify({'success': False, 'error': 'No prompt provided'}), 400
 
-        # Check if Gemini client is available
         if not gemini_client or not gemini_client.is_available():
-            return jsonify({'success': False, 'error': 'Gemini image generation not available'}), 500
+            return jsonify({'success': False, 'error': 'Gemini not available'}), 500
 
-        safe_print(f"\n[API] Regenerating image for {section}...")
-
-        # Image sizes for different sections
         IMAGE_SIZES = {
-            'the_good': (180, 180),
-            'the_bad': (180, 180),
-            'the_ugly': (180, 180),
-            'brite_spot': (180, 180),
-            'industry_pulse': (490, 263),
-            'partner_advantage': (490, 263)
+            'quick_tip': (490, 300),
+            'guess_the_price': (250, 250),
         }
-
-        # Aspect ratios
         ASPECT_RATIOS = {
-            'the_good': '1:1',
-            'the_bad': '1:1',
-            'the_ugly': '1:1',
-            'brite_spot': '1:1',
-            'industry_pulse': '16:9',
-            'partner_advantage': '16:9'
+            'quick_tip': '16:9',
+            'guess_the_price': '1:1',
         }
 
         aspect_ratio = ASPECT_RATIOS.get(section, '1:1')
-        result = gemini_client.generate_image(
-            prompt=prompt,
-            aspect_ratio=aspect_ratio
-        )
-
+        result = gemini_client.generate_image(prompt=prompt, aspect_ratio=aspect_ratio)
         image_data = result.get('image_data', '')
 
-        # Resize to target dimensions
         if image_data:
-            target_size = IMAGE_SIZES.get(section, (180, 180))
+            target_size = IMAGE_SIZES.get(section, (300, 300))
             image_data = resize_image(image_data, target_size)
-
-        image_url = f"data:image/png;base64,{image_data}" if image_data else ''
 
         return jsonify({
             'success': True,
-            'image_url': image_url
+            'image_url': f"data:image/png;base64,{image_data}" if image_data else ''
         })
 
     except Exception as e:
         safe_print(f"[API ERROR] Generate single image: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1764,20 +1015,16 @@ def resize_image_endpoint():
     try:
         data = request.json
         image_url = data.get('image_url', '')
-        width = data.get('width', 203)
-        height = data.get('height', 203)
+        width = data.get('width', 300)
+        height = data.get('height', 300)
         section = data.get('section', 'generic')
 
         if not image_url:
             return jsonify({'success': False, 'error': 'No image URL provided'}), 400
 
-        safe_print(f"\n[API] Resizing image for {section} to {width}x{height}...")
-
-        # Extract base64 data from data URL
         if image_url.startswith('data:'):
             base64_data = image_url.split(',')[1] if ',' in image_url else ''
         else:
-            # If it's a regular URL, fetch and convert
             import requests as req
             response = req.get(image_url)
             base64_data = base64.b64encode(response.content).decode('utf-8')
@@ -1785,64 +1032,46 @@ def resize_image_endpoint():
         if not base64_data:
             return jsonify({'success': False, 'error': 'Could not extract image data'}), 400
 
-        # Resize the image
         resized_data = resize_image(base64_data, (width, height))
-        resized_url = f"data:image/png;base64,{resized_data}"
-
         return jsonify({
             'success': True,
-            'resized_url': resized_url
+            'resized_url': f"data:image/png;base64,{resized_data}"
         })
 
     except Exception as e:
         safe_print(f"[API ERROR] Resize image: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================
-# ROUTES - SUBJECT LINE
+# ROUTES - SUBJECT LINES
 # ============================================================================
 
 @app.route('/api/generate-subject-lines', methods=['POST'])
 def generate_subject_lines():
-    """Generate subject line and preheader options"""
+    """Generate subject line and preheader options for consumer newsletter"""
     try:
         data = request.json
         content = data.get('content', {})
         month = data.get('month', '')
-        tone = data.get('tone', 'professional')
+        year = data.get('year', datetime.now().year)
+        tone = data.get('tone', 'playful')
 
         safe_print(f"\n[API] Generating subject lines for {month}, tone: {tone}...")
 
-        content_summary = json.dumps(content, indent=2)[:1500]
+        highlights = []
+        if content.get('news_of_month', {}).get('title'):
+            highlights.append(f"Video: {content['news_of_month']['title']}")
+        if content.get('guess_the_price', {}).get('title'):
+            highlights.append(f"Guess the Price: {content['guess_the_price']['title']}")
+        if content.get('quick_tip'):
+            highlights.append("Quick jewelry tip")
 
-        tone_descriptions = {
-            'professional': 'Professional and informative',
-            'friendly': 'Friendly and conversational',
-            'urgent': 'Urgent and action-oriented',
-            'playful': 'Playful and fun',
-            'exclusive': 'Exclusive and premium'
-        }
-
-        prompt = f"""Generate 5 subject lines and 5 preheaders for a jewelry newsletter.
-
-Month: {month}
-Tone: {tone_descriptions.get(tone, 'Professional')}
-
-Content Summary:
-{content_summary}
-
-Requirements:
-- Subject lines: 40-60 characters, compelling, may use questions or numbers
-- Preheaders: 80-100 characters, complement subject line
-
-Return JSON:
-{{
-    "subject_lines": ["...", "...", "...", "...", "..."],
-    "preheaders": ["...", "...", "...", "...", "..."]
-}}"""
+        prompt = AI_PROMPTS['generate_subject_lines'].format(
+            month=month,
+            year=year,
+            highlights='; '.join(highlights) if highlights else 'jewelry trends and tips'
+        )
 
         response = claude_client.generate_content(
             prompt=prompt,
@@ -1850,24 +1079,16 @@ Return JSON:
             temperature=0.8
         )
 
-        result_content = response.get('content', '{}')
-        if '```json' in result_content:
-            result_content = result_content.split('```json')[1].split('```')[0].strip()
-        elif '```' in result_content:
-            result_content = result_content.split('```')[1].split('```')[0].strip()
-
-        options = json.loads(result_content)
+        options = parse_json_from_llm(response.get('content', '{}'))
 
         return jsonify({
             'success': True,
-            'subject_lines': options.get('subject_lines', []),
-            'preheaders': options.get('preheaders', [])
+            'subject_lines': options.get('subject_lines', options) if isinstance(options, dict) else options,
+            'preheaders': options.get('preheaders', []) if isinstance(options, dict) else []
         })
 
     except Exception as e:
         safe_print(f"[API ERROR] Subject lines: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1877,33 +1098,27 @@ Return JSON:
 
 @app.route('/api/send-preview', methods=['POST'])
 def send_preview():
-    """Send newsletter preview to team members via SendGrid"""
+    """Send copy review email to team via SendGrid"""
     try:
         data = request.json
         recipients = data.get('recipients', [])
-        subject = data.get('subject', 'Stay In The Loupe Preview')
+        subject = data.get('subject', 'BriteCo Consumer Newsletter - Copy Review')
         html_content = data.get('html', '')
 
         if not recipients or not html_content:
             return jsonify({"success": False, "error": "Recipients and HTML content required"}), 400
 
-        safe_print(f"[API] Sending preview to {len(recipients)} recipients via SendGrid...")
+        safe_print(f"[API] Sending copy review to {len(recipients)} recipients via SendGrid...")
 
         if not SENDGRID_AVAILABLE:
-            return jsonify({
-                "success": False,
-                "error": "SendGrid library not installed. Run: pip install sendgrid"
-            }), 500
+            return jsonify({"success": False, "error": "SendGrid library not installed"}), 500
 
         sendgrid_api_key = os.environ.get('SENDGRID_API_KEY') or os.environ.get('_SENDGRID_API_KEY')
-        from_email = os.environ.get('SENDGRID_FROM_EMAIL') or os.environ.get('_SENDGRID_FROM_EMAIL') or 'jeweler@brite.co'
-        from_name = os.environ.get('SENDGRID_FROM_NAME') or os.environ.get('_SENDGRID_FROM_NAME') or 'Stay In The Loupe'
+        from_email = os.environ.get('SENDGRID_FROM_EMAIL') or ONTRAPORT_CONFIG['from_email']
+        from_name = os.environ.get('SENDGRID_FROM_NAME') or ONTRAPORT_CONFIG['from_name']
 
         if not sendgrid_api_key:
-            return jsonify({
-                "success": False,
-                "error": "SendGrid API key not configured."
-            }), 500
+            return jsonify({"success": False, "error": "SendGrid API key not configured"}), 500
 
         sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
 
@@ -1918,33 +1133,28 @@ def send_preview():
                     subject=subject,
                     html_content=html_content
                 )
-
                 response = sg.send(message)
-
                 if response.status_code in [200, 201, 202]:
                     sent_count += 1
                 else:
                     errors.append(f"Failed for {recipient}: status {response.status_code}")
-
             except Exception as email_error:
                 errors.append(f"Failed for {recipient}: {str(email_error)}")
 
         return jsonify({
             "success": sent_count > 0,
-            "message": f"Preview sent to {sent_count} recipient(s)",
+            "message": f"Copy review sent to {sent_count} recipient(s)",
             "errors": errors if errors else None
         })
 
     except Exception as e:
         safe_print(f"[API] Send preview error: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route('/api/export-to-docs', methods=['POST'])
 def export_to_docs():
-    """Export newsletter content to Google Docs"""
+    """Export consumer newsletter content to Google Docs"""
     try:
         from google.oauth2 import service_account
         from googleapiclient.discovery import build
@@ -1953,8 +1163,7 @@ def export_to_docs():
         content = data.get('content', {})
         month = data.get('month', datetime.now().strftime('%B'))
         year = data.get('year', datetime.now().year)
-        # Format: "2026 January - Jeweler Newsletter"
-        title = data.get('title', f"{year} {month} - Jeweler Newsletter")
+        title = data.get('title', f"{year} {month} - Consumer Newsletter")
         send_email = data.get('send_email', False)
         recipients = data.get('recipients', [])
 
@@ -1963,10 +1172,7 @@ def export_to_docs():
         creds_json = os.environ.get('GOOGLE_DOCS_CREDENTIALS') or os.environ.get('_GOOGLE_DOCS_CREDENTIALS')
 
         if not creds_json:
-            return jsonify({
-                "success": False,
-                "error": "Google Docs credentials not configured."
-            }), 500
+            return jsonify({"success": False, "error": "Google Docs credentials not configured."}), 500
 
         try:
             creds_data = json.loads(creds_json)
@@ -1975,15 +1181,11 @@ def export_to_docs():
                 scopes=['https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/drive']
             )
         except Exception as e:
-            return jsonify({
-                "success": False,
-                "error": f"Invalid Google credentials: {str(e)}"
-            }), 500
+            return jsonify({"success": False, "error": f"Invalid Google credentials: {str(e)}"}), 500
 
         docs_service = build('docs', 'v1', credentials=credentials)
         drive_service = build('drive', 'v3', credentials=credentials)
 
-        # Create doc in the specified folder
         file_metadata = {
             'name': title,
             'mimeType': 'application/vnd.google-apps.document',
@@ -1999,8 +1201,6 @@ def export_to_docs():
         doc_id = created_file.get('id')
         doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
 
-        safe_print(f"[API] Created Google Doc: {doc_id}")
-
         # Build document content
         requests_list = []
         index_offset = [1]
@@ -2013,10 +1213,7 @@ def export_to_docs():
             end_index = start_index + len(text)
 
             requests_list.append({
-                'insertText': {
-                    'location': {'index': start_index},
-                    'text': text
-                }
+                'insertText': {'location': {'index': start_index}, 'text': text}
             })
 
             if heading:
@@ -2036,11 +1233,10 @@ def export_to_docs():
                     }
                 })
 
-            # Add hyperlink if URL provided
             if link_url:
                 requests_list.append({
                     'updateTextStyle': {
-                        'range': {'startIndex': start_index, 'endIndex': end_index - 2},  # -2 to exclude \n\n
+                        'range': {'startIndex': start_index, 'endIndex': end_index - 2},
                         'textStyle': {
                             'link': {'url': link_url},
                             'foregroundColor': {'color': {'rgbColor': {'red': 0.0, 'green': 0.51, 'blue': 0.51}}}
@@ -2054,64 +1250,66 @@ def export_to_docs():
         # Add content sections
         add_text(title, heading=True)
 
+        # Introduction
         if content.get('intro'):
+            add_text('Introduction', bold=True)
             add_text(content['intro'])
 
-        if content.get('brite_spot'):
-            add_text('The Brite Spot', bold=True)
-            add_text(content['brite_spot'])
+        # What's Inside
+        if content.get('agenda_items'):
+            add_text("What's Inside", bold=True)
+            items = content['agenda_items']
+            if isinstance(items, list):
+                for item in items:
+                    add_text(f"- {item}")
+            else:
+                add_text(str(items))
 
-        for section in ['the_good', 'the_bad', 'the_ugly']:
-            if content.get(section):
-                section_title = section.replace('_', ' ').title()
-                add_text(section_title, bold=True)
-                sec = content[section]
-                if isinstance(sec, dict):
-                    add_text(f"{sec.get('subtitle', '')}\n{sec.get('copy', '')}")
+        # News of the Month
+        nom = content.get('news_of_month', {})
+        if isinstance(nom, dict) and nom.get('title'):
+            add_text('News of the Month', bold=True)
+            add_text(nom.get('title', ''))
+            add_text(nom.get('description', ''))
+            if nom.get('video_url'):
+                add_text(f"Video: {nom['video_url']}", link_url=nom['video_url'])
+
+        # Trend Alert
+        ta = content.get('trend_alert', {})
+        if isinstance(ta, dict) and ta.get('title'):
+            add_text('Trend Alert', bold=True)
+            add_text(ta.get('title', ''))
+            add_text(ta.get('description', ''))
+            if ta.get('video_url'):
+                add_text(f"Video: {ta['video_url']}", link_url=ta['video_url'])
+
+        # Blog Articles
+        blogs = content.get('blog_articles', [])
+        if blogs:
+            add_text('Blog Articles', bold=True)
+            for i, blog in enumerate(blogs[:2], 1):
+                if isinstance(blog, dict):
+                    add_text(f"Article {i}: {blog.get('title', '')}", link_url=blog.get('url'))
                 else:
-                    add_text(str(sec))
+                    add_text(f"Article {i}: {str(blog)}")
 
-        if content.get('industry_pulse'):
-            add_text('Industry Pulse', bold=True)
-            pulse = content['industry_pulse']
-            if isinstance(pulse, dict):
-                add_text(pulse.get('title', ''))
-                add_text(pulse.get('intro', ''))
-                add_text(pulse.get('h3_1_title', ''), bold=True)
-                add_text(pulse.get('h3_1_content', ''))
-                add_text(pulse.get('h3_2_title', ''), bold=True)
-                add_text(pulse.get('h3_2_content', ''))
-            else:
-                add_text(str(pulse))
+        # Guess the Price
+        gtp = content.get('guess_the_price', {})
+        if isinstance(gtp, dict) and gtp.get('title'):
+            add_text('Guess the Price', bold=True)
+            add_text(gtp.get('title', ''))
+            add_text(f"Material: {gtp.get('material', '')}")
+            add_text(f"Found In: {gtp.get('found_in', '')}")
+            add_text(f"Where It Lives: {gtp.get('where_it_lives', '')}")
+            add_text(f"Fun Fact: {gtp.get('fun_fact', '')}")
+            add_text(f"Question: {gtp.get('question', '')}")
+            if gtp.get('link'):
+                add_text(f"Source: {gtp['link']}", link_url=gtp['link'])
 
-        if content.get('partner_advantage'):
-            add_text('Partner Advantage', bold=True)
-            pa = content['partner_advantage']
-            if isinstance(pa, dict):
-                add_text(pa.get('subheader', ''))
-                add_text(pa.get('intro', ''))
-                for tip in pa.get('tips', []):
-                    if isinstance(tip, dict):
-                        add_text(f"• {tip.get('title', '')}: {tip.get('content', '')}")
-                    else:
-                        add_text(f"• {tip}")
-            else:
-                add_text(str(pa))
-
-        if content.get('industry_news'):
-            add_text('Industry News', bold=True)
-            news = content['industry_news']
-            if isinstance(news, dict) and 'bullets' in news:
-                for bullet in news['bullets']:
-                    if isinstance(bullet, dict):
-                        bullet_text = f"• {bullet.get('text', '')}"
-                        bullet_url = bullet.get('url', None)
-                        add_text(bullet_text, link_url=bullet_url)
-                    else:
-                        add_text(f"• {bullet}")
-            elif isinstance(news, list):
-                for item in news:
-                    add_text(f"• {item}")
+        # Quick Tip
+        if content.get('quick_tip'):
+            add_text('Quick Tip', bold=True)
+            add_text(content['quick_tip'])
 
         # Execute batch update
         if requests_list:
@@ -2127,12 +1325,12 @@ def export_to_docs():
             supportsAllDrives=True
         ).execute()
 
-        # Send email if requested
+        # Send copy review email if requested
         emails_sent = []
         if send_email and recipients and SENDGRID_AVAILABLE:
             sendgrid_api_key = os.environ.get('SENDGRID_API_KEY') or os.environ.get('_SENDGRID_API_KEY')
-            from_email = os.environ.get('SENDGRID_FROM_EMAIL') or 'jeweler@brite.co'
-            from_name = os.environ.get('SENDGRID_FROM_NAME') or 'Stay In The Loupe'
+            from_email = os.environ.get('SENDGRID_FROM_EMAIL') or ONTRAPORT_CONFIG['from_email']
+            from_name = os.environ.get('SENDGRID_FROM_NAME') or ONTRAPORT_CONFIG['from_name']
 
             if sendgrid_api_key:
                 sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
@@ -2141,8 +1339,8 @@ def export_to_docs():
                     try:
                         email_html = f"""
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <h2 style="color: #008181;">Stay In The Loupe - Ready for Review</h2>
-                            <p>The <strong>{month} {year}</strong> newsletter has been exported to Google Docs.</p>
+                            <h2 style="color: #008181;">Consumer Newsletter - Ready for Review</h2>
+                            <p>The <strong>{month} {year}</strong> consumer newsletter has been exported to Google Docs for copy review.</p>
                             <p style="margin: 20px 0;">
                                 <a href="{doc_url}" style="background: #008181; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
                                     Open Google Doc
@@ -2154,14 +1352,12 @@ def export_to_docs():
                         message = Mail(
                             from_email=(from_email, from_name),
                             to_emails=recipient,
-                            subject=f"Stay In The Loupe - {month} {year} - Ready for Review",
+                            subject=f"Consumer Newsletter - {month} {year} - Copy Review",
                             html_content=email_html
                         )
-
                         response = sg.send(message)
                         if response.status_code in [200, 201, 202]:
                             emails_sent.append(recipient)
-
                     except Exception as email_error:
                         safe_print(f"[API] Email error for {recipient}: {email_error}")
 
@@ -2179,95 +1375,6 @@ def export_to_docs():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# ============================================================================
-# ROUTES - CUSTOM LINK & DOC NOTIFICATION
-# ============================================================================
-
-@app.route('/api/fetch-article-metadata', methods=['POST'])
-def fetch_article_metadata():
-    """Fetch metadata from a custom article URL"""
-    try:
-        import requests as req
-        from bs4 import BeautifulSoup
-
-        data = request.json
-        url = data.get('url', '')
-
-        if not url:
-            return jsonify({'success': False, 'error': 'URL is required'}), 400
-
-        safe_print(f"\n[API] Fetching metadata for: {url}")
-
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-
-        try:
-            response = req.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-        except req.RequestException as e:
-            return jsonify({
-                'success': False,
-                'error': f'Failed to fetch URL: {str(e)}'
-            }), 400
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Extract title
-        title = ''
-        og_title = soup.find('meta', property='og:title')
-        if og_title and og_title.get('content'):
-            title = og_title['content']
-        elif soup.title:
-            title = soup.title.string or ''
-
-        # Extract description
-        description = ''
-        og_desc = soup.find('meta', property='og:description')
-        if og_desc and og_desc.get('content'):
-            description = og_desc['content']
-        else:
-            meta_desc = soup.find('meta', attrs={'name': 'description'})
-            if meta_desc and meta_desc.get('content'):
-                description = meta_desc['content']
-
-        # Extract image
-        image = ''
-        og_image = soup.find('meta', property='og:image')
-        if og_image and og_image.get('content'):
-            image = og_image['content']
-
-        # Extract publisher/site name
-        publisher = extract_domain(url)
-        og_site = soup.find('meta', property='og:site_name')
-        if og_site and og_site.get('content'):
-            publisher = og_site['content']
-
-        # Extract publish date
-        published_date = ''
-        article_date = soup.find('meta', property='article:published_time')
-        if article_date and article_date.get('content'):
-            published_date = article_date['content']
-
-        return jsonify({
-            'success': True,
-            'metadata': {
-                'title': title.strip() if title else 'Untitled Article',
-                'description': description.strip()[:500] if description else '',
-                'image': image,
-                'publisher': publisher,
-                'published_date': published_date,
-                'url': url
-            }
-        })
-
-    except Exception as e:
-        safe_print(f"[API ERROR] Fetch metadata: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
 @app.route('/api/send-doc-notification', methods=['POST'])
 def send_doc_notification():
     """Send email notification with Google Doc link"""
@@ -2279,95 +1386,130 @@ def send_doc_notification():
         year = data.get('year', datetime.now().year)
 
         if not recipients or not doc_url:
-            return jsonify({
-                'success': False,
-                'error': 'Recipients and doc_url are required'
-            }), 400
-
-        safe_print(f"\n[API] Sending doc notification to {len(recipients)} recipients...")
+            return jsonify({"success": False, "error": "Recipients and doc_url required"}), 400
 
         if not SENDGRID_AVAILABLE:
-            return jsonify({
-                'success': False,
-                'error': 'SendGrid library not installed. Run: pip install sendgrid'
-            }), 500
+            return jsonify({"success": False, "error": "SendGrid not available"}), 500
 
         sendgrid_api_key = os.environ.get('SENDGRID_API_KEY') or os.environ.get('_SENDGRID_API_KEY')
-        from_email = os.environ.get('SENDGRID_FROM_EMAIL') or os.environ.get('_SENDGRID_FROM_EMAIL') or 'jeweler@brite.co'
-        from_name = os.environ.get('SENDGRID_FROM_NAME') or os.environ.get('_SENDGRID_FROM_NAME') or 'Stay In The Loupe'
+        from_email = os.environ.get('SENDGRID_FROM_EMAIL') or ONTRAPORT_CONFIG['from_email']
+        from_name = os.environ.get('SENDGRID_FROM_NAME') or ONTRAPORT_CONFIG['from_name']
 
         if not sendgrid_api_key:
-            return jsonify({
-                'success': False,
-                'error': 'SendGrid API key not configured.'
-            }), 500
+            return jsonify({"success": False, "error": "SendGrid API key not configured"}), 500
 
         sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
-
-        sent_count = 0
-        errors = []
-
-        email_html = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #272d3f; margin: 0;">Stay In The Loupe</h1>
-                <p style="color: #FE8916; margin: 5px 0;">Jeweler Newsletter</p>
-            </div>
-
-            <div style="background: #f5f7fa; border-radius: 8px; padding: 30px; text-align: center;">
-                <h2 style="color: #272d3f; margin-top: 0;">Newsletter Ready for Review</h2>
-                <p style="color: #5D7283; font-size: 16px;">
-                    The <strong>{month} {year}</strong> edition of Stay In The Loupe has been exported to Google Docs and is ready for your review.
-                </p>
-                <p style="margin: 30px 0;">
-                    <a href="{doc_url}" style="background: #008181; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">
-                        Open in Google Docs
-                    </a>
-                </p>
-                <p style="color: #888; font-size: 14px;">
-                    Click the button above to review and make any necessary edits.
-                </p>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                <p style="color: #888; font-size: 12px; margin: 0;">
-                    This notification was sent by the Stay In The Loupe newsletter generator.
-                </p>
-            </div>
-        </div>
-        """
+        sent = []
 
         for recipient in recipients:
             try:
+                email_html = f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #008181;">Consumer Newsletter - Copy Review</h2>
+                    <p>The <strong>{month} {year}</strong> consumer newsletter is ready for review.</p>
+                    <p style="margin: 20px 0;">
+                        <a href="{doc_url}" style="background: #008181; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
+                            Open Google Doc
+                        </a>
+                    </p>
+                </div>
+                """
+
                 message = Mail(
                     from_email=(from_email, from_name),
                     to_emails=recipient,
-                    subject=f"Stay In The Loupe - {month} {year} - Ready for Review",
+                    subject=f"Consumer Newsletter - {month} {year} - Copy Review",
                     html_content=email_html
                 )
-
                 response = sg.send(message)
-
                 if response.status_code in [200, 201, 202]:
-                    sent_count += 1
-                    safe_print(f"  Sent to: {recipient}")
-                else:
-                    errors.append(f"Failed for {recipient}: status {response.status_code}")
-
+                    sent.append(recipient)
             except Exception as email_error:
-                errors.append(f"Failed for {recipient}: {str(email_error)}")
+                safe_print(f"[API] Notification error for {recipient}: {email_error}")
 
         return jsonify({
-            'success': sent_count > 0,
-            'message': f"Notification sent to {sent_count} recipient(s)",
-            'sent_count': sent_count,
-            'errors': errors if errors else None
+            "success": len(sent) > 0,
+            "emails_sent": sent
         })
 
     except Exception as e:
-        safe_print(f"[API ERROR] Send doc notification: {e}")
-        import traceback
-        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================================
+# ROUTES - FETCH ARTICLE METADATA
+# ============================================================================
+
+@app.route('/api/fetch-article-metadata', methods=['POST'])
+def fetch_article_metadata():
+    """Fetch metadata from a URL (used for Guess the Price link uploads)"""
+    try:
+        import requests as req
+        from bs4 import BeautifulSoup
+
+        data = request.json
+        url = data.get('url', '')
+
+        if not url:
+            return jsonify({'success': False, 'error': 'URL is required'}), 400
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+
+        try:
+            response = req.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+        except req.RequestException as e:
+            return jsonify({'success': False, 'error': f'Failed to fetch URL: {str(e)}'}), 400
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        title = ''
+        og_title = soup.find('meta', property='og:title')
+        if og_title and og_title.get('content'):
+            title = og_title['content']
+        elif soup.title:
+            title = soup.title.string or ''
+
+        description = ''
+        og_desc = soup.find('meta', property='og:description')
+        if og_desc and og_desc.get('content'):
+            description = og_desc['content']
+        else:
+            meta_desc = soup.find('meta', attrs={'name': 'description'})
+            if meta_desc and meta_desc.get('content'):
+                description = meta_desc['content']
+
+        image = ''
+        og_image = soup.find('meta', property='og:image')
+        if og_image and og_image.get('content'):
+            image = og_image['content']
+
+        publisher = extract_domain(url)
+        og_site = soup.find('meta', property='og:site_name')
+        if og_site and og_site.get('content'):
+            publisher = og_site['content']
+
+        published_date = ''
+        article_date = soup.find('meta', property='article:published_time')
+        if article_date and article_date.get('content'):
+            published_date = article_date['content']
+
+        return jsonify({
+            'success': True,
+            'metadata': {
+                'title': title.strip() if title else 'Untitled',
+                'description': description.strip()[:500] if description else '',
+                'image': image,
+                'publisher': publisher,
+                'published_date': published_date,
+                'url': url
+            }
+        })
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Fetch metadata: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -2377,7 +1519,7 @@ def send_doc_notification():
 
 @app.route('/api/push-to-ontraport', methods=['POST'])
 def push_to_ontraport():
-    """Push newsletter to Ontraport"""
+    """Push consumer newsletter to Ontraport"""
     try:
         import requests as req
 
@@ -2389,18 +1531,13 @@ def push_to_ontraport():
         if not subject or not html_content:
             return jsonify({'success': False, 'error': 'Missing subject or HTML content'}), 400
 
-        safe_print(f"\n[ONTRAPORT] Pushing newsletter to Ontraport...")
+        safe_print(f"\n[ONTRAPORT] Pushing consumer newsletter to Ontraport...")
 
         ontraport_app_id = os.getenv('ONTRAPORT_APP_ID', '').strip()
         ontraport_api_key = os.getenv('ONTRAPORT_API_KEY', '').strip()
 
         if not ontraport_app_id or not ontraport_api_key:
-            return jsonify({
-                'success': False,
-                'error': 'Ontraport credentials not configured.'
-            }), 400
-
-        ontraport_url = 'https://api.ontraport.com/1/message'
+            return jsonify({'success': False, 'error': 'Ontraport credentials not configured.'}), 400
 
         headers = {
             'Api-Appid': ontraport_app_id,
@@ -2408,12 +1545,11 @@ def push_to_ontraport():
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-        # Generate plain text version
         plain_text = html_to_plain_text(html_content)
 
         payload = {
             'objectID': ONTRAPORT_CONFIG['object_id'],
-            'name': f'Stay In The Loupe {month.title()}',
+            'name': f'BriteCo Consumer Newsletter {month.title()}',
             'subject': subject,
             'type': 'e-mail',
             'transactional_email': '0',
@@ -2428,7 +1564,7 @@ def push_to_ontraport():
         }
 
         response = req.post(
-            ontraport_url,
+            'https://api.ontraport.com/1/message',
             headers=headers,
             data=payload,
             timeout=30
@@ -2437,11 +1573,7 @@ def push_to_ontraport():
         if response.status_code == 200:
             result = response.json()
             safe_print(f"[ONTRAPORT] Success!")
-            return jsonify({
-                'success': True,
-                'message': 'Newsletter pushed to Ontraport',
-                'data': result
-            })
+            return jsonify({'success': True, 'message': 'Newsletter pushed to Ontraport', 'data': result})
         else:
             error_msg = f"Ontraport API error: {response.status_code} - {response.text}"
             safe_print(f"[ONTRAPORT ERROR] {error_msg}")
@@ -2449,31 +1581,7 @@ def push_to_ontraport():
 
     except Exception as e:
         safe_print(f"[API ERROR] {str(e)}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
-
-def html_to_plain_text(html_content):
-    """Convert HTML to plain text for email"""
-    if not html_content:
-        return ''
-    text = str(html_content)
-    text = re.sub(r'<a[^>]*href=["\']([^"\']*)["\'][^>]*>([^<]*)</a>', r'\2 (\1)', text)
-    text = re.sub(r'<li[^>]*>', '• ', text)
-    text = re.sub(r'</li>', '\n', text)
-    text = re.sub(r'<p[^>]*>', '', text)
-    text = re.sub(r'</p>', '\n\n', text)
-    text = re.sub(r'<br\s*/?>', '\n', text)
-    text = re.sub(r'<[^>]+>', '', text)
-    text = text.replace('&amp;', '&')
-    text = text.replace('&lt;', '<')
-    text = text.replace('&gt;', '>')
-    text = text.replace('&quot;', '"')
-    text = text.replace('&#39;', "'")
-    text = text.replace('&nbsp;', ' ')
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    return text.strip()
 
 
 # ============================================================================
@@ -2482,125 +1590,119 @@ def html_to_plain_text(html_content):
 
 @app.route('/api/render-email-template', methods=['POST'])
 def render_email_template():
-    """Render the email template with newsletter content"""
+    """Render consumer email template with newsletter content"""
     try:
         data = request.json
         content = data.get('content', {})
         month = data.get('month', datetime.now().strftime('%B'))
         year = data.get('year', datetime.now().year)
-        preheader = data.get('preheader', f"Your monthly jewelry industry insights - {month} {year}")
+        preheader = data.get('preheader', f"Your monthly jewelry inspiration from BriteCo - {month} {year}")
         images = data.get('images', {})
 
-        safe_print(f"\n[API] Rendering email template for {month} {year}...")
+        safe_print(f"\n[API] Rendering consumer email template for {month} {year}...")
 
-        # Load template
-        template_path = os.path.join('templates', 'stay-in-the-loupe-email.html')
+        template_path = os.path.join('templates', 'consumer-newsletter-email.html')
         if not os.path.exists(template_path):
             return jsonify({'success': False, 'error': 'Email template not found'}), 404
 
         with open(template_path, 'r', encoding='utf-8') as f:
-            template = f.read()
+            html = f.read()
 
-        # Replace basic placeholders
-        html = template.replace('{{MONTH}}', month)
+        # Basic placeholders
+        html = html.replace('{{MONTH}}', month)
         html = html.replace('{{YEAR}}', str(year))
         html = html.replace('{{PREHEADER}}', preheader)
 
-        # Intro content
-        html = html.replace('{{INTRO_CONTENT}}', content.get('intro', 'Welcome to this month\'s edition!'))
+        # Intro
+        html = html.replace('{{INTRO_TEXT}}', content.get('intro', f'Welcome to the {month} edition!'))
 
-        # The Brite Spot
-        html = html.replace('{{BRITE_SPOT_CONTENT}}', content.get('brite_spot', ''))
-        html = html.replace('{{BRITE_SPOT_IMAGE}}', images.get('brite_spot', {}).get('url', 'https://placehold.co/180x180/008181/white?text=Brite+Spot'))
+        # What's Inside agenda
+        agenda_items = content.get('agenda_items', [])
+        agenda_html = ''
+        for item in agenda_items[:4]:
+            item_text = item if isinstance(item, str) else str(item)
+            agenda_html += f'''<tr>
+<td style="padding-bottom: 10px;">
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #282e40;">{item_text}</p>
+</td>
+</tr>'''
+        html = html.replace('{{AGENDA_ITEMS}}', agenda_html)
 
-        # Generate Brite Spot bullets if provided
-        brite_spot_bullets = ''
-        if content.get('brite_spot_bullets'):
-            brite_spot_bullets = '<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><tbody>'
-            for bullet in content['brite_spot_bullets']:
-                brite_spot_bullets += f'''
-                <tr>
-                    <td style="padding-top: 6px;" valign="top" width="20">
-                        <table border="0" cellpadding="0" cellspacing="0" role="presentation">
-                            <tbody><tr><td style="width: 10px; height: 10px; background-color: #31D7CA; border-radius: 50%; font-size: 1px; line-height: 1px;">&nbsp;</td></tr></tbody>
-                        </table>
-                    </td>
-                    <td style="padding-bottom: 10px; padding-left: 10px;" valign="top">
-                        <p class="dark-text-secondary" style="margin: 0; font-family: Montserrat, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 24px; font-weight: 400; color: #3B3B3B;">{bullet}</p>
-                    </td>
-                </tr>'''
-            brite_spot_bullets += '</tbody></table>'
-        html = html.replace('{{BRITE_SPOT_BULLETS}}', brite_spot_bullets)
+        # News of the Month
+        nom = content.get('news_of_month', {})
+        if isinstance(nom, dict):
+            html = html.replace('{{NEWS_MONTH_TITLE}}', nom.get('title', 'News of the Month'))
+            html = html.replace('{{NEWS_MONTH_THUMBNAIL}}', nom.get('thumbnail_url', ''))
+            html = html.replace('{{NEWS_MONTH_DESCRIPTION}}', nom.get('description', ''))
+            html = html.replace('{{NEWS_MONTH_VIDEO_URL}}', nom.get('video_url', '#'))
+        else:
+            html = html.replace('{{NEWS_MONTH_TITLE}}', 'News of the Month')
+            html = html.replace('{{NEWS_MONTH_THUMBNAIL}}', '')
+            html = html.replace('{{NEWS_MONTH_DESCRIPTION}}', '')
+            html = html.replace('{{NEWS_MONTH_VIDEO_URL}}', '#')
 
-        # The Good, The Bad, The Ugly
-        the_good = content.get('the_good', {})
-        html = html.replace('{{THE_GOOD_SUBTITLE}}', the_good.get('subtitle', 'Good News'))
-        html = html.replace('{{THE_GOOD_COPY}}', the_good.get('copy', ''))
-        html = html.replace('{{THE_GOOD_URL}}', the_good.get('url', '#'))
+        # Trend Alert
+        ta = content.get('trend_alert', {})
+        if isinstance(ta, dict):
+            html = html.replace('{{TREND_TITLE}}', ta.get('title', 'Trend Alert'))
+            html = html.replace('{{TREND_THUMBNAIL}}', ta.get('thumbnail_url', ''))
+            html = html.replace('{{TREND_DESCRIPTION}}', ta.get('description', ''))
+            html = html.replace('{{TREND_VIDEO_URL}}', ta.get('video_url', '#'))
+        else:
+            html = html.replace('{{TREND_TITLE}}', 'Trend Alert')
+            html = html.replace('{{TREND_THUMBNAIL}}', '')
+            html = html.replace('{{TREND_DESCRIPTION}}', '')
+            html = html.replace('{{TREND_VIDEO_URL}}', '#')
 
-        the_bad = content.get('the_bad', {})
-        html = html.replace('{{THE_BAD_SUBTITLE}}', the_bad.get('subtitle', 'Cautionary Tale'))
-        html = html.replace('{{THE_BAD_COPY}}', the_bad.get('copy', ''))
-        html = html.replace('{{THE_BAD_URL}}', the_bad.get('url', '#'))
+        # Blog Articles
+        blogs = content.get('blog_articles', [{}, {}])
+        blog_1 = blogs[0] if len(blogs) > 0 else {}
+        blog_2 = blogs[1] if len(blogs) > 1 else {}
 
-        the_ugly = content.get('the_ugly', {})
-        html = html.replace('{{THE_UGLY_SUBTITLE}}', the_ugly.get('subtitle', 'Unusual Story'))
-        html = html.replace('{{THE_UGLY_COPY}}', the_ugly.get('copy', ''))
-        html = html.replace('{{THE_UGLY_URL}}', the_ugly.get('url', '#'))
+        html = html.replace('{{BLOG_1_TITLE}}', blog_1.get('title', 'Blog Article'))
+        html = html.replace('{{BLOG_1_IMAGE}}', blog_1.get('featured_image_url', ''))
+        html = html.replace('{{BLOG_1_URL}}', blog_1.get('url', '#'))
 
-        # Industry News bullets
-        industry_news = content.get('industry_news', {})
-        bullets = industry_news.get('bullets', [])
-        news_bullets_html = ''
-        for i, bullet in enumerate(bullets[:5]):
-            text = bullet.get('text', bullet) if isinstance(bullet, dict) else str(bullet)
-            url = bullet.get('url', '#') if isinstance(bullet, dict) else '#'
-            padding_bottom = '16px' if i < len(bullets) - 1 else '0'
-            news_bullets_html += f'''
-            <tr>
-                <td style="padding-right: 12px; padding-top: 2px;" valign="top" width="32">
-                    <img alt="" src="https://brite.co/wp-content/uploads/2025/09/tickk.png" style="display: block; width: 24px; height: auto;" width="24" />
-                </td>
-                <td style="padding-bottom: {padding_bottom};" valign="top">
-                    <p class="dark-text-secondary" style="margin: 0; font-family: Montserrat, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 24px; font-weight: 400; color: #3B3B3B;">{text} <a href="{url}" style="color: #008181; text-decoration: underline;">Read more</a></p>
-                </td>
-            </tr>'''
-        html = html.replace('{{INDUSTRY_NEWS_BULLETS}}', news_bullets_html)
+        html = html.replace('{{BLOG_2_TITLE}}', blog_2.get('title', 'Blog Article'))
+        html = html.replace('{{BLOG_2_IMAGE}}', blog_2.get('featured_image_url', ''))
+        html = html.replace('{{BLOG_2_URL}}', blog_2.get('url', '#'))
 
-        # Industry Pulse
-        pulse = content.get('industry_pulse', {})
-        html = html.replace('{{INDUSTRY_PULSE_TITLE}}', pulse.get('title', 'Industry Trends'))
-        html = html.replace('{{INDUSTRY_PULSE_INTRO}}', pulse.get('intro', ''))
-        html = html.replace('{{INDUSTRY_PULSE_H3_1_TITLE}}', pulse.get('h3_1_title', ''))
-        html = html.replace('{{INDUSTRY_PULSE_H3_1_CONTENT}}', pulse.get('h3_1_content', ''))
-        html = html.replace('{{INDUSTRY_PULSE_H3_2_TITLE}}', pulse.get('h3_2_title', ''))
-        html = html.replace('{{INDUSTRY_PULSE_H3_2_CONTENT}}', pulse.get('h3_2_content', ''))
-        html = html.replace('{{INDUSTRY_PULSE_IMAGE}}', images.get('industry_pulse', {}).get('url', 'https://placehold.co/180x180/282D3E/white?text=Pulse'))
+        # Guess the Price
+        gtp = content.get('guess_the_price', {})
+        if isinstance(gtp, dict):
+            html = html.replace('{{GTP_TITLE}}', gtp.get('title', 'Guess the Price'))
+            gtp_image = gtp.get('image_url', '')
+            if images.get('guess_the_price', {}).get('url'):
+                gtp_image = images['guess_the_price']['url']
+            html = html.replace('{{GTP_IMAGE}}', gtp_image)
+            html = html.replace('{{GTP_MATERIAL}}', gtp.get('material', ''))
+            html = html.replace('{{GTP_FOUND_IN}}', gtp.get('found_in', ''))
+            html = html.replace('{{GTP_WHERE_IT_LIVES}}', gtp.get('where_it_lives', ''))
+            html = html.replace('{{GTP_FUN_FACT}}', gtp.get('fun_fact', ''))
+            html = html.replace('{{GTP_QUESTION}}', gtp.get('question', 'Think you know the price?'))
+            html = html.replace('{{GTP_LINK}}', gtp.get('link', '#'))
+        else:
+            for placeholder in ['GTP_TITLE', 'GTP_IMAGE', 'GTP_MATERIAL', 'GTP_FOUND_IN',
+                                'GTP_WHERE_IT_LIVES', 'GTP_FUN_FACT', 'GTP_QUESTION', 'GTP_LINK']:
+                html = html.replace('{{' + placeholder + '}}', '')
 
-        # Partner Advantage
-        pa = content.get('partner_advantage', {})
-        html = html.replace('{{PARTNER_ADVANTAGE_SUBHEADER}}', pa.get('subheader', 'Tips for Success'))
-        html = html.replace('{{PARTNER_ADVANTAGE_INTRO}}', pa.get('intro', ''))
-        html = html.replace('{{PARTNER_ADVANTAGE_IMAGE}}', images.get('partner_advantage', {}).get('url', 'https://placehold.co/180x180/31D7CA/white?text=Tips'))
+        # Quick Tip
+        html = html.replace('{{QUICK_TIP_TEXT}}', content.get('quick_tip', ''))
 
-        # Partner Advantage tips
-        tips = pa.get('tips', [])
-        tips_html = ''
-        for i, tip in enumerate(tips[:5]):
-            title = tip.get('title', '') if isinstance(tip, dict) else ''
-            tip_content = tip.get('content', str(tip)) if isinstance(tip, dict) else str(tip)
-            padding_bottom = '18px' if i < len(tips) - 1 else '0'
-            tips_html += f'''
-            <tr>
-                <td style="padding-right: 12px; padding-top: 2px;" valign="top" width="32">
-                    <img alt="" src="https://brite.co/wp-content/uploads/2025/09/tickk.png" style="display: block; width: 24px; height: auto;" width="24" />
-                </td>
-                <td style="padding-bottom: {padding_bottom};" valign="top">
-                    <p class="dark-text" style="margin: 0 0 4px 0; font-family: Montserrat, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 22px; font-weight: 600; color: #008181;">{title}</p>
-                    <p class="dark-text-secondary" style="margin: 0; font-family: Montserrat, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 24px; font-weight: 400; color: #3B3B3B;">{tip_content}</p>
-                </td>
-            </tr>'''
-        html = html.replace('{{PARTNER_ADVANTAGE_TIPS}}', tips_html)
+        # Quick tip image block
+        quick_tip_image = images.get('quick_tip', {}).get('url', '')
+        if quick_tip_image:
+            quick_tip_image_html = f'''
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 20px;">
+<tr>
+<td>
+<img src="{quick_tip_image}" width="590" alt="Quick Tip" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">
+</td>
+</tr>
+</table>'''
+        else:
+            quick_tip_image_html = ''
+        html = html.replace('{{QUICK_TIP_IMAGE_BLOCK}}', quick_tip_image_html)
 
         return jsonify({
             'success': True,
@@ -2617,74 +1719,10 @@ def render_email_template():
 
 
 # ============================================================================
-# ROUTES - ARCHIVES
-# ============================================================================
-
-@app.route('/api/get-newsletter-archive', methods=['GET'])
-def get_newsletter_archive():
-    """Get archived newsletters"""
-    try:
-        archive_file = os.path.join('data', 'archives', 'loupe-archives.json')
-
-        if not os.path.exists(archive_file):
-            return jsonify({'success': True, 'newsletters': []})
-
-        with open(archive_file, 'r', encoding='utf-8') as f:
-            all_newsletters = json.load(f)
-
-        return jsonify({
-            'success': True,
-            'newsletters': all_newsletters[:6]
-        })
-
-    except Exception as e:
-        safe_print(f"[API ERROR] {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/api/save-newsletter-archive', methods=['POST'])
-def save_newsletter_archive():
-    """Save newsletter to archive"""
-    try:
-        data = request.json
-
-        archive_file = os.path.join('data', 'archives', 'loupe-archives.json')
-
-        if os.path.exists(archive_file):
-            with open(archive_file, 'r', encoding='utf-8') as f:
-                archives = json.load(f)
-        else:
-            archives = []
-
-        new_entry = {
-            'id': f"loupe-{data.get('year')}-{data.get('month')}",
-            'month': data.get('month'),
-            'year': data.get('year'),
-            'date_published': datetime.now().strftime('%Y-%m-%d'),
-            'sections': data.get('sections', {}),
-            'html_content': data.get('html_content', ''),
-            'ontraport_campaign_id': data.get('ontraport_campaign_id')
-        }
-
-        archives.insert(0, new_entry)
-        archives = archives[:12]
-
-        os.makedirs(os.path.dirname(archive_file), exist_ok=True)
-        with open(archive_file, 'w', encoding='utf-8') as f:
-            json.dump(archives, f, indent=2)
-
-        return jsonify({'success': True, 'message': 'Newsletter archived'})
-
-    except Exception as e:
-        safe_print(f"[API ERROR] {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ============================================================================
 # ROUTES - DRAFTS (Google Cloud Storage)
 # ============================================================================
+
+SAVED_ITEMS_BLOB = 'saved-items/global.json'
 
 @app.route('/api/save-draft', methods=['POST'])
 def save_draft():
@@ -2701,30 +1739,27 @@ def save_draft():
         draft = {
             'month': month,
             'year': year,
+            'newsletterType': 'consumer',
             'currentStep': data.get('currentStep'),
-            'selectedArticles': data.get('selectedArticles'),
+            'selectedContent': data.get('selectedContent'),
             'generatedContent': data.get('generatedContent'),
             'generatedImages': data.get('generatedImages'),
             'generatedPrompts': data.get('generatedPrompts'),
             'introText': data.get('introText'),
-            'briteSpotTitle': data.get('briteSpotTitle'),
-            'briteSpotBody': data.get('briteSpotBody'),
+            'quickTipText': data.get('quickTipText'),
             'subjectLine': data.get('subjectLine'),
             'preheader': data.get('preheader'),
-            'customLinks': data.get('customLinks'),
             'lastSavedBy': data.get('savedBy', 'unknown'),
             'lastSavedAt': datetime.now(CHICAGO_TZ).isoformat()
         }
 
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(blob_name)
         blob.upload_from_string(json.dumps(draft), content_type='application/json')
         return jsonify({'success': True, 'file': blob_name})
 
     except Exception as e:
         safe_print(f"[DRAFT SAVE ERROR] {str(e)}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -2734,7 +1769,7 @@ def list_drafts():
     if not gcs_client:
         return jsonify({'success': True, 'drafts': []})
     try:
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blobs = bucket.list_blobs(prefix='drafts/')
         drafts = []
         for blob in blobs:
@@ -2749,10 +1784,8 @@ def list_drafts():
                 'lastSavedAt': data.get('lastSavedAt'),
                 'filename': blob.name
             })
-        # Sort by lastSavedAt descending
         drafts.sort(key=lambda d: d.get('lastSavedAt', ''), reverse=True)
         return jsonify({'success': True, 'drafts': drafts})
-
     except Exception as e:
         safe_print(f"[DRAFT LIST ERROR] {str(e)}")
         return jsonify({'success': True, 'drafts': []})
@@ -2767,12 +1800,10 @@ def load_draft():
         filename = request.args.get('file')
         if not filename:
             return jsonify({'success': False, 'error': 'No file specified'}), 400
-
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         data = json.loads(blob.download_as_text())
         return jsonify({'success': True, 'draft': data})
-
     except Exception as e:
         safe_print(f"[DRAFT LOAD ERROR] {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -2780,14 +1811,14 @@ def load_draft():
 
 @app.route('/api/publish-draft', methods=['POST'])
 def publish_draft():
-    """Move a draft from drafts/ to published/ in GCS"""
+    """Move draft to published in GCS"""
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
         filename = request.json.get('file')
         if not filename:
             return jsonify({'success': False, 'error': 'No file specified'}), 400
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         source_blob = bucket.blob(filename)
         if not source_blob.exists():
             return jsonify({'success': False, 'error': 'Draft not found'}), 404
@@ -2807,7 +1838,7 @@ def list_published():
     if not gcs_client:
         return jsonify({'success': True, 'newsletters': []})
     try:
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blobs = list(bucket.list_blobs(prefix='published/'))
         newsletters = []
         for blob in blobs:
@@ -2820,11 +1851,6 @@ def list_published():
                     'year': data.get('year'),
                     'lastSavedBy': data.get('lastSavedBy'),
                     'lastSavedAt': data.get('lastSavedAt'),
-                    'sections': {
-                        'gbu': {'title': gc.get('introduction', 'Newsletter')[:80] if gc.get('introduction') else 'The Good, Bad & Ugly'},
-                        'pulse': {'title': gc.get('industry_pulse', {}).get('title', 'Industry Pulse')[:80] if isinstance(gc.get('industry_pulse'), dict) else 'Industry Pulse'},
-                        'partner': {'title': gc.get('partner_advantage', {}).get('subheader', 'Partner Advantage')[:80] if isinstance(gc.get('partner_advantage'), dict) else 'Partner Advantage'},
-                    }
                 })
         newsletters.sort(key=lambda d: d.get('lastSavedAt', ''), reverse=True)
         return jsonify({'success': True, 'newsletters': newsletters})
@@ -2842,7 +1868,7 @@ def load_published():
         filename = request.args.get('file')
         if not filename:
             return jsonify({'success': False, 'error': 'No file specified'}), 400
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         if not blob.exists():
             return jsonify({'success': False, 'error': 'Not found'}), 404
@@ -2855,51 +1881,47 @@ def load_published():
 
 @app.route('/api/delete-draft', methods=['DELETE'])
 def delete_draft():
-    """Delete a draft from GCS (called after Ontraport push)"""
+    """Delete a draft from GCS"""
     if not gcs_client:
         return jsonify({'success': True})
     try:
         filename = request.json.get('file')
         if not filename:
             return jsonify({'success': False, 'error': 'No file specified'}), 400
-
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         if blob.exists():
             blob.delete()
         return jsonify({'success': True})
-
     except Exception as e:
         safe_print(f"[DRAFT DELETE ERROR] {str(e)}")
-        return jsonify({'success': True})  # Non-critical, don't fail
+        return jsonify({'success': True})
 
 
 # ============================================================================
-# ROUTES - SAVED ARTICLES (Google Cloud Storage)
+# ROUTES - SAVED ITEMS (for Guess the Price)
 # ============================================================================
-
-SAVED_ARTICLES_BLOB = 'saved-articles/global.json'
 
 @app.route('/api/saved-articles', methods=['GET'])
 def get_saved_articles():
-    """Get all saved articles from GCS"""
+    """Get saved items from GCS"""
     if not gcs_client:
         return jsonify({'success': True, 'articles': []})
     try:
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
-        blob = bucket.blob(SAVED_ARTICLES_BLOB)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(SAVED_ITEMS_BLOB)
         if blob.exists():
             data = json.loads(blob.download_as_text())
             return jsonify({'success': True, 'articles': data.get('articles', [])})
         return jsonify({'success': True, 'articles': []})
     except Exception as e:
-        safe_print(f"[SAVED ARTICLES] Error loading: {str(e)}")
+        safe_print(f"[SAVED ITEMS] Error loading: {str(e)}")
         return jsonify({'success': True, 'articles': []})
 
 
 @app.route('/api/saved-articles', methods=['POST'])
 def add_saved_article():
-    """Add an article to the saved articles list"""
+    """Add item to saved list"""
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
@@ -2907,20 +1929,17 @@ def add_saved_article():
         if not article or not article.get('url'):
             return jsonify({'success': False, 'error': 'Article with URL required'}), 400
 
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
-        blob = bucket.blob(SAVED_ARTICLES_BLOB)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(SAVED_ITEMS_BLOB)
 
-        # Load existing
         articles = []
         if blob.exists():
             data = json.loads(blob.download_as_text())
             articles = data.get('articles', [])
 
-        # Check for duplicate URL
         if any(a.get('url') == article['url'] for a in articles):
             return jsonify({'success': True, 'message': 'Already saved', 'articles': articles})
 
-        # Add with timestamp (Chicago time)
         article['dateSaved'] = datetime.now(CHICAGO_TZ).isoformat()
         articles.insert(0, article)
 
@@ -2928,13 +1947,13 @@ def add_saved_article():
         return jsonify({'success': True, 'articles': articles})
 
     except Exception as e:
-        safe_print(f"[SAVED ARTICLES] Error saving: {str(e)}")
+        safe_print(f"[SAVED ITEMS] Error saving: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/saved-articles', methods=['DELETE'])
 def delete_saved_article():
-    """Remove an article from saved articles by URL"""
+    """Remove item from saved list by URL"""
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
@@ -2942,8 +1961,8 @@ def delete_saved_article():
         if not url:
             return jsonify({'success': False, 'error': 'URL required'}), 400
 
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
-        blob = bucket.blob(SAVED_ARTICLES_BLOB)
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(SAVED_ITEMS_BLOB)
 
         articles = []
         if blob.exists():
@@ -2955,53 +1974,12 @@ def delete_saved_article():
         return jsonify({'success': True, 'articles': articles})
 
     except Exception as e:
-        safe_print(f"[SAVED ARTICLES] Error deleting: {str(e)}")
+        safe_print(f"[SAVED ITEMS] Error deleting: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================
-# NOT-GOOD-FIT TRACKING
-# ============================================================================
-
-NOT_GOOD_FIT_BLOB = 'feedback/not-good-fit.json'
-
-@app.route('/api/not-good-fit', methods=['POST'])
-def track_not_good_fit():
-    """Track articles marked as 'not a good fit' for learning"""
-    if not gcs_client:
-        return jsonify({'success': False, 'error': 'GCS not available'}), 503
-    try:
-        article = request.json.get('article', {})
-        if not article.get('url'):
-            return jsonify({'success': False, 'error': 'Article URL required'}), 400
-
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
-        blob = bucket.blob(NOT_GOOD_FIT_BLOB)
-
-        entries = []
-        if blob.exists():
-            data = json.loads(blob.download_as_text())
-            entries = data.get('entries', [])
-
-        # Avoid duplicates
-        if not any(e.get('url') == article['url'] for e in entries):
-            entries.append({
-                'url': article['url'],
-                'title': article.get('title', ''),
-                'publisher': article.get('publisher', ''),
-                'markedAt': datetime.now(CHICAGO_TZ).isoformat()
-            })
-            blob.upload_from_string(json.dumps({'entries': entries}), content_type='application/json')
-
-        return jsonify({'success': True, 'count': len(entries)})
-
-    except Exception as e:
-        safe_print(f"[NOT-GOOD-FIT] Error: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ============================================================================
-# IMAGE HOSTING - Upload images to GCS for email
+# ROUTES - IMAGE HOSTING (GCS)
 # ============================================================================
 
 @app.route('/api/upload-images-to-gcs', methods=['POST'])
@@ -3012,50 +1990,38 @@ def upload_images_to_gcs():
 
     try:
         data = request.json
-        images = data.get('images', {})  # { section_name: base64_data_url }
+        images_data = data.get('images', {})
         month = data.get('month', 'unknown')
         year = data.get('year', datetime.now().year)
 
-        if not images:
+        if not images_data:
             return jsonify({'success': False, 'error': 'No images provided'}), 400
 
         bucket = gcs_client.bucket(GCS_IMAGES_BUCKET)
         uploaded_urls = {}
         timestamp = datetime.now(CHICAGO_TZ).strftime('%Y%m%d-%H%M%S')
 
-        for section, data_url in images.items():
+        for section, data_url in images_data.items():
             if not data_url or not data_url.startswith('data:image'):
                 continue
 
-            # Parse base64 data URL
-            # Format: data:image/png;base64,iVBORw0KGgo...
             try:
                 header, b64_data = data_url.split(',', 1)
-                # Extract image format
                 img_format = 'png'
                 if 'jpeg' in header or 'jpg' in header:
                     img_format = 'jpg'
                 elif 'webp' in header:
                     img_format = 'webp'
 
-                # Decode base64
                 image_bytes = base64.b64decode(b64_data)
 
-                # Create unique filename
                 safe_section = section.replace('_', '-')
                 filename = f"newsletters/{year}/{month.lower()}/{timestamp}-{safe_section}.{img_format}"
 
-                # Upload to GCS
                 blob = bucket.blob(filename)
-                blob.upload_from_string(
-                    image_bytes,
-                    content_type=f'image/{img_format}'
-                )
-
-                # Make publicly accessible
+                blob.upload_from_string(image_bytes, content_type=f'image/{img_format}')
                 blob.make_public()
 
-                # Get public URL
                 uploaded_urls[section] = blob.public_url
                 safe_print(f"[GCS] Uploaded {section} -> {blob.public_url}")
 
@@ -3071,63 +2037,38 @@ def upload_images_to_gcs():
 
     except Exception as e:
         safe_print(f"[GCS UPLOAD] Error: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================
-# ARTICLE SELECTION TRACKING
+# ROUTES - PERPLEXITY SEARCH (general)
 # ============================================================================
 
-@app.route('/api/track-selection', methods=['POST'])
-def track_selection():
-    """Track article selection for learning/analysis"""
-    if not gcs_client:
-        return jsonify({'success': False, 'error': 'GCS not configured'}), 500
-
+@app.route('/api/v2/search-perplexity', methods=['POST'])
+def search_perplexity():
+    """Search via Perplexity API (general consumer jewelry search)"""
     try:
         data = request.json
-        selection = {
-            'timestamp': datetime.now(CHICAGO_TZ).isoformat(),
-            'app': 'jeweler',
-            'section': data.get('section'),  # e.g., 'the_good', 'industry_pulse'
-            'article': {
-                'url': data.get('url'),
-                'title': data.get('title'),
-                'headline': data.get('headline'),
-                'publisher': data.get('publisher'),
-                'snippet': data.get('snippet'),
-                'impact': data.get('impact')
-            },
-            'searchQuery': data.get('searchQuery'),
-            'searchSource': data.get('searchSource'),  # 'perplexity' or 'google'
-            'timeFilter': data.get('timeFilter'),
-            'user': data.get('user', 'unknown'),
-            'month': data.get('month'),
-            'deselected': data.get('deselected', False)  # True if user unselected
-        }
+        query = data.get('query', '')
+        time_window = data.get('time_window', '30d')
 
-        # Store in GCS: selection-history/jeweler/2026-01.jsonl
-        year_month = datetime.now(CHICAGO_TZ).strftime('%Y-%m')
-        blob_name = f'selection-history/jeweler/{year_month}.jsonl'
+        if not query:
+            return jsonify({'success': False, 'error': 'Query required'}), 400
 
-        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
-        blob = bucket.blob(blob_name)
+        if not perplexity_client or not perplexity_client.is_available():
+            return jsonify({'success': False, 'error': 'Perplexity not configured'}), 503
 
-        # Append to existing file (JSONL format - one JSON per line)
-        existing = ''
-        if blob.exists():
-            existing = blob.download_as_text()
+        results = perplexity_client.search(
+            query=query,
+            time_window=time_window,
+            max_results=6
+        )
 
-        new_content = existing + json.dumps(selection) + '\n'
-        blob.upload_from_string(new_content, content_type='application/jsonl')
+        return jsonify({'success': True, 'results': results})
 
-        return jsonify({'success': True})
     except Exception as e:
-        # Silent fail - don't interrupt user workflow
-        safe_print(f"[TRACK] Error: {str(e)}")
-        return jsonify({'success': True})  # Return success anyway
+        safe_print(f"[API ERROR] Perplexity search: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================
@@ -3135,11 +2076,11 @@ def track_selection():
 # ============================================================================
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 5001))
     debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
 
     print(f"\n{'='*60}")
-    print(f"  Stay In The Loupe - Jeweler Newsletter Generator")
+    print(f"  BriteCo Consumer Newsletter Generator")
     print(f"  Running on http://localhost:{port}")
     print(f"{'='*60}\n")
 
