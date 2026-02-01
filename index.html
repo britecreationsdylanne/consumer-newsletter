@@ -36,12 +36,48 @@
         .header h1 { font-size: 32px; font-weight: 700; }
         .header .subtitle { font-size: 14px; color: rgba(255,255,255,0.6); margin-top: 4px; }
         .start-over-btn {
-            position: absolute; top: 16px; right: 20px;
             background: #FE8916; color: white; border: none;
             padding: 8px 18px; border-radius: 6px; font-size: 13px;
             font-weight: 600; cursor: pointer; transition: background 0.2s;
         }
         .start-over-btn:hover { background: #e57a0e; }
+        .header-right {
+            position: absolute; top: 16px; right: 20px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .user-profile {
+            position: relative;
+        }
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            cursor: pointer; border: 2px solid rgba(255,255,255,0.3);
+            transition: border-color 0.2s;
+            object-fit: cover;
+        }
+        .user-avatar:hover { border-color: rgba(255,255,255,0.6); }
+        .user-dropdown {
+            position: absolute; top: 50px; right: 0;
+            background: white; border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 200px; padding: 16px;
+            display: none; z-index: 1000;
+        }
+        .user-dropdown.active { display: block; }
+        .user-dropdown-name {
+            font-weight: 600; color: #1f2937; font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .user-dropdown-email {
+            color: #018181; font-size: 13px; margin-bottom: 12px;
+        }
+        .user-dropdown-divider {
+            height: 1px; background: #e5e7eb; margin: 12px 0;
+        }
+        .user-dropdown-signout {
+            color: #6b7280; font-size: 14px; cursor: pointer;
+            transition: color 0.2s; text-decoration: none; display: block;
+        }
+        .user-dropdown-signout:hover { color: #1f2937; }
         .progress-container { margin: 0 40px 20px 40px; }
         .progress-text {
             display: flex; justify-content: space-between; align-items: center;
@@ -552,7 +588,18 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <button class="start-over-btn" onclick="startOver()">Start Over</button>
+            <div class="header-right">
+                <button class="start-over-btn" onclick="startOver()">Start Over</button>
+                <div class="user-profile">
+                    <img class="user-avatar" id="userAvatar" src="" alt="User" onclick="toggleUserDropdown(event)">
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="user-dropdown-name" id="userDropdownName"></div>
+                        <div class="user-dropdown-email" id="userDropdownEmail"></div>
+                        <div class="user-dropdown-divider"></div>
+                        <a class="user-dropdown-signout" href="/auth/logout">Sign out</a>
+                    </div>
+                </div>
+            </div>
             <h1>BriteCo Consumer Newsletter</h1>
         </div>
 
@@ -2773,21 +2820,78 @@
     }
 
     // ============================================================
+    // BRITEPULSE USER IDENTIFICATION
+    // ============================================================
+    function setBritePulseUser(user) {
+        function trySetUser() {
+            const instance = window.BritePulse?.getInstance();
+            if (instance) {
+                instance.setUser({
+                    id: user.id || user.email,
+                    email: user.email,
+                    name: user.name || user.email
+                });
+                console.log('BritePulse user set:', user.email);
+            } else {
+                // SDK not ready yet, retry
+                setTimeout(trySetUser, 100);
+            }
+        }
+        trySetUser();
+    }
+
+    function clearBritePulseUser() {
+        window.BritePulse?.getInstance()?.setUser(undefined);
+    }
+
+    // Set user FIRST - before any other code that might fail
+    if (window.AUTH_USER) {
+        setBritePulseUser(window.AUTH_USER);
+    }
+
+    // ============================================================
+    // USER PROFILE DROPDOWN
+    // ============================================================
+    function initUserProfile() {
+        const user = window.AUTH_USER || {};
+        const avatar = document.getElementById('userAvatar');
+        const nameEl = document.getElementById('userDropdownName');
+        const emailEl = document.getElementById('userDropdownEmail');
+
+        if (avatar && user.picture) {
+            avatar.src = user.picture;
+        } else if (avatar) {
+            // Default avatar if no picture
+            avatar.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="%23018181"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">' + (user.name ? user.name.charAt(0).toUpperCase() : 'U') + '</text></svg>';
+        }
+        if (nameEl) nameEl.textContent = user.name || 'User';
+        if (emailEl) emailEl.textContent = user.email || '';
+    }
+
+    function toggleUserDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('userDropdown');
+        dropdown.classList.toggle('active');
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('userDropdown');
+        const avatar = document.getElementById('userAvatar');
+        if (dropdown && !dropdown.contains(event.target) && event.target !== avatar) {
+            dropdown.classList.remove('active');
+        }
+    });
+
+    // ============================================================
     // INIT
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
+        initUserProfile();
         initMonthGrid();
         setupWordCounters();
         loadDrafts();
         loadPublishedNewsletters();
-
-        // BritePulse user identification
-        if (window.AUTH_USER && window.BritePulse) {
-            window.BritePulse.getInstance()?.setUser({
-                id: window.AUTH_USER.email,
-                email: window.AUTH_USER.email
-            });
-        }
     });
     </script>
 </body>
