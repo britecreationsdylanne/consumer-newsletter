@@ -34,7 +34,8 @@ class PerplexityClient:
         query: str,
         time_window: str = "30d",
         geography: str = "",
-        max_results: int = 4
+        max_results: int = 4,
+        system_prompt: str = None
     ) -> List[Dict]:
         """
         Search using Perplexity API with sonar model
@@ -44,6 +45,7 @@ class PerplexityClient:
             time_window: Time filter (7d, 30d, 90d)
             geography: Optional geographic focus
             max_results: Number of results to return
+            system_prompt: Optional custom system prompt (overrides default)
 
         Returns:
             List of results with shared schema
@@ -63,7 +65,11 @@ class PerplexityClient:
 
             geo_context = f" Focus on {geography}." if geography else ""
 
-            system_prompt = f"""You are a research assistant helping independent P&C insurance agents find relevant industry news and insights.
+            # Use custom system prompt if provided, otherwise use default
+            if system_prompt is not None:
+                effective_system_prompt = system_prompt
+            else:
+                effective_system_prompt = f"""You are a research assistant finding relevant news and insights.
 
 Search for {time_context} articles and news.{geo_context}
 
@@ -72,7 +78,6 @@ For each finding, provide:
 2. The source URL (must be a real, working URL)
 3. The publisher/source name
 4. A 2-3 sentence summary explaining the finding
-5. Why this matters for insurance agents and their clients
 
 Return your findings as a JSON array with this structure:
 {{
@@ -82,16 +87,14 @@ Return your findings as a JSON array with this structure:
             "url": "https://actual-source-url.com/article",
             "publisher": "Source name",
             "published_date": "YYYY-MM-DD or null if unknown",
-            "summary": "2-3 sentence summary of the article",
-            "agent_implications": "Why this matters for insurance agents"
+            "summary": "2-3 sentence summary of the article"
         }}
     ]
 }}
 
 Important:
 - Only include results with REAL, verifiable URLs
-- Focus on actionable insights for P&C insurance agents
-- Include specific data points, statistics, and rate changes when available
+- Include specific data points when available
 - Return exactly {max_results} results"""
 
             # Make API request
@@ -103,7 +106,7 @@ Important:
             payload = {
                 "model": "sonar",  # sonar has web search built-in
                 "messages": [
-                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": effective_system_prompt},
                     {"role": "user", "content": query}
                 ],
                 "temperature": 0.2,

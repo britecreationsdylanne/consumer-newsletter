@@ -6,7 +6,7 @@
     <title>BriteCo Consumer Newsletter Generator</title>
     <script
       src="https://britepulse-api-29820647719.us-central1.run.app/sdk.js"
-      data-api-key="pk_f071213e-f512-4082-a704-5ea6357e59c2_67fe9b0fdb5144638069ff0e365ea408"
+      data-api-key="pk_cac144b3-63d8-460d-8c04-7370a9c34351_9ac79683be9b4fa3b699eb9881597af0"
       data-api-url="https://britepulse-api-29820647719.us-central1.run.app"
       defer
     ></script>
@@ -490,6 +490,62 @@
 
         /* Tone selector */
         .tone-selector { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+
+        /* Content sections with link toolbar (matching jeweler) */
+        .content-section {
+            background: #f9fafb; border: 2px solid #e5e7eb;
+            border-radius: 12px; padding: 25px; margin: 20px 0;
+        }
+        .content-section h3 { color: #018181; margin-bottom: 15px; font-size: 18px; }
+        .editable {
+            background: white; border: 2px solid #e5e7eb;
+            border-radius: 8px; padding: 15px; min-height: 100px;
+            font-size: 14px; line-height: 1.6; color: #333;
+        }
+        .editable:focus { outline: none; border-color: #018181; }
+        .editable a { color: #018181; text-decoration: underline; }
+        .link-toolbar { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+        .link-toolbar-btn {
+            background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;
+            padding: 4px 8px; cursor: pointer; font-size: 13px; color: #374151;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .link-toolbar-btn:hover { background: #e5e7eb; }
+        .link-popover {
+            display: none; background: white; border: 1px solid #d1d5db;
+            border-radius: 8px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 6px;
+        }
+        .link-popover.show { display: block; }
+        .link-popover input {
+            display: block; width: 100%; padding: 6px 8px; margin-bottom: 8px;
+            border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px; box-sizing: border-box;
+        }
+        .link-popover-actions { display: flex; gap: 6px; justify-content: flex-end; }
+        .link-popover-actions button {
+            padding: 4px 12px; border-radius: 4px; font-size: 12px;
+            cursor: pointer; border: 1px solid #d1d5db;
+        }
+        .link-popover-actions .link-insert-btn { background: #018181; color: white; border-color: #018181; }
+
+        /* Previous Newsletters Section - matches jeweler */
+        .previous-newsletters-section {
+            background: #466F88; padding: 80px 20px; margin-top: 60px;
+        }
+        .previous-newsletters-section h2 {
+            font-size: 36px; color: white; margin-bottom: 12px;
+            font-weight: 700; text-align: center;
+        }
+        .previous-newsletters-section .subtitle {
+            color: rgba(255,255,255,0.8); font-size: 16px;
+            margin-bottom: 40px; text-align: center;
+        }
+        .newsletter-placeholder {
+            text-align: center; padding: 60px 20px;
+        }
+        .newsletter-placeholder .icon { font-size: 64px; margin-bottom: 16px; opacity: 0.3; }
+        .newsletter-placeholder .title { color: #666; font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+        .newsletter-placeholder .message { color: #999; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -498,7 +554,6 @@
         <div class="header">
             <button class="start-over-btn" onclick="startOver()">Start Over</button>
             <h1>BriteCo Consumer Newsletter</h1>
-            <p class="subtitle">Monthly Consumer Newsletter Generator</p>
         </div>
 
         <!-- Progress Bar -->
@@ -593,6 +648,15 @@
 
             <div id="blogGrid" class="blog-grid">
                 <div class="loading"><div class="spinner"></div><p>Loading blog posts...</p></div>
+            </div>
+
+            <!-- Manual URL option -->
+            <div class="manual-input">
+                <label>Or paste a blog article URL:</label>
+                <div class="inline-row">
+                    <input type="text" id="blogUrlInput" placeholder="https://brite.co/blog/...">
+                    <button class="btn-small" onclick="loadBlogByUrl()">Fetch</button>
+                </div>
             </div>
 
             <div class="buttons">
@@ -707,16 +771,19 @@
 
             <div class="form-group">
                 <label>Newsletter Intro</label>
-                <textarea id="introContent" rows="4" placeholder="Write a fun, engaging opening for this month's newsletter..."></textarea>
+                <textarea id="introContent" rows="4" placeholder="Write a fun, engaging opening for this month's newsletter... or click AI Generate below"></textarea>
                 <div class="textarea-actions">
                     <span class="word-count" id="introWordCount">0 words</span>
-                    <button class="btn-small" onclick="aiRewriteIntro()">AI Rewrite</button>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn-small" onclick="aiGenerateIntro()">AI Generate</button>
+                        <button class="btn-small" style="background:#6b7280;" onclick="aiRewriteIntro()">AI Rewrite</button>
+                    </div>
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Quick Tip <span style="font-size:12px;color:#999;font-weight:400;">(seasonal jewelry care tip)</span></label>
-                <textarea id="quickTipContent" rows="3" placeholder="A quick seasonal jewelry care tip for readers..."></textarea>
+                <textarea id="quickTipContent" rows="3" placeholder="A quick seasonal jewelry care tip for readers... or click AI Generate below"></textarea>
                 <div class="textarea-actions">
                     <span class="word-count" id="quickTipWordCount">0 words</span>
                     <button class="btn-small" onclick="generateQuickTip()">AI Generate</button>
@@ -749,44 +816,80 @@
         <!-- ============ STEP 6b: Review Generated Content ============ -->
         <div id="step6b" class="step">
             <h2>Review Generated Content</h2>
-            <p class="step-description">Review and edit the AI-generated content for each section</p>
+            <p class="step-description">Review and edit the AI-generated content. Use the link button to insert hyperlinks.</p>
 
-            <div class="review-panel">
-                <h3>Intro</h3>
-                <div class="review-content" id="review-intro" contenteditable="true"></div>
+            <div class="content-section">
+                <h3>Introduction</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-intro')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-intro">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-intro')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-intro')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="fc-intro"></div>
             </div>
 
-            <div class="review-panel">
+            <div class="content-section">
                 <h3>What's Inside (Agenda)</h3>
-                <div class="review-content" id="review-agenda"></div>
+                <div class="editable" contenteditable="true" id="fc-agenda"></div>
             </div>
 
-            <div class="review-panel">
+            <div class="content-section">
                 <h3>News of the Month - Description
-                    <button class="btn-small" onclick="aiRewriteSection('news_of_month')">AI Rewrite</button>
+                    <button class="btn-small" onclick="aiRewriteSection('news_of_month')" style="float:right;">AI Rewrite</button>
                 </h3>
-                <div class="review-content" id="review-news-desc" contenteditable="true"></div>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-news')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-news">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-news')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-news')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="fc-news"></div>
             </div>
 
-            <div class="review-panel">
+            <div class="content-section">
                 <h3>Trend Alert - Description
-                    <button class="btn-small" onclick="aiRewriteSection('trend_alert')">AI Rewrite</button>
+                    <button class="btn-small" onclick="aiRewriteSection('trend_alert')" style="float:right;">AI Rewrite</button>
                 </h3>
-                <div class="review-content" id="review-trend-desc" contenteditable="true"></div>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-trend')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-trend">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-trend')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-trend')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="fc-trend"></div>
             </div>
 
-            <div class="review-panel">
+            <div class="content-section">
                 <h3>Guess the Price - Question
-                    <button class="btn-small" onclick="aiRewriteSection('guess_the_price')">AI Rewrite</button>
+                    <button class="btn-small" onclick="aiRewriteSection('guess_the_price')" style="float:right;">AI Rewrite</button>
                 </h3>
-                <div class="review-content" id="review-gtp-question" contenteditable="true"></div>
+                <div class="editable" contenteditable="true" id="fc-gtp"></div>
             </div>
 
-            <div class="review-panel">
+            <div class="content-section">
                 <h3>Quick Tip
-                    <button class="btn-small" onclick="aiRewriteSection('quick_tip')">AI Rewrite</button>
+                    <button class="btn-small" onclick="aiRewriteSection('quick_tip')" style="float:right;">AI Rewrite</button>
                 </h3>
-                <div class="review-content" id="review-quick-tip" contenteditable="true"></div>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-tip')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-tip">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-tip')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-tip')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="fc-tip"></div>
             </div>
 
             <div class="buttons">
@@ -807,33 +910,60 @@
 
         <!-- ============ STEP 7b: Brand Check Results + Export ============ -->
         <div id="step7b" class="step">
-            <h2>Brand Check &amp; Export</h2>
-            <p class="step-description">Review brand compliance, export to Google Docs, and send copy for review</p>
+            <h2>Brand Guidelines Check</h2>
+            <p class="step-description">Your content has been reviewed for brand consistency.</p>
 
-            <div id="brandCheckResults"></div>
+            <!-- Brand Check Results -->
+            <div id="brandCheckResults" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;"></div>
 
-            <div class="export-actions">
-                <button class="btn btn-blue" onclick="exportToDocs()">
-                    Export to Google Docs
+            <!-- Export to Google Docs & Email Section -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0; color: #008181;">Export to Google Docs &amp; Email</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Hit export and once complete, you can auto email the exported link to your team.</p>
+
+                <!-- Primary Export Button -->
+                <button class="btn btn-blue" onclick="exportToDocs()" id="exportBtn">
+                    <span id="exportBtnText">Export to Google Docs</span>
                 </button>
-                <span id="docsExportStatus" class="export-status" style="display:none;"></span>
 
-                <button class="btn btn-orange" id="sendCopyReviewBtn" onclick="sendCopyReview()">
-                    Send Copy Review
-                </button>
-                <span id="copyReviewStatus" class="export-status" style="display:none;"></span>
+                <!-- Export Result -->
+                <div id="exportDocsResult" style="display: none; margin-top: 20px; padding: 15px; border-radius: 6px;"></div>
+
+                <div id="docsLinkContainer" style="display:none;margin-top:16px;">
+                    <a id="docsLink" href="#" target="_blank" style="color:#018181;font-weight:600;">
+                        Open Google Doc &rarr;
+                    </a>
+                </div>
+
+                <!-- Email Section (hidden until export succeeds) -->
+                <div id="emailAfterExportSection" style="display: none; margin-top: 20px; border-top: 2px solid #e5e7eb; padding-top: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #374151;">Email the Google Doc Link</h4>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 10px; font-size: 14px;">Select recipients:</label>
+
+                        <div id="recipientList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding: 12px; background: #f9fafb; border-radius: 6px;"></div>
+
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Additional emails (comma-separated):</label>
+                        <input type="text" id="additionalEmails" placeholder="email1@example.com, email2@example.com" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 4px; font-size: 14px; margin-bottom: 15px;">
+
+                        <button class="btn btn-green" onclick="sendEmailNotification()" id="sendEmailBtn">
+                            <span id="sendEmailBtnText">Send Email</span>
+                        </button>
+
+                        <div id="emailSendResult" style="display: none; margin-top: 15px; padding: 12px; border-radius: 6px;"></div>
+                    </div>
+                </div>
             </div>
 
-            <div id="docsLinkContainer" style="display:none;margin-top:16px;">
-                <a id="docsLink" href="#" target="_blank" style="color:#018181;font-weight:600;">
-                    Open Google Doc &rarr;
-                </a>
+            <div style="margin-top: 20px; padding: 15px; background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; text-align: center;">
+                <button class="btn btn-green" onclick="saveDraft(); showSaveConfirm(this);" style="padding: 10px 30px;">Save Draft</button>
+                <p style="margin: 8px 0 0 0; font-size: 13px; color: #666;">Save your progress to resume later</p>
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="showStep('6b')">&larr; Back to Content</button>
-                <button class="btn btn-green" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
-                <button class="btn" onclick="goToStep(8)">Images &rarr;</button>
+                <button class="btn btn-secondary" onclick="showStep('6b')">&larr; Back to Edit</button>
+                <button class="btn" onclick="goToStep(8)">Continue to Images &rarr;</button>
             </div>
         </div>
 
@@ -841,6 +971,14 @@
         <div id="step8" class="step">
             <h2>Image Generation</h2>
             <p class="step-description">Generate or upload images for the Quick Tip and Guess the Price sections</p>
+
+            <!-- Auto-generate prompts button -->
+            <div id="promptGenerationLoading" style="display:none;">
+                <div class="loading"><div class="spinner"></div><p>Claude is generating image prompts based on your content...</p></div>
+            </div>
+            <div style="margin-bottom:20px;">
+                <button class="btn" onclick="autoGenerateImagePrompts()" id="autoPromptBtn">Auto-Generate Image Prompts with Claude</button>
+            </div>
 
             <div class="image-prompt-card" id="quickTipImageCard">
                 <h4>Quick Tip Image</h4>
@@ -925,76 +1063,114 @@
         <!-- ============ STEP 10: Preview + Publish ============ -->
         <div id="step10" class="step">
             <h2>Newsletter Preview</h2>
-            <p class="step-description">Review the final email, then publish or push to Ontraport</p>
+            <p class="step-description">Review your complete newsletter before sending</p>
 
-            <div class="preview-header">
-                <div></div>
-                <div class="preview-toolbar">
-                    <button class="btn-small" onclick="refreshPreview()">Refresh Preview</button>
-                    <button class="btn-small" style="background:#6b7280;" onclick="toggleHTMLCode()">View HTML</button>
-                    <button class="btn-small" style="background:#3b82f6;" onclick="copyHTMLCode()">Copy HTML</button>
+            <!-- Editing Instructions -->
+            <div style="background: #e0f2fe; border: 2px solid #0284c7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 14px; color: #0c4a6e;"><strong>Live Editing:</strong> Click any text in the preview below to edit it directly.</p>
+            </div>
+
+            <!-- Subject Line & Preheader Display -->
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #3b82f6;">
+                <h3 style="margin: 0 0 15px 0;">Email Info</h3>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; color: #666;">Subject Line:</label>
+                    <div id="previewSubjectLine" contenteditable="true" style="padding: 12px; background: #f9fafb; border-radius: 6px; font-size: 16px; font-weight: 500; color: #333; border: 2px solid transparent; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='transparent'; saveSubjectEdit(this)">Your subject line will appear here</div>
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; color: #666;">Preheader:</label>
+                    <div id="previewPreheader" contenteditable="true" style="padding: 12px; background: #f9fafb; border-radius: 6px; font-size: 14px; color: #666; border: 2px solid transparent; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='transparent'; savePreheaderEdit(this)">Your preheader will appear here</div>
                 </div>
             </div>
 
-            <div style="margin-bottom:12px;">
-                <label style="font-size:13px;font-weight:600;color:#666;">Subject Line:</label>
-                <div class="preview-subject" id="previewSubjectLine" contenteditable="true" onblur="saveSubjectEdit(this)"></div>
-            </div>
-            <div style="margin-bottom:16px;">
-                <label style="font-size:13px;font-weight:600;color:#666;">Preheader:</label>
-                <div class="preview-preheader" id="previewPreheader" contenteditable="true" onblur="savePreheaderEdit(this)"></div>
-            </div>
-
-            <div class="preview-frame" id="previewFrame">
-                <div id="newsletterPreview">
-                    <div class="loading"><div class="spinner"></div><p>Rendering preview...</p></div>
-                </div>
+            <div id="newsletterPreview" style="background: #DFE7F0; border: 1px solid #ddd; border-radius: 8px; padding: 0; max-width: 100%; margin: 20px auto; overflow: auto;">
+                <!-- Full newsletter HTML will be displayed here -->
             </div>
 
             <div class="html-code-view" id="htmlCodeView">
                 <pre id="htmlCode"></pre>
             </div>
 
-            <!-- Ontraport Push Section -->
-            <div class="ontraport-section">
-                <h3>Publish &amp; Push to Ontraport</h3>
-                <div class="form-group">
-                    <label>Campaign Subject Line</label>
-                    <input type="text" id="ontraportSubjectInput" placeholder="Email subject line for Ontraport campaign">
-                </div>
-                <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                    <button class="btn btn-orange" onclick="pushToOntraport()">Push to Ontraport</button>
-                    <button class="btn btn-green" onclick="publishAndFinish()">Publish Draft</button>
-                </div>
-                <div id="ontraportStatus" style="margin-top:12px;"></div>
-                <div id="publishStatus" style="margin-top:8px;"></div>
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="btn" onclick="savePreviewEdits()" style="background: #0284c7; padding: 12px 28px; font-size: 15px;">Save Changes to HTML</button>
+                <span id="saveStatus" style="margin-left: 10px; font-size: 14px; color: #166534; display: none;">Changes saved!</span>
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="goToStep(9)">&larr; Back</button>
+                <button class="btn btn-secondary" onclick="goToStep(9)">&larr; Back to Subject Line</button>
+                <button class="btn btn-secondary" onclick="toggleHTMLCode()" id="htmlViewBtn">View HTML Code</button>
+                <button class="btn btn-secondary" style="background:#3b82f6;" onclick="copyHTMLCode()">Copy HTML</button>
+                <button class="btn" onclick="goToStep(11)">Push to Ontraport &rarr;</button>
             </div>
         </div>
 
-        <!-- ============ DRAFTS SECTION ============ -->
-        <div class="drafts-section" id="draftsSection">
-            <h3>Your Drafts</h3>
-            <div id="draftsGrid" class="card-grid" style="display:none;"></div>
-            <div id="draftsEmpty" class="placeholder-text">No drafts yet. Start creating a newsletter above!</div>
+        <!-- ============ STEP 11: Push to Ontraport ============ -->
+        <div id="step11" class="step">
+            <h2>Push to Ontraport</h2>
+            <p class="step-description">Send your newsletter to Ontraport with pre-configured BriteCo settings</p>
+
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                <div style="padding: 15px; background-color: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e; margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; color: #166534; margin-bottom: 5px;">Subject Line:</label>
+                    <input type="text" id="ontraportSubjectInput" style="width: 100%; padding: 10px; font-size: 16px; color: #272d3f; border: 2px solid #22c55e; border-radius: 6px; background: #ffffff; box-sizing: border-box;" placeholder="Enter subject line..." />
+                </div>
+
+                <button class="btn btn-orange" onclick="pushToOntraport()" id="ontraportBtn" style="width: 100%; padding: 15px; font-size: 16px;">
+                    <span id="ontraportBtnText">Push to Ontraport</span>
+                </button>
+
+                <div id="ontraportStatus" style="display: none; margin-top: 20px; padding: 15px; border-radius: 6px;"></div>
+
+                <div style="margin-top:20px;border-top:2px solid #e5e7eb;padding-top:20px;">
+                    <button class="btn btn-green" onclick="publishAndFinish()" style="width:100%;padding:15px;font-size:16px;">Publish Draft</button>
+                    <div id="publishStatus" style="margin-top:8px;"></div>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="goToStep(10)">&larr; Back to Preview</button>
+            </div>
         </div>
 
-        <!-- ============ PUBLISHED SECTION ============ -->
-        <div class="published-section" id="publishedSection">
-            <h3>Published Newsletters</h3>
-            <div id="publishedGrid" class="card-grid" style="display:none;"></div>
-            <div id="publishedEmpty" class="placeholder-text">No published newsletters yet.</div>
+    </div>
+
+    <!-- Saved Drafts Section -->
+    <div id="draftsSection" class="previous-newsletters-section">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="margin-bottom: 40px; text-align: center;">
+                <h2>Saved Drafts</h2>
+                <p class="subtitle">Resume an in-progress newsletter</p>
+            </div>
+            <div id="draftsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px;"></div>
+            <div id="draftsEmpty" class="newsletter-placeholder">
+                <div class="icon">&#128221;</div>
+                <h3 class="title">No Drafts In Progress</h3>
+                <p class="message">Any newsletters in progress will appear here automatically</p>
+            </div>
         </div>
     </div>
 
-    <!-- Published Newsletter Modal -->
-    <div class="modal-overlay" id="publishedModal">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closePublishedModal()">&times;</button>
-            <div id="publishedModalContent"></div>
+    <!-- Published Newsletter View Modal -->
+    <div id="publishedModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; overflow: auto;">
+        <div style="max-width: 800px; margin: 40px auto; background: white; border-radius: 12px; position: relative;">
+            <button onclick="closePublishedModal()" style="position: absolute; top: 20px; right: 20px; background: white; border: 2px solid #e5e7eb; border-radius: 50%; width: 40px; height: 40px; font-size: 24px; cursor: pointer; z-index: 10;">&times;</button>
+            <div id="publishedModalContent" style="padding: 20px; max-height: 80vh; overflow: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Previous Newsletters Section -->
+    <div class="previous-newsletters-section">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="margin-bottom: 40px; text-align: center;">
+                <h2>Previous Newsletters</h2>
+                <p class="subtitle">View past newsletters sent to your subscribers</p>
+            </div>
+            <div id="publishedGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px;"></div>
+            <div id="publishedEmpty" class="newsletter-placeholder">
+                <div class="icon">&#128237;</div>
+                <h3 class="title">No Previous Newsletters</h3>
+                <p class="message">Published newsletters will appear here</p>
+            </div>
         </div>
     </div>
 
@@ -1005,7 +1181,7 @@
     const API_BASE = window.location.origin;
     let selectedMonth = '';
     let currentStep = 1;
-    const totalSteps = 10;
+    const totalSteps = 11;
     let currentYoutubeTab = 'news';
     let currentYoutubeSort = 'popular';
     let currentGTPTab = 'search';
@@ -1038,7 +1214,8 @@
         1: 'Select Month', 2: 'Select Videos', 3: 'Blog Articles',
         4: 'Guess the Price', 5: 'Intro & Quick Tip', 6: 'Generating...',
         '6b': 'Review Content', 7: 'Brand Check...', '7b': 'Brand Check & Export',
-        8: 'Image Generation', 9: 'Subject Line', 10: 'Preview & Publish'
+        8: 'Image Generation', 9: 'Subject Line', 10: 'Preview',
+        11: 'Push to Ontraport'
     };
 
     const months = [
@@ -1054,15 +1231,21 @@
     // NAVIGATION
     // ============================================================
     function goToStep(step) {
-        const savePoints = [5, '6b', '7b', 8, 9, 10];
+        const savePoints = [5, '6b', '7b', 8, 9, 10, 11];
         if (selectedMonth && (savePoints.includes(step) || savePoints.includes(String(step)))) {
             saveDraft();
         }
         if (step === 7) { runBrandCheck(); return; }
         if (step === 10) { populatePreview(); }
+        if (step === 11) {
+            const subjectLine = document.getElementById('finalSubjectLine')?.value || 'BriteCo Newsletter - ' + selectedMonth;
+            const subjectInput = document.getElementById('ontraportSubjectInput');
+            if (subjectInput) subjectInput.value = subjectLine;
+        }
         if (step === 2 && youtubeVideos.length === 0) loadYoutubeVideos();
         if (step === 3 && blogPosts.length === 0) loadBlogPosts();
         if (step === 8) setupImageStep();
+        if (step === 9) { autoGenerateSubjectLinesIfNeeded(); }
         currentStep = step;
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         const el = document.getElementById('step' + step);
@@ -1083,7 +1266,7 @@
     }
 
     function updateProgressBar() {
-        const stepMap = { 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, '6b':6, 7:7, '7b':7, 8:8, 9:9, 10:10 };
+        const stepMap = { 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, '6b':6, 7:7, '7b':7, 8:8, 9:9, 10:10, 11:11 };
         const num = stepMap[currentStep] || 1;
         const pct = (num / totalSteps) * 100;
         document.getElementById('progressBar').style.width = pct + '%';
@@ -1678,35 +1861,36 @@
 
     function populateReviewContent() {
         const gc = generatedContent;
-        document.getElementById('review-intro').innerHTML = escapeHtml(gc.intro || '');
+        // Use innerHTML (not escaped) so links and formatting come through
+        const setContent = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = text || '';
+        };
+
+        setContent('fc-intro', gc.intro || '');
 
         // Agenda items
-        const agendaEl = document.getElementById('review-agenda');
         if (gc.agenda_items && gc.agenda_items.length) {
-            agendaEl.innerHTML = '<ul>' + gc.agenda_items.map(i => '<li>' + escapeHtml(i) + '</li>').join('') + '</ul>';
+            setContent('fc-agenda', '<ul>' + gc.agenda_items.map(i => '<li>' + i + '</li>').join('') + '</ul>');
         }
 
         // Video descriptions
-        const newsDesc = gc.news_of_month?.description || '';
-        document.getElementById('review-news-desc').innerHTML = escapeHtml(newsDesc);
-
-        const trendDesc = gc.trend_alert?.description || '';
-        document.getElementById('review-trend-desc').innerHTML = escapeHtml(trendDesc);
+        setContent('fc-news', gc.news_of_month?.description || '');
+        setContent('fc-trend', gc.trend_alert?.description || '');
 
         // GTP question
-        const gtpQ = gc.guess_the_price?.question || '';
-        document.getElementById('review-gtp-question').innerHTML = escapeHtml(gtpQ);
+        setContent('fc-gtp', gc.guess_the_price?.question || '');
 
         // Quick tip
-        document.getElementById('review-quick-tip').innerHTML = escapeHtml(gc.quick_tip || '');
+        setContent('fc-tip', gc.quick_tip || '');
     }
 
     async function aiRewriteSection(section) {
         const sectionMap = {
-            'news_of_month': 'review-news-desc',
-            'trend_alert': 'review-trend-desc',
-            'guess_the_price': 'review-gtp-question',
-            'quick_tip': 'review-quick-tip'
+            'news_of_month': 'fc-news',
+            'trend_alert': 'fc-trend',
+            'guess_the_price': 'fc-gtp',
+            'quick_tip': 'fc-tip'
         };
         const elId = sectionMap[section];
         if (!elId) return;
@@ -1720,7 +1904,7 @@
                 body: JSON.stringify({ content, tone: 'friendly', section })
             });
             const data = await resp.json();
-            if (data.success && data.rewritten) el.innerHTML = escapeHtml(data.rewritten);
+            if (data.success && data.rewritten) el.innerHTML = data.rewritten;
         } catch (e) { console.error('Rewrite error:', e); }
         el.style.opacity = '1';
     }
@@ -1750,25 +1934,35 @@
         showStep('7b');
     }
 
+    function getEditableContent(id) {
+        const el = document.getElementById(id);
+        return el ? el.innerHTML : '';
+    }
+
+    function getEditableText(id) {
+        const el = document.getElementById(id);
+        return el ? (el.textContent || el.innerText) : '';
+    }
+
     function buildContentObject() {
         return {
-            intro: document.getElementById('review-intro')?.textContent || generatedContent.intro || '',
+            intro: getEditableText('fc-intro') || generatedContent.intro || '',
             agenda_items: generatedContent.agenda_items || [],
             news_of_month: {
                 title: selectedContent.news_of_month?.title || '',
-                description: document.getElementById('review-news-desc')?.textContent || generatedContent.news_of_month?.description || '',
+                description: getEditableText('fc-news') || generatedContent.news_of_month?.description || '',
                 thumbnail_url: selectedContent.news_of_month?.thumbnail_url || generatedContent.news_of_month?.thumbnail_url || '',
                 video_url: selectedContent.news_of_month?.url || generatedContent.news_of_month?.video_url || ''
             },
             trend_alert: {
                 title: selectedContent.trend_alert?.title || '',
-                description: document.getElementById('review-trend-desc')?.textContent || generatedContent.trend_alert?.description || '',
+                description: getEditableText('fc-trend') || generatedContent.trend_alert?.description || '',
                 thumbnail_url: selectedContent.trend_alert?.thumbnail_url || generatedContent.trend_alert?.thumbnail_url || '',
                 video_url: selectedContent.trend_alert?.url || generatedContent.trend_alert?.video_url || ''
             },
             blog_articles: [
-                { title: selectedContent.blog_1?.title || '', image_url: selectedContent.blog_1?.featured_image_url || '', url: selectedContent.blog_1?.url || '' },
-                { title: selectedContent.blog_2?.title || '', image_url: selectedContent.blog_2?.featured_image_url || '', url: selectedContent.blog_2?.url || '' }
+                { title: selectedContent.blog_1?.title || '', featured_image_url: selectedContent.blog_1?.featured_image_url || '', url: selectedContent.blog_1?.url || '' },
+                { title: selectedContent.blog_2?.title || '', featured_image_url: selectedContent.blog_2?.featured_image_url || '', url: selectedContent.blog_2?.url || '' }
             ],
             guess_the_price: {
                 title: selectedContent.guess_the_price?.title || '',
@@ -1777,10 +1971,10 @@
                 found_in: selectedContent.guess_the_price?.found_in || '',
                 where_it_lives: selectedContent.guess_the_price?.where_it_lives || '',
                 fun_fact: selectedContent.guess_the_price?.fun_fact || '',
-                question: document.getElementById('review-gtp-question')?.textContent || generatedContent.guess_the_price?.question || '',
+                question: getEditableText('fc-gtp') || generatedContent.guess_the_price?.question || '',
                 link: selectedContent.guess_the_price?.source_link || ''
             },
-            quick_tip: document.getElementById('review-quick-tip')?.textContent || generatedContent.quick_tip || ''
+            quick_tip: getEditableText('fc-tip') || generatedContent.quick_tip || ''
         };
     }
 
@@ -1811,8 +2005,9 @@
     }
 
     async function exportToDocs() {
-        const statusEl = document.getElementById('docsExportStatus');
-        statusEl.style.display = 'inline'; statusEl.className = 'export-status'; statusEl.textContent = 'Exporting...';
+        const btn = document.getElementById('exportBtn');
+        const btnText = document.getElementById('exportBtnText');
+        btn.disabled = true; btnText.textContent = 'Exporting...';
         try {
             const content = buildContentObject();
             const year = new Date().getFullYear();
@@ -1827,23 +2022,47 @@
             const data = await resp.json();
             if (data.success && data.doc_url) {
                 exportedDocUrl = data.doc_url;
-                statusEl.className = 'export-status success'; statusEl.textContent = 'Exported!';
+                btnText.textContent = 'Exported!';
                 document.getElementById('docsLinkContainer').style.display = 'block';
                 document.getElementById('docsLink').href = data.doc_url;
+
+                // Show email section and populate recipients
+                document.getElementById('emailAfterExportSection').style.display = 'block';
+                const recipientList = document.getElementById('recipientList');
+                recipientList.innerHTML = '';
+                TEAM_MEMBERS.forEach((m, i) => {
+                    recipientList.innerHTML += `<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;">
+                        <input type="checkbox" checked style="width:18px;height:18px;accent-color:#018181;" id="recipient-${i}" value="${m.email}">
+                        <span>${escapeHtml(m.name)} (${escapeHtml(m.email)})</span>
+                    </label>`;
+                });
             } else {
-                statusEl.className = 'export-status error'; statusEl.textContent = 'Failed: ' + (data.error || '');
+                btnText.textContent = 'Failed: ' + (data.error || '');
             }
         } catch (e) {
-            statusEl.className = 'export-status error'; statusEl.textContent = 'Error: ' + e.message;
+            btnText.textContent = 'Error: ' + e.message;
         }
+        btn.disabled = false;
     }
 
-    async function sendCopyReview() {
-        const statusEl = document.getElementById('copyReviewStatus');
-        statusEl.style.display = 'inline'; statusEl.className = 'export-status'; statusEl.textContent = 'Sending...';
+    async function sendEmailNotification() {
+        const btn = document.getElementById('sendEmailBtn');
+        const btnText = document.getElementById('sendEmailBtnText');
+        btn.disabled = true; btnText.textContent = 'Sending...';
         try {
-            const recipients = TEAM_MEMBERS.map(m => m.email);
-            // Build a text-based copy review (not full HTML email)
+            // Get checked recipients
+            const recipients = [];
+            TEAM_MEMBERS.forEach((m, i) => {
+                const cb = document.getElementById('recipient-' + i);
+                if (cb && cb.checked) recipients.push(m.email);
+            });
+            // Add additional emails
+            const additional = document.getElementById('additionalEmails')?.value || '';
+            if (additional.trim()) {
+                additional.split(',').forEach(e => { if (e.trim()) recipients.push(e.trim()); });
+            }
+            if (!recipients.length) { alert('Select at least one recipient'); btn.disabled = false; btnText.textContent = 'Send Email'; return; }
+
             const content = buildContentObject();
             const monthCap = selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1);
             let copyHtml = `<h2>BriteCo Consumer Newsletter - ${monthCap} Copy Review</h2>`;
@@ -1853,7 +2072,6 @@
             copyHtml += `<h3>Blog Articles</h3>`;
             content.blog_articles.forEach(a => { copyHtml += `<p><strong>${escapeHtml(a.title)}</strong> - ${escapeHtml(a.url)}</p>`; });
             copyHtml += `<h3>Guess the Price</h3><p><strong>${escapeHtml(content.guess_the_price.title)}</strong></p>`;
-            copyHtml += `<p>Material: ${escapeHtml(content.guess_the_price.material)}</p>`;
             copyHtml += `<p>Question: ${escapeHtml(content.guess_the_price.question)}</p>`;
             copyHtml += `<h3>Quick Tip</h3><p>${escapeHtml(content.quick_tip)}</p>`;
             if (exportedDocUrl) copyHtml += `<p><a href="${exportedDocUrl}">View Google Doc</a></p>`;
@@ -1866,14 +2084,21 @@
                 })
             });
             const data = await resp.json();
+            const resultEl = document.getElementById('emailSendResult');
+            resultEl.style.display = 'block';
             if (data.success) {
-                statusEl.className = 'export-status success'; statusEl.textContent = 'Sent to ' + recipients.join(', ');
+                resultEl.style.background = '#f0fdf4'; resultEl.style.color = '#059669';
+                resultEl.textContent = 'Sent to ' + recipients.join(', ');
+                btnText.textContent = 'Sent!';
             } else {
-                statusEl.className = 'export-status error'; statusEl.textContent = 'Failed: ' + (data.error || '');
+                resultEl.style.background = '#fef2f2'; resultEl.style.color = '#dc3545';
+                resultEl.textContent = 'Failed: ' + (data.error || '');
+                btnText.textContent = 'Send Email';
             }
         } catch (e) {
-            statusEl.className = 'export-status error'; statusEl.textContent = 'Error: ' + e.message;
+            btnText.textContent = 'Error: ' + e.message;
         }
+        btn.disabled = false;
     }
 
     // ============================================================
@@ -2022,6 +2247,7 @@
             if (data.success && data.html) {
                 renderedEmailHTML = data.html;
                 previewDiv.innerHTML = data.html;
+                enableNewsletterEditing();
             } else {
                 previewDiv.innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Failed to render: ' + (data.error || '') + '</p>';
             }
@@ -2075,6 +2301,7 @@
         const subject = document.getElementById('ontraportSubjectInput')?.value || 'BriteCo Newsletter';
         const html = renderedEmailHTML || document.getElementById('newsletterPreview').innerHTML;
         if (!html || html.includes('Rendering email preview')) { alert('Please wait for the preview to render first.'); return; }
+        statusEl.style.display = 'block';
         statusEl.innerHTML = '<span style="color:#018181;">Pushing to Ontraport...</span>';
         try {
             const resp = await fetch(`${API_BASE}/api/push-to-ontraport`, {
@@ -2152,30 +2379,25 @@
             if (data.success && data.drafts && data.drafts.length > 0) {
                 const grid = document.getElementById('draftsGrid');
                 document.getElementById('draftsEmpty').style.display = 'none';
-                grid.style.display = 'grid';
                 grid.innerHTML = '';
                 data.drafts.forEach(d => {
                     const monthCap = d.month ? d.month.charAt(0).toUpperCase() + d.month.slice(1) : '?';
                     const savedBy = d.lastSavedBy || 'unknown';
                     const savedAt = d.lastSavedAt ? new Date(d.lastSavedAt).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '';
                     const card = document.createElement('div');
-                    card.className = 'draft-card';
+                    card.style.cssText = 'background:white;border-radius:12px;padding:25px;cursor:pointer;position:relative;transition:all 0.2s;';
                     card.innerHTML = `
-                        <button class="draft-delete-btn" title="Delete draft">&times;</button>
-                        <h4>${monthCap} ${d.year}</h4>
-                        <div class="draft-meta">Created by: ${escapeHtml(savedBy)}</div>
-                        <div class="draft-time">${savedAt} CT</div>
+                        <button onclick="event.stopPropagation();if(confirm('Delete draft for ${monthCap} ${d.year}?'))deleteDraft('${d.filename}')" style="position:absolute;top:8px;right:8px;background:#dc3545;color:white;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;opacity:0.7;">&times;</button>
+                        <h4 style="color:#018181;font-size:18px;margin-bottom:8px;">${monthCap} ${d.year}</h4>
+                        <p style="color:#6b7280;font-size:14px;">Created by: ${escapeHtml(savedBy)}</p>
+                        <p style="color:#6b7280;font-size:14px;">${savedAt} CT</p>
                     `;
-                    card.querySelector('.draft-delete-btn').onclick = (e) => {
-                        e.stopPropagation();
-                        if (confirm(`Delete draft for ${monthCap} ${d.year}?`)) deleteDraft(d.filename);
-                    };
                     card.onclick = () => loadDraft(d.filename);
                     grid.appendChild(card);
                 });
             } else {
                 document.getElementById('draftsEmpty').style.display = 'block';
-                document.getElementById('draftsGrid').style.display = 'none';
+                document.getElementById('draftsGrid').innerHTML = '';
             }
         } catch (e) { console.error('[Drafts] Load failed:', e); }
     }
@@ -2260,27 +2482,28 @@
             if (data.success && data.newsletters && data.newsletters.length > 0) {
                 const grid = document.getElementById('publishedGrid');
                 document.getElementById('publishedEmpty').style.display = 'none';
-                grid.style.display = 'grid';
                 grid.innerHTML = '';
                 data.newsletters.forEach(n => {
                     const monthCap = n.month ? n.month.charAt(0).toUpperCase() + n.month.slice(1) : '?';
                     const savedBy = n.lastSavedBy || 'unknown';
                     const savedAt = n.lastSavedAt ? new Date(n.lastSavedAt).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '';
                     const card = document.createElement('div');
-                    card.className = 'published-card';
+                    card.style.cssText = 'background:#2d3748;border-radius:12px;overflow:hidden;transition:all 0.2s;cursor:pointer;';
                     card.innerHTML = `
-                        <div class="pub-header"><div class="pub-icon">&#x1f4e8;</div></div>
-                        <div class="pub-info">
-                            <span class="pub-badge">${monthCap} ${n.year}</span>
-                            <p style="font-size:12px;color:#999;margin-top:8px;">${escapeHtml(savedBy)} &middot; ${savedAt} CT</p>
-                            <button onclick="event.stopPropagation();viewPublishedNewsletter('${n.filename}')" style="width:100%;margin-top:12px;padding:10px;background:#018181;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;">View Newsletter</button>
+                        <div style="height:100px;background:#272d3f;display:flex;align-items:center;justify-content:center;">
+                            <span style="font-size:36px;opacity:0.4;">&#x1f4e8;</span>
+                        </div>
+                        <div style="padding:16px;">
+                            <span style="display:inline-block;background:#272d3f;color:white;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;text-transform:uppercase;margin-bottom:8px;">${monthCap} ${n.year}</span>
+                            <p style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:8px;">${escapeHtml(savedBy)} &middot; ${savedAt} CT</p>
+                            <button onclick="event.stopPropagation();viewPublishedNewsletter('${n.filename}')" style="width:100%;margin-top:12px;padding:12px 16px;background:#008181;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">View Newsletter</button>
                         </div>
                     `;
                     grid.appendChild(card);
                 });
             } else {
                 document.getElementById('publishedEmpty').style.display = 'block';
-                document.getElementById('publishedGrid').style.display = 'none';
+                document.getElementById('publishedGrid').innerHTML = '';
             }
         } catch (e) { console.error('[Published] Load failed:', e); }
     }
@@ -2303,7 +2526,7 @@
             } else {
                 document.getElementById('publishedModalContent').innerHTML = '<p style="padding:40px;text-align:center;">Could not render preview.</p>';
             }
-            document.getElementById('publishedModal').classList.add('visible');
+            document.getElementById('publishedModal').style.display = 'block';
         } catch (e) {
             alert('Error: ' + e.message);
         }
@@ -2327,7 +2550,226 @@
     }
 
     function closePublishedModal() {
-        document.getElementById('publishedModal').classList.remove('visible');
+        document.getElementById('publishedModal').style.display = 'none';
+    }
+
+    // ============================================================
+    // LINK TOOLBAR (matching jeweler)
+    // ============================================================
+    let savedSelection = null;
+    let linkTargetEditorId = null;
+
+    function saveSelection() {
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) savedSelection = sel.getRangeAt(0).cloneRange();
+    }
+
+    function restoreSelection() {
+        if (!savedSelection) return;
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(savedSelection);
+    }
+
+    function showLinkPopover(editorId) {
+        const editor = document.getElementById(editorId);
+        if (editor) editor.focus();
+        saveSelection();
+        linkTargetEditorId = editorId;
+        document.querySelectorAll('.link-popover').forEach(p => p.classList.remove('show'));
+        const popover = document.getElementById('lp-' + editorId);
+        if (popover) {
+            popover.classList.add('show');
+            const sel = window.getSelection();
+            const selectedText = sel.toString().trim();
+            const textInput = popover.querySelector('.lp-text');
+            const urlInput = popover.querySelector('.lp-url');
+            if (textInput) textInput.value = selectedText || '';
+            if (urlInput) { urlInput.value = ''; urlInput.focus(); }
+        }
+    }
+
+    function hideLinkPopover(editorId) {
+        const popover = document.getElementById('lp-' + editorId);
+        if (popover) popover.classList.remove('show');
+        linkTargetEditorId = null;
+    }
+
+    function insertLink(editorId) {
+        const popover = document.getElementById('lp-' + editorId);
+        if (!popover) return;
+        const text = popover.querySelector('.lp-text').value.trim();
+        const url = popover.querySelector('.lp-url').value.trim();
+        if (!url) return;
+        const displayText = text || url;
+        const linkHtml = `<a href="${url}" style="color:#008181;text-decoration:underline;" target="_blank">${displayText}</a>`;
+        const editor = document.getElementById(editorId);
+        if (editor) {
+            editor.focus();
+            restoreSelection();
+            document.execCommand('insertHTML', false, linkHtml);
+        }
+        hideLinkPopover(editorId);
+    }
+
+    // Track cursor in editable divs
+    document.addEventListener('selectionchange', function() {
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+            const node = sel.anchorNode;
+            if (node) {
+                const editable = node.nodeType === 1 ? node.closest('.editable') : (node.parentElement ? node.parentElement.closest('.editable') : null);
+                if (editable) savedSelection = sel.getRangeAt(0).cloneRange();
+            }
+        }
+    });
+
+    // ============================================================
+    // AI GENERATE INTRO
+    // ============================================================
+    async function aiGenerateIntro() {
+        const btn = event.target;
+        btn.disabled = true; btn.textContent = 'Generating...';
+        try {
+            const highlights = [];
+            if (selectedContent.news_of_month?.title) highlights.push('Video: ' + selectedContent.news_of_month.title);
+            if (selectedContent.trend_alert?.title) highlights.push('Trend: ' + selectedContent.trend_alert.title);
+            if (selectedContent.guess_the_price?.title) highlights.push('GTP: ' + selectedContent.guess_the_price.title);
+
+            const resp = await fetch(`${API_BASE}/api/generate-newsletter`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    month: selectedMonth, intro: '',
+                    news_of_month: { title: selectedContent.news_of_month?.title || '', description: '' },
+                    trend_alert: { title: selectedContent.trend_alert?.title || '', description: '' },
+                    blog_articles: [], guess_the_price: { title: selectedContent.guess_the_price?.title || '' },
+                    quick_tip: document.getElementById('quickTipContent')?.value || ''
+                })
+            });
+            const data = await resp.json();
+            if (data.success && data.generated?.intro) {
+                document.getElementById('introContent').value = data.generated.intro;
+            } else { alert('Generation failed: ' + (data.error || '')); }
+        } catch (e) { alert('Error: ' + e.message); }
+        btn.disabled = false; btn.textContent = 'AI Generate';
+        updateWordCount('introContent', 'introWordCount');
+    }
+
+    // ============================================================
+    // BLOG URL FETCH
+    // ============================================================
+    async function loadBlogByUrl() {
+        const url = document.getElementById('blogUrlInput').value.trim();
+        if (!url) { alert('Please enter a blog URL'); return; }
+        try {
+            const resp = await fetch(`${API_BASE}/api/fetch-article-metadata`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                const m = data.metadata || data;
+                const post = {
+                    title: m.title || url,
+                    url: url,
+                    featured_image_url: m.image || '',
+                    excerpt: m.description || '',
+                    categories: [],
+                    published_date: ''
+                };
+                toggleBlogSelect(post);
+                document.getElementById('blogUrlInput').value = '';
+            } else {
+                alert('Could not fetch article: ' + (data.error || ''));
+            }
+        } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    // ============================================================
+    // AUTO IMAGE PROMPT GENERATION
+    // ============================================================
+    async function autoGenerateImagePrompts() {
+        const btn = document.getElementById('autoPromptBtn');
+        btn.disabled = true; btn.textContent = 'Generating prompts...';
+        document.getElementById('promptGenerationLoading').style.display = 'block';
+        try {
+            const sections = {};
+            const gc = generatedContent;
+            if (gc.quick_tip) sections.quick_tip = { title: 'Quick Tip', content: gc.quick_tip };
+            if (gc.guess_the_price) sections.guess_the_price = { title: gc.guess_the_price.title || 'Guess the Price', content: gc.guess_the_price.question || '' };
+
+            const resp = await fetch(`${API_BASE}/api/generate-image-prompts`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sections })
+            });
+            const data = await resp.json();
+            if (data.success && data.prompts) {
+                if (data.prompts.quick_tip?.prompt) {
+                    document.getElementById('quickTipImagePrompt').value = data.prompts.quick_tip.prompt;
+                }
+                if (data.prompts.guess_the_price?.prompt) {
+                    document.getElementById('gtpImagePrompt').value = data.prompts.guess_the_price.prompt;
+                }
+                generatedPrompts = data.prompts;
+                promptsAlreadyGenerated = true;
+            }
+        } catch (e) { console.error('Image prompt gen error:', e); }
+        document.getElementById('promptGenerationLoading').style.display = 'none';
+        btn.disabled = false; btn.textContent = 'Auto-Generate Image Prompts with Claude';
+    }
+
+    // ============================================================
+    // AUTO SUBJECT LINE GENERATION
+    // ============================================================
+    let subjectLinesGenerated = false;
+    async function autoGenerateSubjectLinesIfNeeded() {
+        if (subjectLinesGenerated) return;
+        subjectLinesGenerated = true;
+        generateSubjectLines();
+    }
+
+    // ============================================================
+    // PREVIEW EDITING (matching jeweler)
+    // ============================================================
+    let savedEditedHTML = null;
+
+    function enableNewsletterEditing() {
+        const preview = document.getElementById('newsletterPreview');
+        if (!preview) return;
+        const textElements = preview.querySelectorAll('p, div[style*="font-size"], h2, h3, h4, h5');
+        textElements.forEach(el => {
+            if (el.children.length > 0 && el.textContent.trim().length < 50) return;
+            el.setAttribute('contenteditable', 'true');
+            el.style.cursor = 'text';
+            el.style.transition = 'background-color 0.2s';
+            el.addEventListener('focus', () => {
+                el.style.backgroundColor = '#fef3c7';
+                el.style.outline = '2px solid #f59e0b';
+            });
+            el.addEventListener('blur', () => {
+                el.style.backgroundColor = '';
+                el.style.outline = '';
+                updateNewsletterHTML();
+            });
+        });
+    }
+
+    function updateNewsletterHTML() {
+        const preview = document.getElementById('newsletterPreview');
+        if (!preview) return;
+        savedEditedHTML = preview.innerHTML;
+        renderedEmailHTML = savedEditedHTML;
+        const htmlCode = document.getElementById('htmlCode');
+        if (htmlCode) htmlCode.textContent = savedEditedHTML;
+    }
+
+    function savePreviewEdits() {
+        updateNewsletterHTML();
+        const status = document.getElementById('saveStatus');
+        if (status) {
+            status.style.display = 'inline';
+            setTimeout(() => { status.style.display = 'none'; }, 2000);
+        }
     }
 
     // ============================================================
@@ -2338,6 +2780,14 @@
         setupWordCounters();
         loadDrafts();
         loadPublishedNewsletters();
+
+        // BritePulse user identification
+        if (window.AUTH_USER && window.BritePulse) {
+            window.BritePulse.getInstance()?.setUser({
+                id: window.AUTH_USER.email,
+                email: window.AUTH_USER.email
+            });
+        }
     });
     </script>
 </body>
