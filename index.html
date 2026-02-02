@@ -1131,7 +1131,7 @@
                 </div>
             </div>
 
-            <div id="newsletterPreview" style="background: #DFE7F0; border: 1px solid #ddd; border-radius: 8px; padding: 0; max-width: 100%; margin: 20px auto; overflow: auto;">
+            <div id="newsletterPreview" style="background: #e8e8e8; border: 1px solid #ddd; border-radius: 8px; padding: 0; max-width: 100%; margin: 20px auto; overflow: auto;">
                 <!-- Full newsletter HTML will be displayed here -->
             </div>
 
@@ -1256,6 +1256,7 @@
     let promptsAlreadyGenerated = false;
     let exportedDocUrl = '';
     let renderedEmailHTML = '';
+    let savedEditedHTML = null;
 
     const TEAM_MEMBERS = [
         { name: 'Dylanne Crugnale', email: 'dylanne.crugnale@brite.co' },
@@ -1288,7 +1289,7 @@
             saveDraft();
         }
         if (step === 7) { runBrandCheck(); return; }
-        if (step === 10) { populatePreview(); }
+        if (step === 10) { try { populatePreview(); } catch(err) { console.error('Preview error:', err); } }
         if (step === 11) {
             const subjectLine = document.getElementById('finalSubjectLine')?.value || 'BriteCo Newsletter - ' + selectedMonth;
             const subjectInput = document.getElementById('ontraportSubjectInput');
