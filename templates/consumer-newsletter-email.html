@@ -43,17 +43,22 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 .mobile-spacer { height: 15px !important; }
 .blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }
 .blog-card-inner { width: 100% !important; max-width: 100% !important; }
-.blog-card-inner img { max-width: 100% !important; width: 100% !important; height: auto !important; }
+.blog-card-inner img { max-width: 100% !important; width: 100% !important; height: auto !important; max-height: none !important; }
 .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; }
 .gtp-image img { width: 100% !important; max-width: 100% !important; }
 .gtp-details { display: block !important; width: 100% !important; }
-.section-badge { font-size: 22px !important; }
+.section-badge { font-size: 16px !important; padding: 5px 14px !important; }
+.badge-row { padding-bottom: 8px !important; }
 .cta-heading { font-size: 24px !important; line-height: 32px !important; }
+.cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; text-align: center !important; box-sizing: border-box !important; }
 }
 u + .body .mobile-full { width: 100% !important; }
-u + .body .blog-card { display: block !important; width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
+u + .body .blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }
+u + .body .blog-card-inner { width: 100% !important; max-width: 100% !important; }
+u + .body .blog-card-inner img { width: 100% !important; max-width: 100% !important; height: auto !important; }
 u + .body .gtp-image { display: block !important; width: 100% !important; padding-right: 0 !important; }
 u + .body .gtp-details { display: block !important; width: 100% !important; }
+u + .body .cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; }
 </style>
 </head>
 <body width="100%" class="body" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #e8e8e8;">
@@ -81,7 +86,7 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 <tr>
 <td align="center" style="background-color: #272d3f; padding: 30px 40px;">
 <a href="https://brite.co" target="_blank">
-<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-1.png" width="140" alt="BriteCo" style="width: 140px; max-width: 140px; height: auto; display: block;">
+<img src="/static/briteco-logo-white.png" width="140" alt="BriteCo" style="width: 140px; max-width: 140px; height: auto; display: block;">
 </a>
 </td>
 </tr>
@@ -106,7 +111,7 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 <tr>
 <td style="padding: 30px 45px;" class="mobile-padding">
 <!-- Section badge -->
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 20px auto;">
 <tr>
 <td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">
 <p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">What's Inside</p>
@@ -142,11 +147,11 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <!-- Section header badge -->
 <tr>
-<td style="padding: 30px 45px 0 45px;" class="mobile-padding">
+<td style="padding: 30px 45px 0 45px;" class="mobile-padding badge-row">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
 <tr>
-<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">News of the Month</p>
+<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; color: #ffffff;" class="section-badge">News of the Month</p>
 </td>
 </tr>
 </table>
@@ -204,11 +209,11 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <!-- Section header badge -->
 <tr>
-<td style="padding: 30px 45px 0 45px;" class="mobile-padding">
+<td style="padding: 30px 45px 0 45px;" class="mobile-padding badge-row">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
 <tr>
-<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">Trend Alert</p>
+<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; color: #ffffff;" class="section-badge">Trend Alert</p>
 </td>
 </tr>
 </table>
@@ -348,8 +353,8 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 <!-- Section header badge -->
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
 <tr>
-<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">Guess the Price</p>
+<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; color: #ffffff;" class="section-badge">Guess the Price</p>
 </td>
 </tr>
 </table>
@@ -390,7 +395,7 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 </tr>
 <!-- Fun Fact -->
 <tr>
-<td>
+<td style="padding-bottom: 20px;">
 <p style="margin: 0 0 3px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Fun Fact</p>
 <p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">{{GTP_FUN_FACT}}</p>
 </td>
@@ -432,8 +437,8 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 <!-- Section header badge -->
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
 <tr>
-<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">Quick Tip</p>
+<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; color: #ffffff;" class="section-badge">Quick Tip</p>
 </td>
 </tr>
 </table>
@@ -441,9 +446,9 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 <!-- Tip content with bullet icon -->
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <tr>
-<!-- Teal diamond bullet -->
-<td width="24" valign="top" style="padding-right: 12px; padding-top: 3px;">
-<div style="width: 12px; height: 12px; background-color: #008181; border-radius: 2px; transform: rotate(45deg);"></div>
+<!-- Teal checkmark bullet -->
+<td width="28" valign="top" style="padding-right: 10px; padding-top: 1px;">
+<span style="font-size: 20px; color: #44b9b4; font-weight: bold; line-height: 26px;">&#10003;</span>
 </td>
 <!-- Tip text -->
 <td valign="top">
@@ -480,15 +485,36 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 <tr>
 <td style="padding: 45px 45px; text-align: center;" class="mobile-padding">
 <h2 style="margin: 0 0 12px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 28px; line-height: 36px; font-weight: 700; color: #ffffff;" class="cta-heading">Cover Your Sparkle</h2>
-<p style="margin: 0 0 25px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">BriteCo offers affordable, comprehensive jewelry insurance that's easy to set up and gives you peace of mind.</p>
+<p style="margin: 0 0 25px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">BriteCo offers affordable, comprehensive insurance that's easy to set up and gives you peace of mind.</p>
 <!--[if mso]>
-<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://brite.co/jewelry-insurance/" style="height:48px;v-text-anchor:middle;width:200px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
+<tr>
+<td style="padding-right:8px;">
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://brite.co/jewelry-insurance/" style="height:44px;v-text-anchor:middle;width:180px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
 <w:anchorlock/>
-<center style="color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;">GET A FREE QUOTE</center>
+<center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">JEWELRY INSURANCE</center>
 </v:roundrect>
+</td>
+<td style="padding-left:8px;">
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://brite.co/wedding-insurance/" style="height:44px;v-text-anchor:middle;width:190px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
+<w:anchorlock/>
+<center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">WEDDING INSURANCE</center>
+</v:roundrect>
+</td>
+</tr>
+</table>
 <![endif]-->
 <!--[if !mso]><!-->
-<a href="https://brite.co/jewelry-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 15px; font-weight: 700; padding: 14px 36px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">GET A FREE QUOTE</a>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+<tr>
+<td style="padding-right: 12px;" class="cta-btn">
+<a href="https://brite.co/jewelry-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">JEWELRY INSURANCE</a>
+</td>
+<td style="padding-left: 12px;" class="cta-btn">
+<a href="https://brite.co/wedding-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">WEDDING INSURANCE</a>
+</td>
+</tr>
+</table>
 <!--<![endif]-->
 </td>
 </tr>
@@ -507,7 +533,7 @@ u + .body .gtp-details { display: block !important; width: 100% !important; }
 <tr>
 <td style="background-color: #272d3e; padding: 35px 45px; text-align: center;" class="mobile-padding">
 <a href="https://brite.co" target="_blank">
-<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-1.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto 18px auto;">
+<img src="/static/briteco-logo-white.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto 18px auto;">
 </a>
 <p style="margin: 0 0 8px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #aaaaaa;">
 805 Greenwood Street, Evanston, IL 60201
