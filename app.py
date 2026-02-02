@@ -719,6 +719,19 @@ def generate_newsletter():
                 safe_print(f"  Error generating intro: {e}")
                 generated['intro'] = f"Welcome to the {month} edition of BriteCo's newsletter!"
 
+        # Clean intro: strip AI-generated prefixes like "May Newsletter Intro:" etc.
+        intro_text = generated.get('intro', '')
+        intro_text = re.sub(
+            r'^(?:\w+\s+)?newsletter\s+intro(?:duction)?[\s:;\-–—]*',
+            '', intro_text, flags=re.IGNORECASE
+        ).strip()
+        # Also strip quoted wrapping if AI wrapped in quotes
+        if intro_text.startswith('"') and intro_text.endswith('"'):
+            intro_text = intro_text[1:-1].strip()
+        if intro_text.startswith("'") and intro_text.endswith("'"):
+            intro_text = intro_text[1:-1].strip()
+        generated['intro'] = intro_text
+
         # 2. Generate What's Inside agenda
         try:
             sections_to_tease = []
@@ -1738,8 +1751,12 @@ def render_email_template():
         html = html.replace('{{YEAR}}', str(year))
         html = html.replace('{{PREHEADER}}', preheader)
 
-        # Intro
-        html = html.replace('{{INTRO_TEXT}}', content.get('intro', f'Welcome to the {month} edition!'))
+        # Intro - clean any AI-generated prefixes
+        intro_val = content.get('intro', f'Welcome to the {month} edition!')
+        intro_val = re.sub(r'^(?:\w+\s+)?newsletter\s+intro(?:duction)?[\s:;\-–—]*', '', intro_val, flags=re.IGNORECASE).strip()
+        if intro_val.startswith('"') and intro_val.endswith('"'):
+            intro_val = intro_val[1:-1].strip()
+        html = html.replace('{{INTRO_TEXT}}', intro_val or f'Welcome to the {month} edition!')
 
         # What's Inside agenda
         agenda_items = content.get('agenda_items', [])

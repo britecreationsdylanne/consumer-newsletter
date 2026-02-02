@@ -26,6 +26,7 @@ html, body { margin: 0 auto !important; padding: 0 !important; height: 100% !imp
 div[style*="margin: 16px 0"] { margin: 0 !important; }
 table, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
 table { border-spacing: 0 !important; border-collapse: collapse !important; margin: 0 auto !important; }
+.badge-table { margin: 0 0 30px 0 !important; }
 img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
 a { text-decoration: none; }
 a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
@@ -47,15 +48,16 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; }
 .gtp-image img { width: 100% !important; max-width: 100% !important; }
 .gtp-details { display: block !important; width: 100% !important; }
-.section-badge { font-size: 16px !important; padding: 5px 14px !important; }
+.section-badge { font-size: 14px !important; padding: 5px 14px !important; }
+.badge-table { margin: 0 0 20px 0 !important; }
 .badge-row { padding-bottom: 8px !important; }
 .cta-heading { font-size: 24px !important; line-height: 32px !important; }
 .cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; text-align: center !important; box-sizing: border-box !important; }
 }
 u + .body .mobile-full { width: 100% !important; }
-u + .body .blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }
-u + .body .blog-card-inner { width: 100% !important; max-width: 100% !important; }
-u + .body .blog-card-inner img { width: 100% !important; max-width: 100% !important; height: auto !important; }
+u + .body .blog-card { display: block !important; width: 100% !important; max-width: 100% !important; min-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }
+u + .body .blog-card-inner { width: 100% !important; max-width: 100% !important; min-width: 100% !important; }
+u + .body .blog-card-inner img { width: 100% !important; max-width: 100% !important; min-width: 100% !important; height: auto !important; }
 u + .body .gtp-image { display: block !important; width: 100% !important; padding-right: 0 !important; }
 u + .body .gtp-details { display: block !important; width: 100% !important; }
 u + .body .cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; }
@@ -148,10 +150,10 @@ u + .body .cta-btn { display: block !important; width: 100% !important; margin-b
 <!-- Section header badge -->
 <tr>
 <td style="padding: 30px 45px 0 45px;" class="mobile-padding badge-row">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">
 <tr>
 <td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; color: #ffffff;" class="section-badge">News of the Month</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">News of the Month</p>
 </td>
 </tr>
 </table>
@@ -210,10 +212,10 @@ u + .body .cta-btn { display: block !important; width: 100% !important; margin-b
 <!-- Section header badge -->
 <tr>
 <td style="padding: 30px 45px 0 45px;" class="mobile-padding badge-row">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">
 <tr>
 <td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; color: #ffffff;" class="section-badge">Trend Alert</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">Trend Alert</p>
 </td>
 </tr>
 </table>
@@ -278,7 +280,7 @@ u + .body .cta-btn { display: block !important; width: 100% !important; margin-b
 </tr>
 <!-- Article title -->
 <tr>
-<td style="padding: 18px 18px 12px 18px;">
+<td height="66" valign="top" style="padding: 18px 18px 12px 18px; height: 66px;">
 <p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">{{BLOG_1_TITLE}}</p>
 </td>
 </tr>
@@ -312,7 +314,7 @@ u + .body .cta-btn { display: block !important; width: 100% !important; margin-b
 </tr>
 <!-- Article title -->
 <tr>
-<td style="padding: 18px 18px 12px 18px;">
+<td height="66" valign="top" style="padding: 18px 18px 12px 18px; height: 66px;">
 <p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">{{BLOG_2_TITLE}}</p>
 </td>
 </tr>
@@ -351,10 +353,10 @@ u + .body .cta-btn { display: block !important; width: 100% !important; margin-b
 <tr>
 <td style="padding: 30px 45px;" class="mobile-padding">
 <!-- Section header badge -->
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">
 <tr>
 <td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; color: #ffffff;" class="section-badge">Guess the Price</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">Guess the Price</p>
 </td>
 </tr>
 </table>
@@ -435,10 +437,10 @@ u + .body .cta-btn { display: block !important; width: 100% !important; margin-b
 <tr>
 <td style="padding: 30px 45px;" class="mobile-padding">
 <!-- Section header badge -->
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">
 <tr>
 <td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; color: #ffffff;" class="section-badge">Quick Tip</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">Quick Tip</p>
 </td>
 </tr>
 </table>
@@ -446,9 +448,9 @@ u + .body .cta-btn { display: block !important; width: 100% !important; margin-b
 <!-- Tip content with bullet icon -->
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <tr>
-<!-- Teal checkmark bullet -->
-<td width="28" valign="top" style="padding-right: 10px; padding-top: 1px;">
-<span style="font-size: 20px; color: #44b9b4; font-weight: bold; line-height: 26px;">&#10003;</span>
+<!-- BriteCo check icon -->
+<td width="28" valign="top" style="padding-right: 10px; padding-top: 2px;">
+<img src="/static/briteco-check.png" width="22" height="22" alt="&#10003;" style="width: 22px; height: 22px; display: block; border: 0;">
 </td>
 <!-- Tip text -->
 <td valign="top">

@@ -30,6 +30,26 @@ class YouTubeClient:
         """Check if YouTube API is configured"""
         return bool(self.api_key)
 
+    def _get_uploads_playlist_id(self, channel_id: str) -> Optional[str]:
+        """Get the uploads playlist ID for a channel."""
+        # YouTube uploads playlist ID = replace 'UC' prefix with 'UU'
+        if channel_id.startswith("UC"):
+            return "UU" + channel_id[2:]
+        # Fallback: query the API
+        try:
+            resp = requests.get(
+                f"{self.BASE_URL}/channels",
+                params={"key": self.api_key, "id": channel_id, "part": "contentDetails"},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                items = resp.json().get("items", [])
+                if items:
+                    return items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
+        except Exception as e:
+            print(f"[YouTube] Error getting uploads playlist: {e}")
+        return None
+
     def get_channel_videos(
         self,
         channel_id: Optional[str] = None,
@@ -39,8 +59,8 @@ class YouTubeClient:
         """
         Get recent videos from a YouTube channel.
 
-        Uses the search endpoint to list recent uploads, then fetches
-        full video details (view counts, etc.) in a second call.
+        Uses the uploads playlist to list ALL videos (not limited like search),
+        then fetches full video details (view counts, etc.) in a second call.
 
         Args:
             channel_id: YouTube channel ID (defaults to BriteCo)
@@ -58,46 +78,49 @@ class YouTubeClient:
         max_results = min(max_results, 50)
 
         try:
-            # Step 1: Search for channel's recent videos
-            search_params = {
+            # Step 1: Get uploads playlist and list videos
+            playlist_id = self._get_uploads_playlist_id(channel_id)
+            if not playlist_id:
+                print(f"[YouTube] Could not get uploads playlist for {channel_id}")
+                return {"videos": [], "next_page_token": None}
+
+            playlist_params = {
                 "key": self.api_key,
-                "channelId": channel_id,
+                "playlistId": playlist_id,
                 "part": "snippet",
-                "order": "date",
-                "type": "video",
                 "maxResults": max_results,
             }
             if page_token:
-                search_params["pageToken"] = page_token
+                playlist_params["pageToken"] = page_token
 
-            print(f"[YouTube] Fetching videos for channel {channel_id}...")
+            print(f"[YouTube] Fetching videos from uploads playlist {playlist_id}...")
             response = requests.get(
-                f"{self.BASE_URL}/search",
-                params=search_params,
+                f"{self.BASE_URL}/playlistItems",
+                params=playlist_params,
                 timeout=15
             )
 
             if response.status_code != 200:
-                print(f"[YouTube] Search API error: {response.status_code} - {response.text[:200]}")
+                print(f"[YouTube] Playlist API error: {response.status_code} - {response.text[:200]}")
                 return {"videos": [], "next_page_token": None}
 
-            search_data = response.json()
-            items = search_data.get("items", [])
-            next_page_token = search_data.get("nextPageToken")
+            playlist_data = response.json()
+            items = playlist_data.get("items", [])
+            next_page_token = playlist_data.get("nextPageToken")
 
             if not items:
-                print("[YouTube] No videos found for channel")
+                print("[YouTube] No videos found in uploads playlist")
                 return {"videos": [], "next_page_token": None}
 
-            # Extract video IDs
+            # Extract video IDs from playlist items
             video_ids = [
-                item["id"]["videoId"]
+                item["snippet"]["resourceId"]["videoId"]
                 for item in items
-                if item.get("id", {}).get("videoId")
+                if item.get("snippet", {}).get("resourceId", {}).get("videoId")
             ]
 
             if not video_ids:
-                print("[YouTube] No video IDs extracted from search results")
+                print("[YouTube] No video IDs extracted from playlist")
                 return {"videos": [], "next_page_token": None}
 
             # Step 2: Get full video details (view counts, duration, etc.)
