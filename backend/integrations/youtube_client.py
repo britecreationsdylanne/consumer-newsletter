@@ -33,8 +33,9 @@ class YouTubeClient:
     def get_channel_videos(
         self,
         channel_id: Optional[str] = None,
-        max_results: int = 20
-    ) -> List[Dict]:
+        max_results: int = 20,
+        page_token: Optional[str] = None
+    ) -> dict:
         """
         Get recent videos from a YouTube channel.
 
@@ -44,13 +45,14 @@ class YouTubeClient:
         Args:
             channel_id: YouTube channel ID (defaults to BriteCo)
             max_results: Maximum number of videos to return (max 50)
+            page_token: Token for next page of results
 
         Returns:
-            List of video dicts with full details
+            Dict with 'videos' list and optional 'next_page_token'
         """
         if not self.is_available():
             print("[YouTube] API key not configured")
-            return []
+            return {"videos": [], "next_page_token": None}
 
         channel_id = channel_id or self.DEFAULT_CHANNEL_ID
         max_results = min(max_results, 50)
@@ -65,6 +67,8 @@ class YouTubeClient:
                 "type": "video",
                 "maxResults": max_results,
             }
+            if page_token:
+                search_params["pageToken"] = page_token
 
             print(f"[YouTube] Fetching videos for channel {channel_id}...")
             response = requests.get(
@@ -75,14 +79,15 @@ class YouTubeClient:
 
             if response.status_code != 200:
                 print(f"[YouTube] Search API error: {response.status_code} - {response.text[:200]}")
-                return []
+                return {"videos": [], "next_page_token": None}
 
             search_data = response.json()
             items = search_data.get("items", [])
+            next_page_token = search_data.get("nextPageToken")
 
             if not items:
                 print("[YouTube] No videos found for channel")
-                return []
+                return {"videos": [], "next_page_token": None}
 
             # Extract video IDs
             video_ids = [
@@ -93,25 +98,25 @@ class YouTubeClient:
 
             if not video_ids:
                 print("[YouTube] No video IDs extracted from search results")
-                return []
+                return {"videos": [], "next_page_token": None}
 
             # Step 2: Get full video details (view counts, duration, etc.)
             videos = self._get_video_details(video_ids)
 
-            print(f"[YouTube] Found {len(videos)} videos")
-            return videos
+            print(f"[YouTube] Found {len(videos)} videos (next_page: {'yes' if next_page_token else 'no'})")
+            return {"videos": videos, "next_page_token": next_page_token}
 
         except requests.exceptions.Timeout:
             print("[YouTube] Request timed out")
-            return []
+            return {"videos": [], "next_page_token": None}
         except requests.exceptions.RequestException as e:
             print(f"[YouTube] Request error: {e}")
-            return []
+            return {"videos": [], "next_page_token": None}
         except Exception as e:
             print(f"[YouTube] Error: {e}")
             import traceback
             traceback.print_exc()
-            return []
+            return {"videos": [], "next_page_token": None}
 
     def _get_video_details(self, video_ids: List[str]) -> List[Dict]:
         """
@@ -201,7 +206,7 @@ class YouTubeClient:
         self,
         channel_id: Optional[str] = None,
         max_results: int = 10
-    ) -> List[Dict]:
+    ) -> dict:
         """
         Get channel videos sorted by view count (most popular first).
 
@@ -210,25 +215,27 @@ class YouTubeClient:
             max_results: Number of top videos to return
 
         Returns:
-            List of videos sorted by view count descending
+            Dict with 'videos' sorted by view count and 'next_page_token'
         """
         # Fetch more than needed so we have a good pool to sort
-        videos = self.get_channel_videos(
+        result = self.get_channel_videos(
             channel_id=channel_id,
             max_results=min(max_results * 2, 50)
         )
 
+        videos = result.get("videos", []) if isinstance(result, dict) else result
         # Sort by view count descending
         videos.sort(key=lambda v: v.get("view_count", 0), reverse=True)
 
-        return videos[:max_results]
+        return {"videos": videos[:max_results], "next_page_token": result.get("next_page_token") if isinstance(result, dict) else None}
 
     def get_videos_sorted(
         self,
         sort: str = "recent",
         channel_id: Optional[str] = None,
-        max_results: int = 10
-    ) -> List[Dict]:
+        max_results: int = 10,
+        page_token: Optional[str] = None
+    ) -> dict:
         """
         Get channel videos with flexible sorting.
 
@@ -236,15 +243,17 @@ class YouTubeClient:
             sort: "recent" (newest first) or "popular" (most views first)
             channel_id: YouTube channel ID
             max_results: Number of videos to return
+            page_token: Token for next page
 
         Returns:
-            Sorted list of videos
+            Dict with 'videos' list and optional 'next_page_token'
         """
         if sort == "popular":
             return self.get_videos_by_popularity(channel_id, max_results)
         else:
-            videos = self.get_channel_videos(channel_id, max_results)
-            return videos[:max_results]
+            result = self.get_channel_videos(channel_id, max_results, page_token)
+            videos = result.get("videos", []) if isinstance(result, dict) else result
+            return {"videos": videos[:max_results], "next_page_token": result.get("next_page_token") if isinstance(result, dict) else None}
 
     def get_video_by_url(self, url: str) -> Optional[Dict]:
         """

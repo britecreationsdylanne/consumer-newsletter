@@ -144,11 +144,17 @@ Important:
                 print("[Perplexity] No content in response")
                 return []
 
-            # If we have citations, use them to build results
-            if citations:
+            # First, try to parse the content as JSON directly
+            # This handles cases where the system prompt asks for JSON output
+            json_results = self._try_parse_json_results(content, max_results)
+            if json_results:
+                print(f"[Perplexity] Parsed {len(json_results)} results from JSON response")
+                results = json_results
+            elif citations:
+                # Fall back to citation-based parsing
                 results = self._parse_with_citations(content, citations, max_results)
             else:
-                # Try to parse JSON from response (legacy approach)
+                # Legacy JSON/text parsing
                 results = self._parse_results(content, max_results)
 
             # Add source_card field
@@ -170,6 +176,56 @@ Important:
             import traceback
             traceback.print_exc()
             return []
+
+    def _try_parse_json_results(self, content: str, max_results: int) -> list:
+        """Try to parse content as a JSON response with a results array.
+        Returns parsed results list, or None if content is not JSON."""
+        import re
+
+        text = content.strip()
+        # Strip markdown code fences
+        if text.startswith("```"):
+            text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
+            text = re.sub(r"\n?```$", "", text).strip()
+
+        # Look for a JSON object containing "results"
+        if '"results"' not in text:
+            return None
+
+        # Try to find and parse the JSON
+        json_match = re.search(r'\{[\s\S]*"results"\s*:\s*\[[\s\S]*\][\s\S]*\}', text)
+        if not json_match:
+            return None
+
+        try:
+            data = json.loads(json_match.group(0))
+            raw_results = data.get('results', [])
+            if not raw_results:
+                return None
+
+            cleaned = []
+            for r in raw_results[:max_results]:
+                if not isinstance(r, dict):
+                    continue
+                title = r.get('title', '')
+                url = r.get('url', '')
+                if not title and not url:
+                    continue
+                cleaned.append({
+                    'title': title,
+                    'url': url,
+                    'publisher': r.get('publisher', self._extract_domain(url) if url else ''),
+                    'published_at': r.get('published_date', ''),
+                    'snippet': r.get('summary', r.get('description', '')),
+                    'image_url': r.get('image_url', None),
+                    'source_card': 'perplexity',
+                    'category': 'research'
+                })
+
+            return cleaned if cleaned else None
+        except (json.JSONDecodeError, Exception) as e:
+            print(f"[Perplexity] JSON parse attempt failed: {e}")
+            return None
 
     def _parse_with_citations(self, content: str, citations: list, max_results: int) -> List[Dict]:
         """Parse results using Perplexity's citations array with better title extraction"""

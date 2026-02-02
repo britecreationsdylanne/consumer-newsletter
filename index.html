@@ -1019,12 +1019,13 @@
             <h2>Image Generation</h2>
             <p class="step-description">Generate or upload images for the Quick Tip and Guess the Price sections</p>
 
-            <!-- Auto-generate prompts button -->
+            <!-- Auto-generate prompts loading indicator -->
             <div id="promptGenerationLoading" style="display:none;">
                 <div class="loading"><div class="spinner"></div><p>Claude is generating image prompts based on your content...</p></div>
             </div>
+            <p style="color:#6b7280;font-size:13px;margin-bottom:15px;">Image prompts are auto-generated when you reach this step. Edit them below if needed.</p>
             <div style="margin-bottom:20px;">
-                <button class="btn" onclick="autoGenerateImagePrompts()" id="autoPromptBtn">Auto-Generate Image Prompts with Claude</button>
+                <button class="btn-small" onclick="autoGenerateImagePrompts()" id="autoPromptBtn" style="background:#466F88;">Regenerate Image Prompts</button>
             </div>
 
             <div class="image-prompt-card" id="quickTipImageCard">
@@ -1235,7 +1236,11 @@
     let selectedTone = 'playful';
 
     let youtubeVideos = [];
+    let youtubeNextPageToken = null;
     let blogPosts = [];
+    let blogCurrentPage = 1;
+    let blogHasMore = true;
+    let introAndTipGenerated = false;
 
     let selectedContent = {
         news_of_month: null,
@@ -1291,7 +1296,13 @@
         }
         if (step === 2 && youtubeVideos.length === 0) loadYoutubeVideos();
         if (step === 3 && blogPosts.length === 0) loadBlogPosts();
-        if (step === 8) setupImageStep();
+        // Auto-generate intro & quick tip when entering Step 5
+        if (step === 5) { autoGenerateIntroAndTip(); }
+        // Auto-generate image prompts when entering Step 8
+        if (step === 8) {
+            setupImageStep();
+            if (!promptsAlreadyGenerated) { autoGenerateImagePrompts(); }
+        }
         if (step === 9) { autoGenerateSubjectLinesIfNeeded(); }
         currentStep = step;
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -1350,21 +1361,32 @@
     // ============================================================
     // YOUTUBE VIDEO SELECTION
     // ============================================================
-    async function loadYoutubeVideos(sort) {
+    async function loadYoutubeVideos(sort, append) {
         sort = sort || currentYoutubeSort;
+        currentYoutubeSort = sort;
         const grid = document.getElementById('youtubeGrid');
-        grid.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading BriteCo videos...</p></div>';
+        if (!append) {
+            grid.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading BriteCo videos...</p></div>';
+            youtubeNextPageToken = null;
+        }
         try {
-            const resp = await fetch(`${API_BASE}/api/youtube/videos?sort=${sort}&max_results=20`);
+            let url = `${API_BASE}/api/youtube/videos?sort=${sort}&max_results=20`;
+            if (append && youtubeNextPageToken) url += `&page_token=${youtubeNextPageToken}`;
+            const resp = await fetch(url);
             const data = await resp.json();
             if (data.success && data.videos) {
-                youtubeVideos = data.videos;
+                if (append) {
+                    youtubeVideos = youtubeVideos.concat(data.videos);
+                } else {
+                    youtubeVideos = data.videos;
+                }
+                youtubeNextPageToken = data.next_page_token || null;
                 renderYoutubeGrid();
             } else {
-                grid.innerHTML = '<p style="color:#dc3545;text-align:center;">Failed to load videos. ' + (data.error || '') + '</p>';
+                if (!append) grid.innerHTML = '<p style="color:#dc3545;text-align:center;">Failed to load videos. ' + (data.error || '') + '</p>';
             }
         } catch (e) {
-            grid.innerHTML = '<p style="color:#dc3545;text-align:center;">Error loading videos: ' + e.message + '</p>';
+            if (!append) grid.innerHTML = '<p style="color:#dc3545;text-align:center;">Error loading videos: ' + e.message + '</p>';
         }
     }
 
@@ -1397,6 +1419,13 @@
             card.onclick = () => selectYoutubeVideo(v);
             grid.appendChild(card);
         });
+        // Add "Load More" button if there are more pages
+        if (youtubeNextPageToken) {
+            const loadMoreBtn = document.createElement('div');
+            loadMoreBtn.style.cssText = 'text-align:center;padding:20px;grid-column:1/-1;';
+            loadMoreBtn.innerHTML = '<button class="btn" onclick="loadYoutubeVideos(null, true)" style="background:#466F88;">Load More Videos</button>';
+            grid.appendChild(loadMoreBtn);
+        }
     }
 
     function selectYoutubeVideo(video) {
@@ -1487,20 +1516,28 @@
     // ============================================================
     // BLOG ARTICLE SELECTION
     // ============================================================
-    async function loadBlogPosts() {
+    async function loadBlogPosts(append) {
         const grid = document.getElementById('blogGrid');
-        grid.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading blog posts...</p></div>';
+        if (!append) {
+            grid.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading blog posts...</p></div>';
+            blogCurrentPage = 1;
+        }
         try {
-            const resp = await fetch(`${API_BASE}/api/blog/posts?count=15`);
+            const resp = await fetch(`${API_BASE}/api/blog/posts?count=15&page=${blogCurrentPage}`);
             const data = await resp.json();
             if (data.success && data.posts) {
-                blogPosts = data.posts;
+                if (append) {
+                    blogPosts = blogPosts.concat(data.posts);
+                } else {
+                    blogPosts = data.posts;
+                }
+                blogHasMore = data.has_more !== false;
                 renderBlogGrid();
             } else {
-                grid.innerHTML = '<p style="color:#dc3545;text-align:center;">Failed to load blog posts.</p>';
+                if (!append) grid.innerHTML = '<p style="color:#dc3545;text-align:center;">Failed to load blog posts.</p>';
             }
         } catch (e) {
-            grid.innerHTML = '<p style="color:#dc3545;text-align:center;">Error: ' + e.message + '</p>';
+            if (!append) grid.innerHTML = '<p style="color:#dc3545;text-align:center;">Error: ' + e.message + '</p>';
         }
     }
 
@@ -1529,6 +1566,13 @@
             card.onclick = () => toggleBlogSelect(post);
             grid.appendChild(card);
         });
+        // Add "Load More" button if there are more posts
+        if (blogHasMore) {
+            const loadMoreBtn = document.createElement('div');
+            loadMoreBtn.style.cssText = 'text-align:center;padding:20px;grid-column:1/-1;';
+            loadMoreBtn.innerHTML = '<button class="btn" onclick="blogCurrentPage++;loadBlogPosts(true)" style="background:#466F88;">Load More Articles</button>';
+            grid.appendChild(loadMoreBtn);
+        }
     }
 
     function toggleBlogSelect(post) {
@@ -2672,7 +2716,78 @@
     });
 
     // ============================================================
-    // AI GENERATE INTRO
+    // AUTO-GENERATE INTRO & QUICK TIP ON STEP 5 ENTRY
+    // ============================================================
+    async function autoGenerateIntroAndTip() {
+        if (introAndTipGenerated) return;
+        introAndTipGenerated = true;
+
+        const introEl = document.getElementById('introContent');
+        const tipEl = document.getElementById('quickTipContent');
+
+        // Only auto-generate if fields are empty
+        const introEmpty = !introEl?.value?.trim();
+        const tipEmpty = !tipEl?.value?.trim();
+
+        if (!introEmpty && !tipEmpty) return;
+
+        // Show loading indicators
+        if (introEmpty && introEl) introEl.placeholder = 'AI is generating your intro...';
+        if (tipEmpty && tipEl) tipEl.placeholder = 'AI is generating a quick tip...';
+
+        // Generate both in parallel
+        const promises = [];
+
+        if (introEmpty) {
+            promises.push(
+                fetch(`${API_BASE}/api/generate-newsletter`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        month: selectedMonth, intro: '',
+                        news_of_month: { title: selectedContent.news_of_month?.title || '', description: '' },
+                        trend_alert: { title: selectedContent.trend_alert?.title || '', description: '' },
+                        blog_articles: [
+                            { title: selectedContent.blog_1?.title || '' },
+                            { title: selectedContent.blog_2?.title || '' }
+                        ],
+                        guess_the_price: { title: selectedContent.guess_the_price?.title || '' },
+                        quick_tip: ''
+                    })
+                }).then(r => r.json()).then(data => {
+                    if (data.success && data.generated?.intro && introEl) {
+                        introEl.value = data.generated.intro;
+                        updateWordCount('introContent', 'introWordCount');
+                    }
+                }).catch(e => console.error('Auto-gen intro error:', e))
+            );
+        }
+
+        if (tipEmpty) {
+            promises.push(
+                fetch(`${API_BASE}/api/generate-quick-tip`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ month: selectedMonth || 'january' })
+                }).then(r => r.json()).then(data => {
+                    if (data.success && data.tip && tipEl) {
+                        tipEl.value = data.tip;
+                        updateWordCount('quickTipContent', 'quickTipWordCount');
+                        if (data.image_prompt) {
+                            const promptEl = document.getElementById('quickTipImagePrompt');
+                            if (promptEl) promptEl.value = data.image_prompt;
+                        }
+                    }
+                }).catch(e => console.error('Auto-gen tip error:', e))
+            );
+        }
+
+        await Promise.all(promises);
+        // Restore placeholders
+        if (introEl) introEl.placeholder = 'Write a fun, engaging opening for this month\'s newsletter...';
+        if (tipEl) tipEl.placeholder = 'A quick seasonal jewelry care tip for readers...';
+    }
+
+    // ============================================================
+    // AI GENERATE INTRO (manual button)
     // ============================================================
     async function aiGenerateIntro() {
         const btn = event.target;
@@ -2737,13 +2852,18 @@
     // ============================================================
     async function autoGenerateImagePrompts() {
         const btn = document.getElementById('autoPromptBtn');
-        btn.disabled = true; btn.textContent = 'Generating prompts...';
-        document.getElementById('promptGenerationLoading').style.display = 'block';
+        if (btn) { btn.disabled = true; btn.textContent = 'Generating prompts...'; }
+        const loadingEl = document.getElementById('promptGenerationLoading');
+        if (loadingEl) loadingEl.style.display = 'block';
         try {
             const sections = {};
             const gc = generatedContent;
-            if (gc.quick_tip) sections.quick_tip = { title: 'Quick Tip', content: gc.quick_tip };
-            if (gc.guess_the_price) sections.guess_the_price = { title: gc.guess_the_price.title || 'Guess the Price', content: gc.guess_the_price.question || '' };
+            // Use generated content or fall back to selected content / user input
+            const tipText = gc.quick_tip || document.getElementById('quickTipContent')?.value || '';
+            const gtpTitle = gc.guess_the_price?.title || selectedContent.guess_the_price?.title || 'Guess the Price';
+            const gtpQuestion = gc.guess_the_price?.question || '';
+            if (tipText) sections.quick_tip = { title: 'Quick Tip', content: tipText };
+            sections.guess_the_price = { title: gtpTitle, content: gtpQuestion || selectedContent.guess_the_price?.fun_fact || '' };
 
             const resp = await fetch(`${API_BASE}/api/generate-image-prompts`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2761,8 +2881,8 @@
                 promptsAlreadyGenerated = true;
             }
         } catch (e) { console.error('Image prompt gen error:', e); }
-        document.getElementById('promptGenerationLoading').style.display = 'none';
-        btn.disabled = false; btn.textContent = 'Auto-Generate Image Prompts with Claude';
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (btn) { btn.disabled = false; btn.textContent = 'Regenerate Image Prompts'; }
     }
 
     // ============================================================

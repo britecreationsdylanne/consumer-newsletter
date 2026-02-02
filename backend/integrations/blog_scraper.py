@@ -27,7 +27,8 @@ class BlogScraper:
         self,
         count: int = 10,
         category: Optional[str] = None,
-        search: Optional[str] = None
+        search: Optional[str] = None,
+        page: int = 1
     ) -> List[Dict]:
         """
         Fetch recent blog posts from brite.co.
@@ -36,6 +37,7 @@ class BlogScraper:
             count: Number of posts to return (max 100)
             category: Optional category slug to filter by
             search: Optional search term to filter posts
+            page: Page number for pagination (default 1)
 
         Returns:
             List of post dicts with title, url, excerpt, image, date, etc.
@@ -43,6 +45,7 @@ class BlogScraper:
         try:
             params = {
                 "per_page": min(count, 100),
+                "page": page,
                 "orderby": "date",
                 "order": "desc",
                 "status": "publish",

@@ -74,10 +74,17 @@ CORS(app)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Session configuration for OAuth
-app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
+flask_key = os.environ.get('FLASK_SECRET_KEY')
+if flask_key:
+    app.secret_key = flask_key
+    print("[OK] Flask secret key loaded from environment")
+else:
+    app.secret_key = secrets.token_hex(32)
+    print("[WARNING] Flask secret key auto-generated - sessions will not persist across restarts. Set FLASK_SECRET_KEY env var.")
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 7  # 7 days
 
 # OAuth configuration
 oauth = OAuth(app)
@@ -191,6 +198,7 @@ def auth_callback():
             </html>
             ''', 403
 
+        session.permanent = True
         session['user'] = {
             'email': email,
             'name': user_info.get('name', ''),
@@ -305,14 +313,41 @@ def html_to_plain_text(html_content):
 
 def parse_json_from_llm(content):
     """Extract JSON from LLM response that may contain markdown code blocks"""
+    import re
     if not content:
         return {}
-    content = content.strip()
-    if '```json' in content:
-        content = content.split('```json')[1].split('```')[0].strip()
-    elif '```' in content:
-        content = content.split('```')[1].split('```')[0].strip()
-    return json.loads(content)
+    text = content.strip()
+
+    # Try 1: Strip markdown code fences
+    if '```json' in text:
+        text = text.split('```json')[1].split('```')[0].strip()
+    elif '```' in text:
+        text = text.split('```')[1].split('```')[0].strip()
+
+    # Try 2: Direct parse
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Try 3: Find JSON object with regex
+    json_match = re.search(r'\{[\s\S]*\}', text)
+    if json_match:
+        try:
+            return json.loads(json_match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    # Try 4: Find JSON array with regex
+    json_match = re.search(r'\[[\s\S]*\]', text)
+    if json_match:
+        try:
+            return json.loads(json_match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    # Last resort: raise so caller can handle
+    raise json.JSONDecodeError("Could not extract JSON from LLM response", text, 0)
 
 
 def resize_image(base64_data, target_size):
@@ -340,17 +375,22 @@ def get_youtube_videos():
     try:
         sort = request.args.get('sort', 'popular')
         max_results = int(request.args.get('max_results', '20'))
+        page_token = request.args.get('page_token', None)
 
         if not youtube_client.is_available():
             return jsonify({'success': False, 'error': 'YouTube API key not configured'}), 503
 
-        videos = youtube_client.get_videos_sorted(
+        result = youtube_client.get_videos_sorted(
             sort=sort,
             channel_id=YOUTUBE_CONFIG['channel_id'],
-            max_results=max_results
+            max_results=max_results,
+            page_token=page_token
         )
 
-        return jsonify({'success': True, 'videos': videos})
+        videos = result.get('videos', []) if isinstance(result, dict) else result
+        next_page_token = result.get('next_page_token') if isinstance(result, dict) else None
+
+        return jsonify({'success': True, 'videos': videos, 'next_page_token': next_page_token})
 
     except Exception as e:
         safe_print(f"[API ERROR] YouTube videos: {e}")
@@ -388,16 +428,18 @@ def get_blog_posts():
     """Get recent BriteCo blog posts"""
     try:
         count = int(request.args.get('count', '10'))
+        page = int(request.args.get('page', '1'))
         category = request.args.get('category', None)
         search = request.args.get('search', None)
 
         posts = blog_scraper.get_recent_posts(
             count=count,
             category=category,
-            search=search
+            search=search,
+            page=page
         )
 
-        return jsonify({'success': True, 'posts': posts})
+        return jsonify({'success': True, 'posts': posts, 'page': page, 'has_more': len(posts) == count})
 
     except Exception as e:
         safe_print(f"[API ERROR] Blog posts: {e}")
@@ -1220,11 +1262,15 @@ def export_to_docs():
         recipients = data.get('recipients', [])
 
         safe_print(f"[API] Exporting to Google Docs: {title}")
+        safe_print(f"[API] Drive folder ID: {GOOGLE_DRIVE_FOLDER_ID}")
 
         creds_json = os.environ.get('GOOGLE_DOCS_CREDENTIALS') or os.environ.get('_GOOGLE_DOCS_CREDENTIALS')
 
         if not creds_json:
-            return jsonify({"success": False, "error": "Google Docs credentials not configured."}), 500
+            safe_print("[API ERROR] GOOGLE_DOCS_CREDENTIALS env var not set")
+            return jsonify({"success": False, "error": "Google Docs credentials not configured. Check GOOGLE_DOCS_CREDENTIALS env var or Cloud Build secret."}), 500
+
+        safe_print(f"[API] Google creds loaded, length: {len(creds_json)}")
 
         try:
             creds_data = json.loads(creds_json)
