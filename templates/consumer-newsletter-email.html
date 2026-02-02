@@ -33,7 +33,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 .button-link:hover { opacity: 0.9; }
 
 @media screen and (max-width: 700px) {
-.mobile-full { width: 100% !important; max-width: 100% !important; }
+.mobile-full { width: 100% !important; max-width: 100% !important; min-width: 100% !important; }
 .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
 .mobile-stack { display: block !important; width: 100% !important; max-width: 100% !important; }
 .mobile-stack-padding { padding-right: 0 !important; padding-bottom: 20px !important; }
@@ -41,14 +41,22 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 .mobile-img-full { width: 100% !important; height: auto !important; max-width: 100% !important; }
 .mobile-hide { display: none !important; }
 .mobile-spacer { height: 15px !important; }
-.blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; }
-.blog-card-inner { width: 100% !important; }
+.blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }
+.blog-card-inner { width: 100% !important; max-width: 100% !important; }
+.blog-card-inner img { max-width: 100% !important; width: 100% !important; height: auto !important; }
 .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; }
+.gtp-image img { width: 100% !important; max-width: 100% !important; }
 .gtp-details { display: block !important; width: 100% !important; }
+.section-badge { font-size: 22px !important; }
+.cta-heading { font-size: 24px !important; line-height: 32px !important; }
 }
+u + .body .mobile-full { width: 100% !important; }
+u + .body .blog-card { display: block !important; width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
+u + .body .gtp-image { display: block !important; width: 100% !important; padding-right: 0 !important; }
+u + .body .gtp-details { display: block !important; width: 100% !important; }
 </style>
 </head>
-<body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #e8e8e8;">
+<body width="100%" class="body" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #e8e8e8;">
 
 <!-- Preheader -->
 <div style="display: none; max-height: 0px; overflow: hidden;">{{PREHEADER}}</div>
@@ -62,7 +70,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <![endif]-->
 
 <!-- Outer Container 680px -->
-<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="680" style="margin: 0 auto; max-width: 680px;" class="mobile-full">
+<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 680px;" class="mobile-full">
 
 <!-- Top Spacer -->
 <tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
@@ -73,7 +81,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <tr>
 <td align="center" style="background-color: #272d3f; padding: 30px 40px;">
 <a href="https://brite.co" target="_blank">
-<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-white.png" width="140" alt="BriteCo" style="width: 140px; max-width: 140px; height: auto; display: block;">
+<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-1.png" width="140" alt="BriteCo" style="width: 140px; max-width: 140px; height: auto; display: block;">
 </a>
 </td>
 </tr>
@@ -118,7 +126,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </tr>
 
 <!-- Spacer -->
-<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
 
 <!-- ============================================ -->
 <!-- NEWS OF THE MONTH - YouTube video            -->
@@ -138,7 +146,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
 <tr>
 <td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">News of the Month</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">News of the Month</p>
 </td>
 </tr>
 </table>
@@ -180,7 +188,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </tr>
 
 <!-- Spacer -->
-<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
 
 <!-- ============================================ -->
 <!-- TREND ALERT - YouTube video                  -->
@@ -200,7 +208,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
 <tr>
 <td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">Trend Alert</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">Trend Alert</p>
 </td>
 </tr>
 </table>
@@ -242,7 +250,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </tr>
 
 <!-- Spacer -->
-<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
 
 <!-- ============================================ -->
 <!-- TWO BLOG ARTICLES - Side by side cards       -->
@@ -259,7 +267,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <tr>
 <td>
 <a href="{{BLOG_1_URL}}" target="_blank">
-<img src="{{BLOG_1_IMAGE}}" width="280" alt="{{BLOG_1_TITLE}}" style="width: 100%; max-width: 280px; height: 180px; object-fit: cover; display: block;" class="mobile-img-full">
+<img src="{{BLOG_1_IMAGE}}" width="280" alt="{{BLOG_1_TITLE}}" style="width: 100%; max-width: 280px; max-height: 200px; object-fit: cover; display: block;" class="mobile-img-full">
 </a>
 </td>
 </tr>
@@ -293,7 +301,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <tr>
 <td>
 <a href="{{BLOG_2_URL}}" target="_blank">
-<img src="{{BLOG_2_IMAGE}}" width="280" alt="{{BLOG_2_TITLE}}" style="width: 100%; max-width: 280px; height: 180px; object-fit: cover; display: block;" class="mobile-img-full">
+<img src="{{BLOG_2_IMAGE}}" width="280" alt="{{BLOG_2_TITLE}}" style="width: 100%; max-width: 280px; max-height: 200px; object-fit: cover; display: block;" class="mobile-img-full">
 </a>
 </td>
 </tr>
@@ -325,7 +333,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </tr>
 
 <!-- Spacer -->
-<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
 
 <!-- ============================================ -->
 <!-- GUESS THE PRICE                              -->
@@ -341,7 +349,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
 <tr>
 <td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">Guess the Price</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">Guess the Price</p>
 </td>
 </tr>
 </table>
@@ -409,7 +417,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </tr>
 
 <!-- Spacer -->
-<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
 
 <!-- ============================================ -->
 <!-- QUICK TIP                                    -->
@@ -425,7 +433,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
 <tr>
 <td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">Quick Tip</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">Quick Tip</p>
 </td>
 </tr>
 </table>
@@ -455,7 +463,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </tr>
 
 <!-- Spacer -->
-<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
 
 <!-- ============================================ -->
 <!-- INSURANCE CTA                                -->
@@ -471,7 +479,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <tr>
 <td style="padding: 45px 45px; text-align: center;" class="mobile-padding">
-<h2 style="margin: 0 0 12px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 28px; line-height: 36px; font-weight: 700; color: #ffffff;">Cover Your Sparkle</h2>
+<h2 style="margin: 0 0 12px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 28px; line-height: 36px; font-weight: 700; color: #ffffff;" class="cta-heading">Cover Your Sparkle</h2>
 <p style="margin: 0 0 25px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">BriteCo offers affordable, comprehensive jewelry insurance that's easy to set up and gives you peace of mind.</p>
 <!--[if mso]>
 <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://brite.co/jewelry-insurance/" style="height:48px;v-text-anchor:middle;width:200px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
@@ -499,7 +507,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <tr>
 <td style="background-color: #272d3e; padding: 35px 45px; text-align: center;" class="mobile-padding">
 <a href="https://brite.co" target="_blank">
-<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-white.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto 18px auto;">
+<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-1.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto 18px auto;">
 </a>
 <p style="margin: 0 0 8px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #aaaaaa;">
 805 Greenwood Street, Evanston, IL 60201

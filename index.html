@@ -1229,16 +1229,11 @@
                     <input type="text" id="ontraportSubjectInput" style="width: 100%; padding: 10px; font-size: 16px; color: #272d3f; border: 2px solid #22c55e; border-radius: 6px; background: #ffffff; box-sizing: border-box;" placeholder="Enter subject line..." />
                 </div>
 
-                <button class="btn btn-orange" onclick="pushToOntraport()" id="ontraportBtn" style="width: 100%; padding: 15px; font-size: 16px;">
+                <button class="btn" onclick="pushToOntraport()" id="ontraportBtn" style="width: 100%; padding: 15px; font-size: 16px; background: #018181;">
                     <span id="ontraportBtnText">Push to Ontraport</span>
                 </button>
 
-                <div id="ontraportStatus" style="display: none; margin-top: 20px; padding: 15px; border-radius: 6px;"></div>
-
-                <div style="margin-top:20px;border-top:2px solid #e5e7eb;padding-top:20px;">
-                    <button class="btn btn-green" onclick="publishAndFinish()" style="width:100%;padding:15px;font-size:16px;">Publish Draft</button>
-                    <div id="publishStatus" style="margin-top:8px;"></div>
-                </div>
+                <div id="ontraportResult" style="display: none; margin-top: 20px; padding: 15px; border-radius: 6px;"></div>
             </div>
 
             <div class="buttons">
@@ -1454,7 +1449,7 @@
             youtubeNextPageToken = null;
         }
         try {
-            let url = `${API_BASE}/api/youtube/videos?sort=${sort}&max_results=20`;
+            let url = `${API_BASE}/api/youtube/videos?sort=${sort}&max_results=50`;
             if (append && youtubeNextPageToken) url += `&page_token=${youtubeNextPageToken}`;
             const resp = await fetch(url);
             const data = await resp.json();
@@ -1794,6 +1789,21 @@
         document.getElementById('gtpWhereItLives').value = '';
         document.getElementById('gtpFunFact').value = '';
         previewGTPImage();
+
+        // Auto-fetch OG image if no image provided and URL exists
+        if (!(item.image_url || item.image) && item.url) {
+            try {
+                const imgResp = await fetch(`${API_BASE}/api/fetch-article-metadata`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: item.url })
+                });
+                const imgData = await imgResp.json();
+                if (imgData.success && imgData.metadata?.image) {
+                    document.getElementById('gtpImageUrl').value = imgData.metadata.image;
+                    previewGTPImage();
+                }
+            } catch (e) { console.log('Auto image fetch failed:', e); }
+        }
 
         // Auto-generate details with AI
         document.getElementById('gtpGeneratingDetails').style.display = 'block';
@@ -2193,27 +2203,138 @@
     function renderBrandCheckResults(check) {
         const container = document.getElementById('brandCheckResults');
         if (!check) { container.innerHTML = '<div class="brand-suggestion brand-pass"><p>No issues found!</p></div>'; return; }
+
+        const suggestions = check.suggestions || check.issues || [];
         let html = '';
-        if (typeof check === 'string') {
-            html = '<div class="brand-suggestion brand-pass"><p>' + escapeHtml(check) + '</p></div>';
-        } else if (check.suggestions && Array.isArray(check.suggestions)) {
-            if (check.suggestions.length === 0) {
-                html = '<div class="brand-suggestion brand-pass"><p>All content passes brand guidelines!</p></div>';
-            } else {
-                check.suggestions.forEach((s, i) => {
-                    html += `<div class="brand-suggestion" id="suggestion-${i}">
-                        <div class="suggestion-text">${escapeHtml(typeof s === 'string' ? s : (s.suggestion || s.message || JSON.stringify(s)))}</div>
-                        <div class="suggestion-actions">
-                            <button class="btn-small" style="background:#059669;" onclick="this.parentElement.parentElement.remove()">Accept</button>
-                            <button class="btn-small" style="background:#6b7280;" onclick="this.parentElement.parentElement.remove()">Dismiss</button>
-                        </div>
-                    </div>`;
-                });
-            }
+
+        if (suggestions.length === 0) {
+            html += '<div style="text-align: center; padding: 40px; background: #10b98120; border-radius: 8px; margin-bottom: 20px;">';
+            html += '<h2 style="margin: 0; color: #10b981; font-size: 32px;">Looks Great!</h2>';
+            html += '<p style="margin: 10px 0 0 0; color: #666;">No brand guideline issues found. Your content is ready to go!</p>';
+            html += '</div>';
         } else {
-            html = '<div class="brand-suggestion brand-pass"><p>' + escapeHtml(JSON.stringify(check)) + '</p></div>';
+            html += '<div style="text-align: center; padding: 20px; background: #fef3c7; border-radius: 8px; margin-bottom: 20px;">';
+            html += '<h2 style="margin: 0; color: #f59e0b; font-size: 28px;">Suggested Changes</h2>';
+            html += '<p style="margin: 10px 0 0 0; color: #666;">Yellow highlights show what needs changing. Green highlights show suggested replacements.</p>';
+            html += '</div>';
         }
+
+        // Get the full content from each section and apply highlights
+        const introContent = highlightContent(
+            document.getElementById('fc-intro')?.innerHTML || '',
+            suggestions.filter(s => s.section === 'intro' || s.section === 'introduction')
+        );
+        const newsContent = highlightContent(
+            document.getElementById('fc-news')?.innerHTML || '',
+            suggestions.filter(s => s.section === 'news_of_month' || s.section === 'news')
+        );
+        const trendContent = highlightContent(
+            document.getElementById('fc-trend')?.innerHTML || '',
+            suggestions.filter(s => s.section === 'trend_alert' || s.section === 'trend')
+        );
+        const gtpContent = highlightContent(
+            document.getElementById('fc-gtp')?.innerHTML || '',
+            suggestions.filter(s => s.section === 'guess_the_price' || s.section === 'gtp')
+        );
+        const tipContent = highlightContent(
+            document.getElementById('fc-tip')?.innerHTML || '',
+            suggestions.filter(s => s.section === 'quick_tip' || s.section === 'tip')
+        );
+
+        // Display each section with highlighted content
+        const sections = [
+            { label: 'Introduction', content: introContent },
+            { label: 'News of the Month', content: newsContent },
+            { label: 'Trend Alert', content: trendContent },
+            { label: 'Guess the Price', content: gtpContent },
+            { label: 'Quick Tip', content: tipContent }
+        ];
+
+        sections.forEach(s => {
+            html += '<h3 style="margin: 25px 0 10px 0; color: #272d3f;">' + s.label + '</h3>';
+            html += '<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #e5e7eb; font-size: 15px; line-height: 1.6; color: #333;">';
+            html += s.content || '<p style="color: #999;">No content</p>';
+            html += '</div>';
+        });
+
+        // Legend
+        if (suggestions.length > 0) {
+            html += '<div style="margin-top: 25px; padding: 15px; background: #f9fafb; border-radius: 8px; border: 2px dashed #e5e7eb;">';
+            html += '<h4 style="margin: 0 0 10px 0; color: #666;">Legend:</h4>';
+            html += '<div style="display: flex; gap: 20px; flex-wrap: wrap;">';
+            html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 20px; height: 20px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 4px;"></div><span style="font-size: 14px; color: #666;">Current text (needs changing)</span></div>';
+            html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 20px; height: 20px; background: #d1fae5; border: 2px solid #10b981; border-radius: 4px;"></div><span style="font-size: 14px; color: #666;">Suggested replacement</span></div>';
+            html += '</div>';
+            html += '<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">';
+            html += '<strong style="color: #f59e0b;">' + suggestions.length + ' issue' + (suggestions.length === 1 ? '' : 's') + ' found</strong> - Click Accept or Ignore on each highlighted change.';
+            html += '</div></div>';
+        }
+
         container.innerHTML = html;
+    }
+
+    function highlightContent(content, suggestions) {
+        if (!suggestions || suggestions.length === 0) return content;
+        let highlighted = content;
+        suggestions.forEach((suggestion, index) => {
+            const original = suggestion.original || suggestion.issue || '';
+            const suggested = suggestion.suggested || suggestion.suggestion || '';
+            const reason = suggestion.reason || '';
+            const section = suggestion.section || '';
+            if (!original) return;
+            const suggestionId = 'suggestion-' + section + '-' + index;
+            const highlightedText = '<span id="' + suggestionId + '" style="position: relative; display: inline; margin: 4px 0;">'
+                + '<span style="background: #fef3c7; border-bottom: 3px solid #f59e0b; padding: 2px 4px; text-decoration: line-through;" title="' + escapeForAttribute(reason) + '">' + original + '</span>'
+                + '<span style="background: #d1fae5; border-bottom: 3px solid #10b981; padding: 2px 4px; margin-left: 4px; font-weight: 600;" title="' + escapeForAttribute(reason) + '">' + suggested + '</span>'
+                + '<span style="display: inline-block; margin-left: 8px;">'
+                + '<button onclick="acceptSuggestion(\'' + suggestionId + '\', \'' + escapeForAttribute(original) + '\', \'' + escapeForAttribute(suggested) + '\', \'' + section + '\')" style="background: #10b981; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-right: 4px;" title="Accept this change">Accept</button>'
+                + '<button onclick="ignoreSuggestion(\'' + suggestionId + '\')" style="background: #ef4444; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;" title="Ignore this suggestion">Ignore</button>'
+                + '</span></span>';
+            const regex = new RegExp(escapeRegExp(original), 'gi');
+            highlighted = highlighted.replace(regex, highlightedText);
+        });
+        return highlighted;
+    }
+
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function escapeForAttribute(string) {
+        if (!string) return '';
+        return string.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    function acceptSuggestion(suggestionId, original, suggested, section) {
+        const sectionToContentBox = {
+            'intro': 'fc-intro', 'introduction': 'fc-intro',
+            'news_of_month': 'fc-news', 'news': 'fc-news',
+            'trend_alert': 'fc-trend', 'trend': 'fc-trend',
+            'guess_the_price': 'fc-gtp', 'gtp': 'fc-gtp',
+            'quick_tip': 'fc-tip', 'tip': 'fc-tip'
+        };
+        const contentBoxId = sectionToContentBox[section];
+        if (contentBoxId) {
+            const contentBox = document.getElementById(contentBoxId);
+            if (contentBox) {
+                contentBox.innerHTML = contentBox.innerHTML.replace(
+                    new RegExp(escapeRegExp(original), 'gi'), suggested
+                );
+            }
+        }
+        const suggestionEl = document.getElementById(suggestionId);
+        if (suggestionEl) {
+            suggestionEl.outerHTML = '<span style="background: #d1fae5; padding: 2px 4px; border-radius: 4px;">' + suggested + '</span>';
+        }
+    }
+
+    function ignoreSuggestion(suggestionId) {
+        const suggestionEl = document.getElementById(suggestionId);
+        if (suggestionEl) {
+            const originalSpan = suggestionEl.querySelector('span:first-child');
+            const originalText = originalSpan ? originalSpan.textContent : '';
+            suggestionEl.outerHTML = originalText;
+        }
     }
 
     async function exportToDocs() {
@@ -2519,17 +2640,38 @@
     // ============================================================
     // PREVIEW + PUBLISH
     // ============================================================
+    function cleanForEmail(text) {
+        if (!text) return '';
+        return text
+            .replace(/#{1,6}\s+/g, '')           // ## headers → remove
+            .replace(/\*\*(.*?)\*\*/g, '$1')      // **bold** → bold
+            .replace(/\*(.*?)\*/g, '$1')           // *italic* → italic
+            .replace(/__(.*?)__/g, '$1')           // __bold__ → bold
+            .replace(/_(.*?)_/g, '$1')             // _italic_ → italic
+            .replace(/<\/?p>/gi, '')               // Remove <p> tags
+            .replace(/<br\s*\/?>/gi, ' ')          // <br> → space
+            .replace(/<\/?strong>/gi, '')          // Remove <strong>
+            .replace(/<\/?em>/gi, '')              // Remove <em>
+            .replace(/<\/?b>/gi, '')               // Remove <b>
+            .replace(/<\/?i>/gi, '')               // Remove <i>
+            .replace(/&amp;/g, '&')                // Decode common HTML entities
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/\n\n+/g, ' ')               // Collapse double newlines
+            .trim();
+    }
+
     function generateConsumerNewsletterHTML() {
         const content = buildContentObject();
         const month = selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1);
         const year = new Date().getFullYear();
         const preheader = document.getElementById('finalPreheader')?.value || 'Your monthly jewelry inspiration from BriteCo - ' + month + ' ' + year;
 
-        // Build agenda items HTML
+        // Build agenda items HTML - strip markdown from each item
         const agendaItems = content.agenda_items || [];
         let agendaHtml = '';
         agendaItems.slice(0, 4).forEach(item => {
-            const itemText = typeof item === 'string' ? item : String(item);
+            const itemText = cleanForEmail(typeof item === 'string' ? item : String(item));
             agendaHtml += '<tr><td style="padding-bottom: 10px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #282e40;">' + itemText + '</p></td></tr>';
         });
 
@@ -2543,14 +2685,20 @@
             quickTipImageBlock = '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 20px;"><tr><td><img src="' + qtImage + '" width="590" alt="Quick Tip" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full"></td></tr></table>';
         }
 
+        // Clean all text content for email rendering (strip markdown, HTML tags)
+        const cleanIntro = cleanForEmail(content.intro || '');
         const nom = content.news_of_month || {};
+        const cleanNomDesc = cleanForEmail(nom.description || '');
         const ta = content.trend_alert || {};
+        const cleanTaDesc = cleanForEmail(ta.description || '');
         const blogs = content.blog_articles || [{}, {}];
         const blog1 = blogs[0] || {};
         const blog2 = blogs[1] || {};
         const gtp = content.guess_the_price || {};
+        const cleanGtpQuestion = cleanForEmail(gtp.question || 'Think you know the price?');
+        const cleanQuickTip = cleanForEmail(content.quick_tip || '');
 
-        return '<!DOCTYPE html>\n<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<meta name="x-apple-disable-message-reformatting">\n<meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">\n<title>BriteCo Consumer Newsletter - ' + month + ' ' + year + '</title>\n<style>\nhtml, body { margin: 0 auto !important; padding: 0 !important; height: 100% !important; width: 100% !important; }\n* { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }\ntable, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }\ntable { border-spacing: 0 !important; border-collapse: collapse !important; margin: 0 auto !important; }\nimg { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }\na { text-decoration: none; }\n.button-link { transition: all 100ms ease-in; }\n.button-link:hover { opacity: 0.9; }\n@media screen and (max-width: 700px) {\n.mobile-full { width: 100% !important; max-width: 100% !important; }\n.mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }\n.mobile-stack { display: block !important; width: 100% !important; max-width: 100% !important; }\n.mobile-img-full { width: 100% !important; height: auto !important; max-width: 100% !important; }\n.blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; }\n.blog-card-inner { width: 100% !important; }\n.gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; }\n.gtp-details { display: block !important; width: 100% !important; }\n}\n</style>\n</head>\n<body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #e8e8e8;">\n\n<div style="display: none; max-height: 0px; overflow: hidden;">' + preheader + '</div>\n\n<div role="article" aria-roledescription="email" aria-label="BriteCo Newsletter" lang="en" style="font-size: 16px; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; background-color: #e8e8e8;">\n\n<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="680" style="margin: 0 auto; max-width: 680px;" class="mobile-full">\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- HEADER -->\n<tr>\n<td align="center" style="background-color: #272d3f; padding: 30px 40px;">\n<a href="https://brite.co" target="_blank">\n<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-white.png" width="140" alt="BriteCo" style="width: 140px; max-width: 140px; height: auto; display: block;">\n</a>\n</td>\n</tr>\n\n<!-- INTRO -->\n<tr>\n<td style="background-color: #f2f2f2; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 20px; line-height: 30px; font-weight: 400; color: #4b4b4b; font-style: italic;">' + (content.intro || '') + '</p>\n</td>\n</tr>\n\n<!-- WHATS INSIDE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">What\'s Inside</p>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n' + agendaHtml + '\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- NEWS OF THE MONTH -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">News of the Month</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (nom.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank">\n<img src="' + (nom.thumbnail_url || '') + '" width="590" alt="' + (nom.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + (nom.description || '') + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- TREND ALERT -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">Trend Alert</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (ta.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank">\n<img src="' + (ta.thumbnail_url || '') + '" width="590" alt="' + (ta.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + (ta.description || '') + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- BLOG ARTICLES -->\n<tr>\n<td style="background-color: #ffffff; padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td width="48%" valign="top" class="blog-card" style="padding-right: 12px;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">\n<tr><td><a href="' + (blog1.url || '#') + '" target="_blank"><img src="' + (blog1.featured_image_url || '') + '" width="280" alt="' + (blog1.title || '') + '" style="width: 100%; max-width: 280px; height: 180px; object-fit: cover; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 18px 18px 12px 18px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">' + (blog1.title || '') + '</p></td></tr>\n<tr><td style="padding: 0 18px 20px 18px;"><a href="' + (blog1.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 24px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n</td>\n<td width="48%" valign="top" class="blog-card" style="padding-left: 12px;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">\n<tr><td><a href="' + (blog2.url || '#') + '" target="_blank"><img src="' + (blog2.featured_image_url || '') + '" width="280" alt="' + (blog2.title || '') + '" style="width: 100%; max-width: 280px; height: 180px; object-fit: cover; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 18px 18px 12px 18px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">' + (blog2.title || '') + '</p></td></tr>\n<tr><td style="padding: 0 18px 20px 18px;"><a href="' + (blog2.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 24px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- GUESS THE PRICE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">Guess the Price</p>\n</td>\n</tr>\n</table>\n<h2 style="margin: 0 0 20px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; color: #282e40;">' + (gtp.title || '') + '</h2>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td width="45%" valign="top" class="gtp-image" style="padding-right: 25px;">\n<img src="' + (gtpImage || '') + '" width="250" alt="' + (gtp.title || '') + '" style="width: 100%; max-width: 250px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</td>\n<td valign="top" class="gtp-details">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Material</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.material || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Found In</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.found_in || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Where It Lives</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.where_it_lives || '') + '</p></td></tr>\n<tr><td><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Fun Fact</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.fun_fact || '') + '</p></td></tr>\n</table>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 25px;">\n<tr>\n<td style="padding: 16px 20px; background-color: #f2f2f2; border-radius: 6px; text-align: center;">\n<a href="' + (gtp.link || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; line-height: 24px; font-weight: 700; color: #008181; text-decoration: none;">' + (gtp.question || 'Think you know the price?') + ' <span style="text-decoration: underline;">Click here to find out!</span></a>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- QUICK TIP -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">Quick Tip</p>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td width="24" valign="top" style="padding-right: 12px; padding-top: 3px;">\n<div style="width: 12px; height: 12px; background-color: #008181; border-radius: 2px; transform: rotate(45deg);"></div>\n</td>\n<td valign="top">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (content.quick_tip || '') + '</p>\n</td>\n</tr>\n</table>\n' + quickTipImageBlock + '\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- INSURANCE CTA -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 45px 45px; text-align: center;" class="mobile-padding">\n<h2 style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 28px; line-height: 36px; font-weight: 700; color: #ffffff;">Cover Your Sparkle</h2>\n<p style="margin: 0 0 25px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">BriteCo offers affordable, comprehensive jewelry insurance that\'s easy to set up and gives you peace of mind.</p>\n<a href="https://brite.co/jewelry-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; font-weight: 700; padding: 14px 36px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">GET A FREE QUOTE</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<!-- FOOTER -->\n<tr>\n<td style="background-color: #272d3e; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<a href="https://brite.co" target="_blank">\n<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-white.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto 18px auto;">\n</a>\n<p style="margin: 0 0 8px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #aaaaaa;">805 Greenwood Street, Evanston, IL 60201</p>\n<p style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #31D7CA;"><a href="https://brite.co" target="_blank" style="color: #31D7CA; text-decoration: underline;">brite.co</a></p>\n<p style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 11px; line-height: 16px; font-weight: 400; color: #888888;"><a href="[unsubscribe]" style="color: #888888; text-decoration: underline;">Unsubscribe</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://brite.co/privacy" style="color: #888888; text-decoration: underline;">Privacy Policy</a></p>\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 10px; line-height: 14px; font-weight: 400; color: #666666;">&copy; ' + year + ' BriteCo Inc. All rights reserved.</p>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n</table>\n</div>\n</body>\n</html>';
+        return '<!DOCTYPE html>\n<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<meta name="x-apple-disable-message-reformatting">\n<meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">\n<title>BriteCo Consumer Newsletter - ' + month + ' ' + year + '</title>\n<style>\nhtml, body { margin: 0 auto !important; padding: 0 !important; height: 100% !important; width: 100% !important; }\n* { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }\ntable, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }\ntable { border-spacing: 0 !important; border-collapse: collapse !important; margin: 0 auto !important; }\nimg { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }\na { text-decoration: none; }\n.button-link { transition: all 100ms ease-in; }\n.button-link:hover { opacity: 0.9; }\n@media screen and (max-width: 700px) {\n.mobile-full { width: 100% !important; max-width: 100% !important; min-width: 100% !important; }\n.mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }\n.mobile-stack { display: block !important; width: 100% !important; max-width: 100% !important; }\n.mobile-img-full { width: 100% !important; height: auto !important; max-width: 100% !important; }\n.blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }\n.blog-card-inner { width: 100% !important; max-width: 100% !important; }\n.blog-card-inner img { max-width: 100% !important; width: 100% !important; height: auto !important; }\n.gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; }\n.gtp-image img { width: 100% !important; max-width: 100% !important; }\n.gtp-details { display: block !important; width: 100% !important; }\n.section-badge p { font-size: 22px !important; }\n.cta-heading { font-size: 24px !important; line-height: 32px !important; }\n}\nu + .body .mobile-full { width: 100% !important; }\nu + .body .blog-card { display: block !important; width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }\nu + .body .gtp-image { display: block !important; width: 100% !important; padding-right: 0 !important; }\nu + .body .gtp-details { display: block !important; width: 100% !important; }\n</style>\n</head>\n<body width="100%" class="body" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #e8e8e8;">\n\n<div style="display: none; max-height: 0px; overflow: hidden;">' + preheader + '</div>\n\n<div role="article" aria-roledescription="email" aria-label="BriteCo Newsletter" lang="en" style="font-size: 16px; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; background-color: #e8e8e8;">\n\n<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 680px;" class="mobile-full">\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- HEADER -->\n<tr>\n<td align="center" style="background-color: #272d3f; padding: 30px 40px;">\n<a href="https://brite.co" target="_blank">\n<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-1.png" width="140" alt="BriteCo" style="width: 140px; max-width: 140px; height: auto; display: block;">\n</a>\n</td>\n</tr>\n\n<!-- INTRO -->\n<tr>\n<td style="background-color: #f2f2f2; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 20px; line-height: 30px; font-weight: 400; color: #4b4b4b; font-style: italic;">' + cleanIntro + '</p>\n</td>\n</tr>\n\n<!-- WHATS INSIDE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">What\'s Inside</p>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n' + agendaHtml + '\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- NEWS OF THE MONTH -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">News of the Month</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (nom.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank">\n<img src="' + (nom.thumbnail_url || '') + '" width="590" alt="' + (nom.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + cleanNomDesc + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- TREND ALERT -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">Trend Alert</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (ta.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank">\n<img src="' + (ta.thumbnail_url || '') + '" width="590" alt="' + (ta.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + cleanTaDesc + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- BLOG ARTICLES -->\n<tr>\n<td style="background-color: #ffffff; padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td width="48%" valign="top" class="blog-card" style="padding-right: 12px;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">\n<tr><td><a href="' + (blog1.url || '#') + '" target="_blank"><img src="' + (blog1.featured_image_url || '') + '" width="280" alt="' + (blog1.title || '') + '" style="width: 100%; max-width: 280px; max-height: 200px; object-fit: cover; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 18px 18px 12px 18px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">' + (blog1.title || '') + '</p></td></tr>\n<tr><td style="padding: 0 18px 20px 18px;"><a href="' + (blog1.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 24px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n</td>\n<td width="48%" valign="top" class="blog-card" style="padding-left: 12px;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">\n<tr><td><a href="' + (blog2.url || '#') + '" target="_blank"><img src="' + (blog2.featured_image_url || '') + '" width="280" alt="' + (blog2.title || '') + '" style="width: 100%; max-width: 280px; max-height: 200px; object-fit: cover; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 18px 18px 12px 18px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">' + (blog2.title || '') + '</p></td></tr>\n<tr><td style="padding: 0 18px 20px 18px;"><a href="' + (blog2.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 24px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- GUESS THE PRICE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">Guess the Price</p>\n</td>\n</tr>\n</table>\n<h2 style="margin: 0 0 20px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; color: #282e40;">' + (gtp.title || '') + '</h2>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td width="45%" valign="top" class="gtp-image" style="padding-right: 25px;">\n<img src="' + (gtpImage || '') + '" width="250" alt="' + (gtp.title || '') + '" style="width: 100%; max-width: 250px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</td>\n<td valign="top" class="gtp-details">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Material</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.material || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Found In</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.found_in || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Where It Lives</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.where_it_lives || '') + '</p></td></tr>\n<tr><td><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Fun Fact</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.fun_fact || '') + '</p></td></tr>\n</table>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 25px;">\n<tr>\n<td style="padding: 16px 20px; background-color: #f2f2f2; border-radius: 6px; text-align: center;">\n<a href="' + (gtp.link || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; line-height: 24px; font-weight: 700; color: #008181; text-decoration: none;">' + cleanGtpQuestion + ' <span style="text-decoration: underline;">Click here to find out!</span></a>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- QUICK TIP -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;" class="section-badge">Quick Tip</p>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td width="24" valign="top" style="padding-right: 12px; padding-top: 3px;">\n<div style="width: 12px; height: 12px; background-color: #008181; border-radius: 2px; transform: rotate(45deg);"></div>\n</td>\n<td valign="top">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + cleanQuickTip + '</p>\n</td>\n</tr>\n</table>\n' + quickTipImageBlock + '\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- INSURANCE CTA -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 45px 45px; text-align: center;" class="mobile-padding">\n<h2 style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 28px; line-height: 36px; font-weight: 700; color: #ffffff;" class="cta-heading">Cover Your Sparkle</h2>\n<p style="margin: 0 0 25px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">BriteCo offers affordable, comprehensive jewelry insurance that\'s easy to set up and gives you peace of mind.</p>\n<a href="https://brite.co/jewelry-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; font-weight: 700; padding: 14px 36px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">GET A FREE QUOTE</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<!-- FOOTER -->\n<tr>\n<td style="background-color: #272d3e; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<a href="https://brite.co" target="_blank">\n<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-1.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto 18px auto;">\n</a>\n<p style="margin: 0 0 8px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #aaaaaa;">805 Greenwood Street, Evanston, IL 60201</p>\n<p style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #31D7CA;"><a href="https://brite.co" target="_blank" style="color: #31D7CA; text-decoration: underline;">brite.co</a></p>\n<p style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 11px; line-height: 16px; font-weight: 400; color: #888888;"><a href="[unsubscribe]" style="color: #888888; text-decoration: underline;">Unsubscribe</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://brite.co/privacy" style="color: #888888; text-decoration: underline;">Privacy Policy</a></p>\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 10px; line-height: 14px; font-weight: 400; color: #666666;">&copy; ' + year + ' BriteCo Inc. All rights reserved.</p>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n</table>\n</div>\n</body>\n</html>';
     }
 
     function populatePreview() {
@@ -2607,33 +2755,108 @@
         document.getElementById('finalPreheader').value = el.textContent;
     }
 
-    async function pushToOntraport() {
-        const statusEl = document.getElementById('ontraportStatus');
-        const subject = document.getElementById('ontraportSubjectInput')?.value || 'BriteCo Newsletter';
-        const html = renderedEmailHTML || document.getElementById('newsletterPreview').innerHTML;
-        if (!html || html.includes('Rendering email preview')) { alert('Please wait for the preview to render first.'); return; }
-        statusEl.style.display = 'block';
-        statusEl.innerHTML = '<span style="color:#018181;">Pushing to Ontraport...</span>';
-        try {
-            const resp = await fetch(`${API_BASE}/api/push-to-ontraport`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject, month: selectedMonth, html })
-            });
-            const data = await resp.json();
-            if (data.success) {
-                statusEl.innerHTML = '<span style="color:#059669;font-weight:600;">Successfully pushed to Ontraport!</span>';
-            } else {
-                statusEl.innerHTML = '<span style="color:#dc3545;">Failed: ' + (data.error || '') + '</span>';
+    async function uploadImagesToGCS() {
+        const images = {};
+        const sections = ['quick_tip', 'guess_the_price'];
+        for (const section of sections) {
+            const img = generatedImages[section];
+            if (!img) continue;
+            const dataUrl = (typeof img === 'string') ? img : (img.url || (img.image_data ? 'data:image/png;base64,' + img.image_data : null));
+            if (dataUrl && dataUrl.startsWith('data:image')) {
+                images[section] = dataUrl;
             }
+        }
+        if (Object.keys(images).length === 0) return { success: true, urls: {} };
+        try {
+            const resp = await fetch(`${API_BASE}/api/upload-images-to-gcs`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ images, month: selectedMonth, year: new Date().getFullYear() })
+            });
+            return await resp.json();
         } catch (e) {
-            statusEl.innerHTML = '<span style="color:#dc3545;">Error: ' + e.message + '</span>';
+            console.error('GCS upload error:', e);
+            return { success: false, urls: {} };
         }
     }
 
-    async function publishAndFinish() {
-        const statusEl = document.getElementById('publishStatus');
-        statusEl.innerHTML = '<span style="color:#018181;">Publishing...</span>';
-        await saveDraft();
+    async function pushToOntraport() {
+        const subject = document.getElementById('ontraportSubjectInput')?.value || document.getElementById('finalSubjectLine')?.value;
+        if (!subject) { alert('Please enter a subject line'); return; }
+
+        const btn = document.getElementById('ontraportBtn');
+        const btnText = document.getElementById('ontraportBtnText');
+        const resultDiv = document.getElementById('ontraportResult');
+        const originalText = btnText.textContent;
+
+        try {
+            // Step 1: Upload images to GCS
+            btnText.textContent = 'Uploading images...';
+            btn.disabled = true;
+            resultDiv.style.display = 'none';
+
+            const uploadResult = await uploadImagesToGCS();
+            const gcsUrls = uploadResult.success ? (uploadResult.urls || {}) : {};
+            console.log('GCS upload result:', uploadResult);
+
+            // Step 2: Generate HTML
+            btnText.textContent = 'Generating HTML...';
+            let html = renderedEmailHTML || generateConsumerNewsletterHTML();
+
+            // Step 3: Replace base64 images with GCS URLs
+            const base64ToUrl = {};
+            for (const [section, gcsUrl] of Object.entries(gcsUrls)) {
+                const img = generatedImages[section];
+                if (img) {
+                    const dataUrl = (typeof img === 'string') ? img : (img.url || (img.image_data ? 'data:image/png;base64,' + img.image_data : null));
+                    if (dataUrl) base64ToUrl[dataUrl] = gcsUrl;
+                }
+            }
+
+            let imgIndex = 0;
+            html = html.replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+\/=]+/g, (match) => {
+                if (base64ToUrl[match]) return base64ToUrl[match];
+                imgIndex++;
+                return 'https://REPLACE-WITH-HOSTED-URL/image-' + imgIndex + '.png';
+            });
+
+            // Step 4: Push to Ontraport
+            btnText.textContent = 'Pushing to Ontraport...';
+            const response = await fetch(`${API_BASE}/api/push-to-ontraport`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subject, month: selectedMonth, html })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                // Save draft and publish
+                btnText.textContent = 'Saving & publishing...';
+                await saveDraft();
+                await publishDraft();
+
+                const uploadedCount = Object.keys(gcsUrls).length;
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f0fdf4';
+                resultDiv.style.border = '2px solid #22c55e';
+                resultDiv.innerHTML = '<p style="margin: 0; color: #166534; font-weight: 600;">Successfully pushed to Ontraport!</p>'
+                    + (uploadedCount > 0 ? '<p style="margin: 8px 0 0 0; color: #166534; font-size: 14px;">' + uploadedCount + ' image(s) hosted on GCS.</p>' : '');
+            } else {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#fef2f2';
+                resultDiv.style.border = '2px solid #dc3545';
+                resultDiv.innerHTML = '<p style="margin: 0; color: #dc3545;">Failed: ' + (data.error || 'Unknown error') + '</p>';
+            }
+        } catch (error) {
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = '#fef2f2';
+            resultDiv.style.border = '2px solid #dc3545';
+            resultDiv.innerHTML = '<p style="margin: 0; color: #dc3545;">Error: ' + error.message + '</p>';
+        } finally {
+            btnText.textContent = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async function publishDraft() {
         try {
             const year = new Date().getFullYear();
             const userPrefix = ((window.AUTH_USER && window.AUTH_USER.email) || 'unknown').split('@')[0].replace(/\./g, '-');
@@ -2642,15 +2865,8 @@
                 body: JSON.stringify({ file: `drafts/${selectedMonth}-${year}-${userPrefix}.json` })
             });
             const data = await resp.json();
-            if (data.success) {
-                statusEl.innerHTML = '<span style="color:#059669;font-weight:600;">Published successfully!</span>';
-                loadPublishedNewsletters();
-            } else {
-                statusEl.innerHTML = '<span style="color:#dc3545;">Failed: ' + (data.error || '') + '</span>';
-            }
-        } catch (e) {
-            statusEl.innerHTML = '<span style="color:#dc3545;">Error: ' + e.message + '</span>';
-        }
+            if (data.success) { loadPublishedNewsletters(); }
+        } catch (e) { console.error('Publish error:', e); }
     }
 
     // ============================================================

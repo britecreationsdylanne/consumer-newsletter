@@ -632,16 +632,21 @@ AI_PROMPTS = {
         "- Do not use bullet points — flowing prose only"
     ),
     "generate_subject_lines": (
-        "Generate 5 email subject lines for a consumer jewelry newsletter.\n\n"
+        "Generate 5 email subject lines AND 5 matching preheader texts for a consumer jewelry newsletter.\n\n"
         "Month: {month} {year}\n"
         "Key content: {highlights}\n\n"
-        "Guidelines:\n"
+        "Subject Line Guidelines:\n"
         "- Mix of curiosity-driven, benefit-driven, and playful approaches\n"
         "- 40-60 characters ideal\n"
         "- Use emojis sparingly (max 1 per subject line, or none)\n"
         "- Reference specific content from this issue when possible\n"
         "- No clickbait — deliver on the promise\n\n"
-        "Return as a JSON array of strings."
+        "Preheader Guidelines:\n"
+        "- 40-90 characters ideal\n"
+        "- Complement (don't repeat) the subject line\n"
+        "- Tease content to encourage opening\n"
+        "- Each preheader should pair with the corresponding subject line\n\n"
+        "Return as JSON: {{\"subject_lines\": [\"...\", ...], \"preheaders\": [\"...\", ...]}}"
     ),
     "brand_check": (
         "Review this consumer newsletter content against BriteCo editorial guidelines.\n\n"
@@ -665,10 +670,15 @@ AI_PROMPTS = {
         "- Quick Tip: 60 words\n"
         "- Guess the Price detail fields: 20 words each\n\n"
         "Return a JSON object with:\n"
-        "- passed: boolean\n"
+        "- passed: boolean (true if no issues found)\n"
         "- score: number (0-100)\n"
-        "- issues: array of {{severity: 'error'|'warning', section, message}}\n"
-        "- suggestions: array of improvement suggestions"
+        "- suggestions: array of objects, each with:\n"
+        "  - section: one of 'intro', 'news_of_month', 'trend_alert', 'guess_the_price', 'quick_tip'\n"
+        "  - original: the exact text that needs changing (copy it verbatim from the content)\n"
+        "  - suggested: the corrected replacement text\n"
+        "  - reason: brief explanation of why this change is needed\n"
+        "  - severity: 'error' or 'warning'\n\n"
+        "IMPORTANT: For each suggestion, 'original' must be an exact substring from the content so it can be found and highlighted."
     ),
 }
 
