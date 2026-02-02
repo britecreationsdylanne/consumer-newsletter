@@ -45,7 +45,21 @@
             position: absolute; top: 16px; right: 20px;
             display: flex; align-items: center; gap: 12px;
         }
+        .user-profile {
+            position: relative;
+        }
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            cursor: pointer; border: 2px solid rgba(255,255,255,0.3);
+            transition: border-color 0.2s;
+            object-fit: cover;
+        }
+        .user-avatar:hover { border-color: rgba(255,255,255,0.6); }
         .user-dropdown {
+            position: absolute; top: 50px; right: 0;
+            background: white; border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 200px; padding: 16px;
             display: none; z-index: 1000;
         }
         .user-dropdown.active { display: block; }
@@ -576,6 +590,15 @@
         <div class="header">
             <div class="header-right">
                 <button class="start-over-btn" onclick="startOver()">Start Over</button>
+                <div class="user-profile">
+                    <img class="user-avatar" id="userAvatar" src="" alt="User" onclick="toggleUserDropdown(event)">
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="user-dropdown-name" id="userDropdownName"></div>
+                        <div class="user-dropdown-email" id="userDropdownEmail"></div>
+                        <div class="user-dropdown-divider"></div>
+                        <a class="user-dropdown-signout" href="/auth/logout">Sign out</a>
+                    </div>
+                </div>
             </div>
             <h1>BriteCo Consumer Newsletter</h1>
         </div>
