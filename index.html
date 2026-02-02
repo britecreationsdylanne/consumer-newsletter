@@ -2098,22 +2098,35 @@
     async function exportToDocs() {
         const btn = document.getElementById('exportBtn');
         const btnText = document.getElementById('exportBtnText');
+        const resultDiv = document.getElementById('exportDocsResult');
         btn.disabled = true; btnText.textContent = 'Exporting...';
+        resultDiv.style.display = 'none';
         try {
             const content = buildContentObject();
             const year = new Date().getFullYear();
+            const monthCapitalized = selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1);
             const resp = await fetch(`${API_BASE}/api/export-to-docs`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     content, month: selectedMonth, year,
-                    title: `${year} ${selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1)} - Consumer Newsletter`,
+                    title: `${year} ${monthCapitalized} - Consumer Newsletter`,
                     send_email: false
                 })
             });
             const data = await resp.json();
+            btn.disabled = false;
+            btnText.textContent = 'Export to Google Docs';
             if (data.success && data.doc_url) {
                 exportedDocUrl = data.doc_url;
-                btnText.textContent = 'Exported!';
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#d1fae5';
+                resultDiv.style.border = '2px solid #10b981';
+                resultDiv.innerHTML = `
+                    <p style="margin: 0 0 10px 0; color: #065f46; font-weight: 600;">Export Successful!</p>
+                    <p style="margin: 0; font-size: 14px;">
+                        <a href="${data.doc_url}" target="_blank" style="color: #047857; text-decoration: underline;">Open in Google Docs</a>
+                    </p>
+                `;
                 document.getElementById('docsLinkContainer').style.display = 'block';
                 document.getElementById('docsLink').href = data.doc_url;
 
@@ -2128,12 +2141,19 @@
                     </label>`;
                 });
             } else {
-                btnText.textContent = 'Failed: ' + (data.error || '');
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#fee2e2';
+                resultDiv.style.border = '2px solid #ef4444';
+                resultDiv.innerHTML = `<p style="margin: 0; color: #991b1b;">Export failed: ${data.error || 'Unknown error'}</p>`;
             }
         } catch (e) {
-            btnText.textContent = 'Error: ' + e.message;
+            btn.disabled = false;
+            btnText.textContent = 'Export to Google Docs';
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = '#fee2e2';
+            resultDiv.style.border = '2px solid #ef4444';
+            resultDiv.innerHTML = `<p style="margin: 0; color: #991b1b;">Export failed: ${e.message}</p>`;
         }
-        btn.disabled = false;
     }
 
     async function sendEmailNotification() {
@@ -2311,7 +2331,41 @@
     // ============================================================
     // PREVIEW + PUBLISH
     // ============================================================
-    async function populatePreview() {
+    function generateConsumerNewsletterHTML() {
+        const content = buildContentObject();
+        const month = selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1);
+        const year = new Date().getFullYear();
+        const preheader = document.getElementById('finalPreheader')?.value || 'Your monthly jewelry inspiration from BriteCo - ' + month + ' ' + year;
+
+        // Build agenda items HTML
+        const agendaItems = content.agenda_items || [];
+        let agendaHtml = '';
+        agendaItems.slice(0, 4).forEach(item => {
+            const itemText = typeof item === 'string' ? item : String(item);
+            agendaHtml += '<tr><td style="padding-bottom: 10px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #282e40;">' + itemText + '</p></td></tr>';
+        });
+
+        // Get images
+        const qtImage = generatedImages.quick_tip ? (generatedImages.quick_tip.url || generatedImages.quick_tip) : '';
+        const gtpImage = content.guess_the_price?.image_url || (generatedImages.guess_the_price ? (generatedImages.guess_the_price.url || generatedImages.guess_the_price) : '');
+
+        // Quick tip image block
+        let quickTipImageBlock = '';
+        if (qtImage) {
+            quickTipImageBlock = '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 20px;"><tr><td><img src="' + qtImage + '" width="590" alt="Quick Tip" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full"></td></tr></table>';
+        }
+
+        const nom = content.news_of_month || {};
+        const ta = content.trend_alert || {};
+        const blogs = content.blog_articles || [{}, {}];
+        const blog1 = blogs[0] || {};
+        const blog2 = blogs[1] || {};
+        const gtp = content.guess_the_price || {};
+
+        return '<!DOCTYPE html>\n<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<meta name="x-apple-disable-message-reformatting">\n<meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">\n<title>BriteCo Consumer Newsletter - ' + month + ' ' + year + '</title>\n<style>\nhtml, body { margin: 0 auto !important; padding: 0 !important; height: 100% !important; width: 100% !important; }\n* { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }\ntable, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }\ntable { border-spacing: 0 !important; border-collapse: collapse !important; margin: 0 auto !important; }\nimg { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }\na { text-decoration: none; }\n.button-link { transition: all 100ms ease-in; }\n.button-link:hover { opacity: 0.9; }\n@media screen and (max-width: 700px) {\n.mobile-full { width: 100% !important; max-width: 100% !important; }\n.mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }\n.mobile-stack { display: block !important; width: 100% !important; max-width: 100% !important; }\n.mobile-img-full { width: 100% !important; height: auto !important; max-width: 100% !important; }\n.blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; }\n.blog-card-inner { width: 100% !important; }\n.gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; }\n.gtp-details { display: block !important; width: 100% !important; }\n}\n</style>\n</head>\n<body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #e8e8e8;">\n\n<div style="display: none; max-height: 0px; overflow: hidden;">' + preheader + '</div>\n\n<div role="article" aria-roledescription="email" aria-label="BriteCo Newsletter" lang="en" style="font-size: 16px; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; background-color: #e8e8e8;">\n\n<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="680" style="margin: 0 auto; max-width: 680px;" class="mobile-full">\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- HEADER -->\n<tr>\n<td align="center" style="background-color: #272d3f; padding: 30px 40px;">\n<a href="https://brite.co" target="_blank">\n<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-white.png" width="140" alt="BriteCo" style="width: 140px; max-width: 140px; height: auto; display: block;">\n</a>\n</td>\n</tr>\n\n<!-- INTRO -->\n<tr>\n<td style="background-color: #f2f2f2; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 20px; line-height: 30px; font-weight: 400; color: #4b4b4b; font-style: italic;">' + (content.intro || '') + '</p>\n</td>\n</tr>\n\n<!-- WHATS INSIDE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">What\'s Inside</p>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n' + agendaHtml + '\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- NEWS OF THE MONTH -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">News of the Month</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (nom.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank">\n<img src="' + (nom.thumbnail_url || '') + '" width="590" alt="' + (nom.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + (nom.description || '') + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- TREND ALERT -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">Trend Alert</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (ta.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank">\n<img src="' + (ta.thumbnail_url || '') + '" width="590" alt="' + (ta.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + (ta.description || '') + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- BLOG ARTICLES -->\n<tr>\n<td style="background-color: #ffffff; padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td width="48%" valign="top" class="blog-card" style="padding-right: 12px;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">\n<tr><td><a href="' + (blog1.url || '#') + '" target="_blank"><img src="' + (blog1.featured_image_url || '') + '" width="280" alt="' + (blog1.title || '') + '" style="width: 100%; max-width: 280px; height: 180px; object-fit: cover; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 18px 18px 12px 18px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">' + (blog1.title || '') + '</p></td></tr>\n<tr><td style="padding: 0 18px 20px 18px;"><a href="' + (blog1.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 24px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n</td>\n<td width="48%" valign="top" class="blog-card" style="padding-left: 12px;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">\n<tr><td><a href="' + (blog2.url || '#') + '" target="_blank"><img src="' + (blog2.featured_image_url || '') + '" width="280" alt="' + (blog2.title || '') + '" style="width: 100%; max-width: 280px; height: 180px; object-fit: cover; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 18px 18px 12px 18px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">' + (blog2.title || '') + '</p></td></tr>\n<tr><td style="padding: 0 18px 20px 18px;"><a href="' + (blog2.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 24px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- GUESS THE PRICE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">Guess the Price</p>\n</td>\n</tr>\n</table>\n<h2 style="margin: 0 0 20px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; color: #282e40;">' + (gtp.title || '') + '</h2>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td width="45%" valign="top" class="gtp-image" style="padding-right: 25px;">\n<img src="' + (gtpImage || '') + '" width="250" alt="' + (gtp.title || '') + '" style="width: 100%; max-width: 250px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</td>\n<td valign="top" class="gtp-details">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Material</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.material || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Found In</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.found_in || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Where It Lives</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.where_it_lives || '') + '</p></td></tr>\n<tr><td><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Fun Fact</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">' + (gtp.fun_fact || '') + '</p></td></tr>\n</table>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 25px;">\n<tr>\n<td style="padding: 16px 20px; background-color: #f2f2f2; border-radius: 6px; text-align: center;">\n<a href="' + (gtp.link || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; line-height: 24px; font-weight: 700; color: #008181; text-decoration: none;">' + (gtp.question || 'Think you know the price?') + ' <span style="text-decoration: underline;">Click here to find out!</span></a>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- QUICK TIP -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">\n<tr>\n<td style="background-color: #008181; padding: 8px 22px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; color: #ffffff;">Quick Tip</p>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td width="24" valign="top" style="padding-right: 12px; padding-top: 3px;">\n<div style="width: 12px; height: 12px; background-color: #008181; border-radius: 2px; transform: rotate(45deg);"></div>\n</td>\n<td valign="top">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (content.quick_tip || '') + '</p>\n</td>\n</tr>\n</table>\n' + quickTipImageBlock + '\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 8px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- INSURANCE CTA -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 45px 45px; text-align: center;" class="mobile-padding">\n<h2 style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 28px; line-height: 36px; font-weight: 700; color: #ffffff;">Cover Your Sparkle</h2>\n<p style="margin: 0 0 25px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">BriteCo offers affordable, comprehensive jewelry insurance that\'s easy to set up and gives you peace of mind.</p>\n<a href="https://brite.co/jewelry-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 15px; font-weight: 700; padding: 14px 36px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">GET A FREE QUOTE</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<!-- FOOTER -->\n<tr>\n<td style="background-color: #272d3e; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<a href="https://brite.co" target="_blank">\n<img src="https://brite.co/wp-content/uploads/2025/09/briteco-logo-white.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto 18px auto;">\n</a>\n<p style="margin: 0 0 8px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #aaaaaa;">805 Greenwood Street, Evanston, IL 60201</p>\n<p style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #31D7CA;"><a href="https://brite.co" target="_blank" style="color: #31D7CA; text-decoration: underline;">brite.co</a></p>\n<p style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 11px; line-height: 16px; font-weight: 400; color: #888888;"><a href="[unsubscribe]" style="color: #888888; text-decoration: underline;">Unsubscribe</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://brite.co/privacy" style="color: #888888; text-decoration: underline;">Privacy Policy</a></p>\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 10px; line-height: 14px; font-weight: 400; color: #666666;">&copy; ' + year + ' BriteCo Inc. All rights reserved.</p>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n</table>\n</div>\n</body>\n</html>';
+    }
+
+    function populatePreview() {
         const subjectLine = document.getElementById('finalSubjectLine')?.value || 'BriteCo Newsletter - ' + selectedMonth;
         const preheader = document.getElementById('finalPreheader')?.value || '';
         document.getElementById('previewSubjectLine').textContent = subjectLine;
@@ -2319,32 +2373,10 @@
         document.getElementById('ontraportSubjectInput').value = subjectLine;
 
         const previewDiv = document.getElementById('newsletterPreview');
-        previewDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Rendering email preview...</p></div>';
-
-        try {
-            const content = buildContentObject();
-            const images = {};
-            if (generatedImages.quick_tip) images.quick_tip = { url: generatedImages.quick_tip.url || generatedImages.quick_tip };
-            if (generatedImages.guess_the_price) images.guess_the_price = { url: generatedImages.guess_the_price.url || generatedImages.guess_the_price };
-
-            const resp = await fetch(`${API_BASE}/api/render-email-template`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    content, month: selectedMonth, year: new Date().getFullYear(),
-                    preheader, images
-                })
-            });
-            const data = await resp.json();
-            if (data.success && data.html) {
-                renderedEmailHTML = data.html;
-                previewDiv.innerHTML = data.html;
-                enableNewsletterEditing();
-            } else {
-                previewDiv.innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Failed to render: ' + (data.error || '') + '</p>';
-            }
-        } catch (e) {
-            previewDiv.innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error: ' + e.message + '</p>';
-        }
+        const previewHtml = generateConsumerNewsletterHTML();
+        renderedEmailHTML = previewHtml;
+        previewDiv.innerHTML = previewHtml;
+        enableNewsletterEditing();
     }
 
     function refreshPreview() { populatePreview(); }
