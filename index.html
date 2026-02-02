@@ -293,7 +293,7 @@
             cursor: pointer; transition: all 0.2s;
         }
         .gtp-result-card:hover { border-color: #018181; background: #fafafa; }
-        .gtp-result-card.selected { border-color: #018181; background: #f0fafa; }
+        .gtp-result-card.selected { border-color: #018181; background: #f0fafa; box-shadow: 0 0 0 3px rgba(1,129,129,0.2); }
         .gtp-result-card .gtp-thumb {
             width: 100px; height: 100px; object-fit: cover; border-radius: 8px; flex-shrink: 0;
         }
@@ -811,6 +811,15 @@
             </div>
         </div>
 
+        <!-- ============ STEP 4b: Generating Intro & Tip (Loading) ============ -->
+        <div id="step4b" class="step">
+            <div class="loading">
+                <div class="spinner"></div>
+                <h3>Generating Intro &amp; Quick Tip...</h3>
+                <p style="color: #666;">Claude is crafting a personalized intro and seasonal tip for your newsletter</p>
+            </div>
+        </div>
+
         <!-- ============ STEP 5: Intro & Quick Tip ============ -->
         <div id="step5" class="step">
             <h2>Intro &amp; Quick Tip</h2>
@@ -950,8 +959,8 @@
         <div id="step7" class="step">
             <div class="loading" id="brandCheckLoading">
                 <div class="spinner"></div>
-                <h3>Running Brand Check...</h3>
-                <p>Checking content against BriteCo brand guidelines</p>
+                <h3>Checking Brand Guidelines...</h3>
+                <p style="color: #666;">AI is reviewing content for tone, style, and brand consistency</p>
             </div>
         </div>
 
@@ -1014,25 +1023,42 @@
             </div>
         </div>
 
+        <!-- ============ STEP 7c: Generating Image Prompts (Loading) ============ -->
+        <div id="step7c" class="step">
+            <div class="loading">
+                <div class="spinner"></div>
+                <h3>Generating Image Prompts...</h3>
+                <p style="color: #666;">Analyzing your newsletter content with Claude AI...</p>
+            </div>
+        </div>
+
         <!-- ============ STEP 8: Image Generation ============ -->
         <div id="step8" class="step">
             <h2>Image Generation</h2>
             <p class="step-description">Generate or upload images for the Quick Tip and Guess the Price sections</p>
 
-            <!-- Auto-generate prompts loading indicator -->
-            <div id="promptGenerationLoading" style="display:none;">
-                <div class="loading"><div class="spinner"></div><p>Claude is generating image prompts based on your content...</p></div>
-            </div>
-            <p style="color:#6b7280;font-size:13px;margin-bottom:15px;">Image prompts are auto-generated when you reach this step. Edit them below if needed.</p>
+            <p style="color:#6b7280;font-size:13px;margin-bottom:15px;">Image prompts were auto-generated from your content. Edit them below, choose a style, then generate.</p>
             <div style="margin-bottom:20px;">
                 <button class="btn-small" onclick="autoGenerateImagePrompts()" id="autoPromptBtn" style="background:#466F88;">Regenerate Image Prompts</button>
             </div>
 
             <div class="image-prompt-card" id="quickTipImageCard">
                 <h4>Quick Tip Image</h4>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Image Style:</label>
+                    <select id="quickTipImageStyle" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;" onchange="updatePromptWithStyle('quickTip')">
+                        <option value="photorealistic">Photorealistic (Default)</option>
+                        <option value="sketch">Sketch / Illustration</option>
+                        <option value="watercolor">Watercolor</option>
+                        <option value="modern-flat">Modern Flat Design</option>
+                        <option value="magazine">Magazine Editorial</option>
+                        <option value="cartoon">Cartoon</option>
+                        <option value="infographic">Infographic / Data Viz</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label>Image Prompt</label>
-                    <textarea id="quickTipImagePrompt" rows="2" placeholder="Describe the image you want for the quick tip section..."></textarea>
+                    <textarea id="quickTipImagePrompt" rows="3" placeholder="Describe the image you want for the quick tip section..."></textarea>
                 </div>
                 <div style="display:flex;gap:8px;">
                     <button class="btn-small" onclick="generateSingleImage('quick_tip')">Generate Image</button>
@@ -1050,9 +1076,21 @@
                     <span style="color:#059669;font-weight:600;">Using uploaded image URL</span>
                     <img id="gtpExistingImageThumb" style="display:block;max-width:200px;border-radius:8px;margin-top:8px;">
                 </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px;">Image Style:</label>
+                    <select id="gtpImageStyle" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;" onchange="updatePromptWithStyle('gtp')">
+                        <option value="photorealistic">Photorealistic (Default)</option>
+                        <option value="sketch">Sketch / Illustration</option>
+                        <option value="watercolor">Watercolor</option>
+                        <option value="modern-flat">Modern Flat Design</option>
+                        <option value="magazine">Magazine Editorial</option>
+                        <option value="cartoon">Cartoon</option>
+                        <option value="infographic">Infographic / Data Viz</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label>Image Prompt (optional if image URL already set)</label>
-                    <textarea id="gtpImagePrompt" rows="2" placeholder="Describe the image for the Guess the Price section..."></textarea>
+                    <textarea id="gtpImagePrompt" rows="3" placeholder="Describe the image for the Guess the Price section..."></textarea>
                 </div>
                 <div style="display:flex;gap:8px;">
                     <button class="btn-small" onclick="generateSingleImage('guess_the_price')">Generate Image</button>
@@ -1076,30 +1114,58 @@
             <h2>Subject Line &amp; Preheader</h2>
             <p class="step-description">Choose or write the email subject line and preheader text</p>
 
-            <div style="margin-bottom:24px;">
-                <label style="font-weight:600;display:block;margin-bottom:8px;">Tone</label>
-                <div class="tone-selector">
-                    <button class="sort-btn active" onclick="selectTone(this, 'playful')">Playful</button>
-                    <button class="sort-btn" onclick="selectTone(this, 'witty')">Witty</button>
-                    <button class="sort-btn" onclick="selectTone(this, 'informative')">Informative</button>
-                    <button class="sort-btn" onclick="selectTone(this, 'friendly')">Friendly</button>
+            <!-- Tone Selection (shown first, hidden after generation) -->
+            <div id="toneSelection" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #3b82f6;">
+                <h3 style="margin: 0 0 10px 0;">Select Tone</h3>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Choose the tone for your subject line and preheader</p>
+                <select id="subjectToneSelect" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white; margin-bottom: 15px;">
+                    <option value="playful">Playful &amp; Fun</option>
+                    <option value="witty">Witty &amp; Clever</option>
+                    <option value="friendly">Friendly &amp; Conversational</option>
+                    <option value="informative">Informative &amp; Professional</option>
+                    <option value="exclusive">Exclusive &amp; Premium</option>
+                </select>
+                <button class="btn" onclick="generateSubjectLinesWithTone()" style="width: 100%;">Generate Subject Lines</button>
+            </div>
+
+            <!-- Loading Screen -->
+            <div id="subjectLineLoading" style="display: none;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <h3>Generating Options...</h3>
+                    <p style="color: #666;">Claude is reviewing your newsletter content...</p>
                 </div>
-                <button class="btn" onclick="generateSubjectLines()">Generate Subject Lines</button>
             </div>
 
-            <div id="subjectLineOptions" style="margin-bottom:24px;"></div>
+            <!-- Subject Line Options (shown after generation) -->
+            <div id="subjectLineResults" style="display: none;">
+                <!-- Subject Lines -->
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 15px 0;">Subject Line Options</h3>
+                    <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Choose one or edit to create your own</p>
+                    <div id="subjectLineList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;"></div>
+                    <div style="margin-top: 15px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;">Your Subject Line:</label>
+                        <input type="text" id="finalSubjectLine" placeholder="Selected or custom subject line" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 4px; font-size: 16px; font-weight: 500;">
+                    </div>
+                </div>
 
-            <div class="form-group">
-                <label>Subject Line</label>
-                <input type="text" id="finalSubjectLine" placeholder="Your email subject line...">
+                <!-- Preheader Options -->
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+                    <h3 style="margin: 0 0 15px 0;">Preheader Options</h3>
+                    <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Choose one or write your own preview text</p>
+                    <div id="preheaderList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;"></div>
+                    <div style="margin-top: 15px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;">Your Preheader:</label>
+                        <input type="text" id="finalPreheader" placeholder="Brief preview text for email clients..." style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 4px; font-size: 14px;">
+                    </div>
+                </div>
+
+                <!-- Regenerate -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button class="btn-small" onclick="regenerateSubjectLines()" style="background:#466F88;">Regenerate with Different Tone</button>
+                </div>
             </div>
-
-            <div class="form-group">
-                <label>Preheader Text <span style="font-size:12px;color:#999;font-weight:400;">(preview text shown in inbox)</span></label>
-                <input type="text" id="finalPreheader" placeholder="Brief preview text for email clients...">
-            </div>
-
-            <div id="preheaderOptions" style="margin-bottom:16px;"></div>
 
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(8)">&larr; Back</button>
@@ -1264,9 +1330,9 @@
 
     const stepLabels = {
         1: 'Select Month', 2: 'Select Videos', 3: 'Blog Articles',
-        4: 'Guess the Price', 5: 'Intro & Quick Tip', 6: 'Generating...',
+        4: 'Guess the Price', '4b': 'Generating...', 5: 'Intro & Quick Tip', 6: 'Generating...',
         '6b': 'Review Content', 7: 'Brand Check...', '7b': 'Brand Check & Export',
-        8: 'Image Generation', 9: 'Subject Line', 10: 'Preview',
+        '7c': 'Generating Prompts...', 8: 'Image Generation', 9: 'Subject Line', 10: 'Preview',
         11: 'Push to Ontraport'
     };
 
@@ -1296,12 +1362,30 @@
         }
         if (step === 2 && youtubeVideos.length === 0) loadYoutubeVideos();
         if (step === 3 && blogPosts.length === 0) loadBlogPosts();
-        // Auto-generate intro & quick tip when entering Step 5
-        if (step === 5) { autoGenerateIntroAndTip(); }
-        // Auto-generate image prompts when entering Step 8
+        // Auto-generate intro & quick tip when entering Step 5 - show loading first
+        if (step === 5 && !introAndTipGenerated) {
+            showStep('4b');
+            autoGenerateIntroAndTip().then(() => {
+                currentStep = 5;
+                document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+                document.getElementById('step5').classList.add('active');
+                updateProgressBar();
+            });
+            return;
+        }
+        // Auto-generate image prompts when entering Step 8 - show loading first
         if (step === 8) {
             setupImageStep();
-            if (!promptsAlreadyGenerated) { autoGenerateImagePrompts(); }
+            if (!promptsAlreadyGenerated) {
+                showStep('7c');
+                autoGenerateImagePrompts().then(() => {
+                    currentStep = 8;
+                    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+                    document.getElementById('step8').classList.add('active');
+                    updateProgressBar();
+                });
+                return;
+            }
         }
         if (step === 9) { autoGenerateSubjectLinesIfNeeded(); }
         currentStep = step;
@@ -1324,7 +1408,7 @@
     }
 
     function updateProgressBar() {
-        const stepMap = { 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, '6b':6, 7:7, '7b':7, 8:8, 9:9, 10:10, 11:11 };
+        const stepMap = { 1:1, 2:2, 3:3, 4:4, '4b':5, 5:5, 6:6, '6b':6, 7:7, '7b':7, '7c':8, 8:8, 9:9, 10:10, 11:11 };
         const num = stepMap[currentStep] || 1;
         const pct = (num / totalSteps) * 100;
         document.getElementById('progressBar').style.width = pct + '%';
@@ -1545,13 +1629,17 @@
         const grid = document.getElementById('blogGrid');
         grid.innerHTML = '';
         blogPosts.forEach((post, idx) => {
-            const isSelected = (selectedContent.blog_1 && selectedContent.blog_1.url === post.url) ||
-                              (selectedContent.blog_2 && selectedContent.blog_2.url === post.url);
+            const isBlog1 = selectedContent.blog_1 && selectedContent.blog_1.url === post.url;
+            const isBlog2 = selectedContent.blog_2 && selectedContent.blog_2.url === post.url;
+            const isSelected = isBlog1 || isBlog2;
             const card = document.createElement('div');
             card.className = 'blog-card' + (isSelected ? ' selected' : '');
+            card.style.position = 'relative';
             const imgSrc = post.featured_image_url || 'https://brite.co/wp-content/uploads/2025/09/blank-image.png';
             const cats = (post.categories || []).map(c => `<span class="blog-cat">${escapeHtml(c)}</span>`).join('');
+            const badge = isBlog1 ? 'ARTICLE 1' : (isBlog2 ? 'ARTICLE 2' : '');
             card.innerHTML = `
+                ${badge ? `<div style="position:absolute;top:8px;right:8px;background:#018181;color:white;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;z-index:1;">${badge}</div>` : ''}
                 <img class="blog-image" src="${imgSrc}" alt="${escapeHtml(post.title)}" loading="lazy">
                 <div class="blog-info">
                     <div class="blog-title">${escapeHtml(post.title)}</div>
@@ -1633,7 +1721,8 @@
         container.innerHTML = '';
         results.forEach((r, idx) => {
             const card = document.createElement('div');
-            card.className = 'gtp-result-card';
+            const isCurrentlySelected = selectedContent.guess_the_price && selectedContent.guess_the_price.title === r.title;
+            card.className = 'gtp-result-card' + (isCurrentlySelected ? ' selected' : '');
             const imgSrc = r.image_url || r.thumbnail || '';
             card.innerHTML = `
                 ${imgSrc ? '<img class="gtp-thumb" src="' + imgSrc + '" alt="" loading="lazy">' : ''}
@@ -1643,7 +1732,12 @@
                     <div class="gtp-result-snippet">${escapeHtml(r.snippet || r.description || '')}</div>
                 </div>
             `;
-            card.onclick = () => selectGTPItem(r);
+            card.onclick = () => {
+                // Highlight selected card
+                container.querySelectorAll('.gtp-result-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectGTPItem(r);
+            };
             container.appendChild(card);
         });
     }
@@ -1823,6 +1917,32 @@
         return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    function stripMarkdown(text) {
+        if (!text) return '';
+        return text
+            .replace(/<\/?[^>]+(>|$)/g, '')  // Strip HTML tags
+            .replace(/\*\*(.*?)\*\*/g, '$1')  // **bold** → bold
+            .replace(/\*(.*?)\*/g, '$1')       // *italic* → italic
+            .replace(/__(.*?)__/g, '$1')       // __bold__ → bold
+            .replace(/_(.*?)_/g, '$1')         // _italic_ → italic
+            .replace(/#{1,6}\s/g, '')          // ### headers → remove
+            .replace(/\n/g, ' ')               // newlines → spaces
+            .replace(/\s+/g, ' ')              // collapse whitespace
+            .trim();
+    }
+
+    function markdownToHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/__(.*?)__/g, '<strong>$1</strong>')
+            .replace(/_(.*?)_/g, '<em>$1</em>')
+            .replace(/<\/?p>/gi, '')           // Remove <p> wrappers from AI
+            .replace(/<br\s*\/?>/gi, ' ')      // Replace <br> with space
+            .trim();
+    }
+
     function formatNumber(num) {
         if (!num) return '0';
         num = parseInt(num);
@@ -1867,12 +1987,6 @@
         btn.textContent = 'Saved!';
         btn.style.background = '#22c55e';
         setTimeout(() => { btn.textContent = orig; btn.style.background = '#059669'; }, 2000);
-    }
-
-    function selectTone(btn, tone) {
-        selectedTone = tone;
-        document.querySelectorAll('.tone-selector .sort-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
     }
 
     // ============================================================
@@ -1952,17 +2066,18 @@
 
     function populateReviewContent() {
         const gc = generatedContent;
-        // Use innerHTML (not escaped) so links and formatting come through
+        // Convert markdown to HTML for contenteditable divs
         const setContent = (id, text) => {
             const el = document.getElementById(id);
-            if (el) el.innerHTML = text || '';
+            if (el) el.innerHTML = markdownToHtml(text || '');
         };
 
         setContent('fc-intro', gc.intro || '');
 
         // Agenda items
         if (gc.agenda_items && gc.agenda_items.length) {
-            setContent('fc-agenda', '<ul>' + gc.agenda_items.map(i => '<li>' + i + '</li>').join('') + '</ul>');
+            const agendaEl = document.getElementById('fc-agenda');
+            if (agendaEl) agendaEl.innerHTML = '<ul>' + gc.agenda_items.map(i => '<li>' + markdownToHtml(i) + '</li>').join('') + '</ul>';
         }
 
         // Video descriptions
@@ -2004,7 +2119,13 @@
     // BRAND CHECK + EXPORT
     // ============================================================
     async function runBrandCheck() {
-        goToStep(7);
+        // Show step 7 loading screen directly (NOT via goToStep to avoid infinite recursion)
+        currentStep = 7;
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step7').classList.add('active');
+        updateProgressBar();
+        window.scrollTo(0, 0);
+
         try {
             const contentForCheck = buildContentObject();
             const resp = await fetch(`${API_BASE}/api/check-brand-guidelines`, {
@@ -2100,7 +2221,10 @@
         const btnText = document.getElementById('exportBtnText');
         const resultDiv = document.getElementById('exportDocsResult');
         btn.disabled = true; btnText.textContent = 'Exporting...';
-        resultDiv.style.display = 'none';
+        resultDiv.style.display = 'block';
+        resultDiv.style.background = '#f0f9ff';
+        resultDiv.style.border = '2px solid #3b82f6';
+        resultDiv.innerHTML = '<p style="margin:0;color:#1e40af;">Creating Google Doc... this may take a moment.</p>';
         try {
             const content = buildContentObject();
             const year = new Date().getFullYear();
@@ -2174,24 +2298,15 @@
             }
             if (!recipients.length) { alert('Select at least one recipient'); btn.disabled = false; btnText.textContent = 'Send Email'; return; }
 
-            const content = buildContentObject();
             const monthCap = selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1);
-            let copyHtml = `<h2>BriteCo Consumer Newsletter - ${monthCap} Copy Review</h2>`;
-            copyHtml += `<h3>Intro</h3><p>${escapeHtml(content.intro)}</p>`;
-            copyHtml += `<h3>News of the Month</h3><p><strong>${escapeHtml(content.news_of_month.title)}</strong></p><p>${escapeHtml(content.news_of_month.description)}</p>`;
-            copyHtml += `<h3>Trend Alert</h3><p><strong>${escapeHtml(content.trend_alert.title)}</strong></p><p>${escapeHtml(content.trend_alert.description)}</p>`;
-            copyHtml += `<h3>Blog Articles</h3>`;
-            content.blog_articles.forEach(a => { copyHtml += `<p><strong>${escapeHtml(a.title)}</strong> - ${escapeHtml(a.url)}</p>`; });
-            copyHtml += `<h3>Guess the Price</h3><p><strong>${escapeHtml(content.guess_the_price.title)}</strong></p>`;
-            copyHtml += `<p>Question: ${escapeHtml(content.guess_the_price.question)}</p>`;
-            copyHtml += `<h3>Quick Tip</h3><p>${escapeHtml(content.quick_tip)}</p>`;
-            if (exportedDocUrl) copyHtml += `<p><a href="${exportedDocUrl}">View Google Doc</a></p>`;
 
-            const resp = await fetch(`${API_BASE}/api/send-preview`, {
+            const resp = await fetch(`${API_BASE}/api/send-doc-notification`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    recipients, subject: `BriteCo Consumer Newsletter - ${monthCap} Copy Review`,
-                    html: copyHtml
+                    recipients,
+                    doc_url: exportedDocUrl,
+                    month: monthCap,
+                    year: new Date().getFullYear()
                 })
             });
             const data = await resp.json();
@@ -2199,7 +2314,7 @@
             resultEl.style.display = 'block';
             if (data.success) {
                 resultEl.style.background = '#f0fdf4'; resultEl.style.color = '#059669';
-                resultEl.textContent = 'Sent to ' + recipients.join(', ');
+                resultEl.textContent = 'Copy review notification sent to ' + recipients.join(', ');
                 btnText.textContent = 'Sent!';
             } else {
                 resultEl.style.background = '#fef2f2'; resultEl.style.color = '#dc3545';
@@ -2264,6 +2379,38 @@
         `;
     }
 
+    function updatePromptWithStyle(section) {
+        const styleId = section + 'ImageStyle';
+        const promptId = section === 'quickTip' ? 'quickTipImagePrompt' : 'gtpImagePrompt';
+        const styleSelect = document.getElementById(styleId);
+        const promptTextarea = document.getElementById(promptId);
+        if (!styleSelect || !promptTextarea) return;
+
+        let currentPrompt = promptTextarea.value;
+        // Remove any existing style prefix
+        const stylePatterns = [
+            /^Photorealistic:?\s*/i,
+            /^Sketch \/ Illustration:?\s*/i,
+            /^Watercolor:?\s*/i,
+            /^Modern Flat Design:?\s*/i,
+            /^Magazine Editorial:?\s*/i,
+            /^Cartoon:?\s*/i,
+            /^Infographic \/ Data Viz:?\s*/i
+        ];
+        stylePatterns.forEach(pattern => { currentPrompt = currentPrompt.replace(pattern, ''); });
+
+        const styleLabels = {
+            'photorealistic': 'Photorealistic',
+            'sketch': 'Sketch / Illustration',
+            'watercolor': 'Watercolor',
+            'modern-flat': 'Modern Flat Design',
+            'magazine': 'Magazine Editorial',
+            'cartoon': 'Cartoon',
+            'infographic': 'Infographic / Data Viz'
+        };
+        promptTextarea.value = `${styleLabels[styleSelect.value]}: ${currentPrompt.trim()}`;
+    }
+
     function uploadCustomImage(section, input) {
         const file = input.files[0];
         if (!file) return;
@@ -2279,9 +2426,24 @@
     // ============================================================
     // SUBJECT LINES
     // ============================================================
+    function generateSubjectLinesWithTone() {
+        const tone = document.getElementById('subjectToneSelect')?.value || selectedTone;
+        selectedTone = tone;
+        generateSubjectLines();
+    }
+
+    function regenerateSubjectLines() {
+        document.getElementById('subjectLineResults').style.display = 'none';
+        document.getElementById('toneSelection').style.display = 'block';
+        subjectLinesGenerated = false;
+    }
+
     async function generateSubjectLines() {
-        const container = document.getElementById('subjectLineOptions');
-        container.innerHTML = '<div class="loading"><div class="spinner" style="width:30px;height:30px;"></div><p>Generating subject lines...</p></div>';
+        // Hide tone selection, show loading
+        document.getElementById('toneSelection').style.display = 'none';
+        document.getElementById('subjectLineLoading').style.display = 'block';
+        document.getElementById('subjectLineResults').style.display = 'none';
+
         try {
             const content = {
                 news_of_month: { title: selectedContent.news_of_month?.title || '' },
@@ -2293,39 +2455,65 @@
                 body: JSON.stringify({ content, month: selectedMonth, year: new Date().getFullYear(), tone: selectedTone })
             });
             const data = await resp.json();
+
+            document.getElementById('subjectLineLoading').style.display = 'none';
+
             if (data.success) {
-                let html = '';
-                (data.subject_lines || []).forEach((sl, i) => {
-                    html += `<div class="subject-option" onclick="selectSubjectLine(this, '${escapeHtml(sl)}')">${escapeHtml(sl)}</div>`;
-                });
-                container.innerHTML = html || '<p style="color:#999;">No subject lines generated.</p>';
-                // Show preheader options
-                const phContainer = document.getElementById('preheaderOptions');
-                if (data.preheaders && data.preheaders.length) {
-                    let phHtml = '<label style="font-weight:600;display:block;margin-bottom:8px;">Suggested Preheaders</label>';
-                    data.preheaders.forEach(ph => {
-                        phHtml += `<div class="subject-option" style="font-size:13px;" onclick="selectPreheader(this, '${escapeHtml(ph)}')">${escapeHtml(ph)}</div>`;
-                    });
-                    phContainer.innerHTML = phHtml;
-                }
+                document.getElementById('subjectLineResults').style.display = 'block';
+                displaySubjectLineOptions(data.subject_lines || [], data.preheaders || []);
             } else {
-                container.innerHTML = '<p style="color:#dc3545;">Failed: ' + (data.error || '') + '</p>';
+                document.getElementById('toneSelection').style.display = 'block';
+                alert('Failed to generate subject lines: ' + (data.error || ''));
             }
         } catch (e) {
-            container.innerHTML = '<p style="color:#dc3545;">Error: ' + e.message + '</p>';
+            document.getElementById('subjectLineLoading').style.display = 'none';
+            document.getElementById('toneSelection').style.display = 'block';
+            alert('Failed to generate subject lines: ' + e.message);
         }
     }
 
-    function selectSubjectLine(el, text) {
-        document.querySelectorAll('#subjectLineOptions .subject-option').forEach(o => o.classList.remove('selected'));
-        el.classList.add('selected');
-        document.getElementById('finalSubjectLine').value = text;
-    }
+    function displaySubjectLineOptions(subjectLines, preheaders) {
+        // Subject line options as radio buttons
+        const subjectList = document.getElementById('subjectLineList');
+        subjectList.innerHTML = '';
+        (subjectLines || []).forEach((line, index) => {
+            const option = document.createElement('label');
+            option.style.cssText = 'display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f9fafb; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;';
+            option.innerHTML = `
+                <input type="radio" name="subjectLine" value="${escapeHtml(line)}" style="margin-top: 3px; accent-color: #018181;" onchange="document.getElementById('finalSubjectLine').value = this.value">
+                <span style="font-size: 14px; line-height: 1.4;">${escapeHtml(line)}</span>
+            `;
+            option.onmouseover = () => option.style.borderColor = '#018181';
+            option.onmouseout = () => option.style.borderColor = 'transparent';
+            subjectList.appendChild(option);
+        });
 
-    function selectPreheader(el, text) {
-        document.querySelectorAll('#preheaderOptions .subject-option').forEach(o => o.classList.remove('selected'));
-        el.classList.add('selected');
-        document.getElementById('finalPreheader').value = text;
+        // Preheader options as radio buttons
+        const preheaderList = document.getElementById('preheaderList');
+        preheaderList.innerHTML = '';
+        (preheaders || []).forEach((line, index) => {
+            const option = document.createElement('label');
+            option.style.cssText = 'display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f9fafb; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;';
+            option.innerHTML = `
+                <input type="radio" name="preheader" value="${escapeHtml(line)}" style="margin-top: 3px; accent-color: #018181;" onchange="document.getElementById('finalPreheader').value = this.value">
+                <span style="font-size: 14px; line-height: 1.4;">${escapeHtml(line)}</span>
+            `;
+            option.onmouseover = () => option.style.borderColor = '#018181';
+            option.onmouseout = () => option.style.borderColor = 'transparent';
+            preheaderList.appendChild(option);
+        });
+
+        // Auto-select first options
+        if (subjectLines && subjectLines.length > 0) {
+            document.getElementById('finalSubjectLine').value = subjectLines[0];
+            const firstSubjectRadio = subjectList.querySelector('input[type="radio"]');
+            if (firstSubjectRadio) firstSubjectRadio.checked = true;
+        }
+        if (preheaders && preheaders.length > 0) {
+            document.getElementById('finalPreheader').value = preheaders[0];
+            const firstPreheaderRadio = preheaderList.querySelector('input[type="radio"]');
+            if (firstPreheaderRadio) firstPreheaderRadio.checked = true;
+        }
     }
 
     // ============================================================
@@ -2571,6 +2759,11 @@
                 document.getElementById('step4NextBtn').disabled = false;
             }
 
+            // Mark things as already generated if draft has content
+            if (d.introText || d.quickTipText || generatedContent.intro) introAndTipGenerated = true;
+            if (d.subjectLine) subjectLinesGenerated = true;
+            if (generatedPrompts && Object.keys(generatedPrompts).length) promptsAlreadyGenerated = true;
+
             // Navigate to saved step
             const step = d.currentStep || 1;
             if (typeof step === 'string' && step.includes('b')) {
@@ -2787,7 +2980,7 @@
                     })
                 }).then(r => r.json()).then(data => {
                     if (data.success && data.generated?.intro && introEl) {
-                        introEl.value = data.generated.intro;
+                        introEl.value = stripMarkdown(data.generated.intro);
                         updateWordCount('introContent', 'introWordCount');
                     }
                 }).catch(e => console.error('Auto-gen intro error:', e))
@@ -2801,7 +2994,7 @@
                     body: JSON.stringify({ month: selectedMonth || 'january' })
                 }).then(r => r.json()).then(data => {
                     if (data.success && data.tip && tipEl) {
-                        tipEl.value = data.tip;
+                        tipEl.value = stripMarkdown(data.tip);
                         updateWordCount('quickTipContent', 'quickTipWordCount');
                         if (data.image_prompt) {
                             const promptEl = document.getElementById('quickTipImagePrompt');
@@ -2842,7 +3035,7 @@
             });
             const data = await resp.json();
             if (data.success && data.generated?.intro) {
-                document.getElementById('introContent').value = data.generated.intro;
+                document.getElementById('introContent').value = stripMarkdown(data.generated.intro);
             } else { alert('Generation failed: ' + (data.error || '')); }
         } catch (e) { alert('Error: ' + e.message); }
         btn.disabled = false; btn.textContent = 'AI Generate';
@@ -2924,7 +3117,7 @@
     async function autoGenerateSubjectLinesIfNeeded() {
         if (subjectLinesGenerated) return;
         subjectLinesGenerated = true;
-        generateSubjectLines();
+        generateSubjectLinesWithTone();
     }
 
     // ============================================================

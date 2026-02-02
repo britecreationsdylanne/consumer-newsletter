@@ -205,7 +205,8 @@ class YouTubeClient:
     def get_videos_by_popularity(
         self,
         channel_id: Optional[str] = None,
-        max_results: int = 10
+        max_results: int = 10,
+        page_token: Optional[str] = None
     ) -> dict:
         """
         Get channel videos sorted by view count (most popular first).
@@ -213,6 +214,7 @@ class YouTubeClient:
         Args:
             channel_id: YouTube channel ID (defaults to BriteCo)
             max_results: Number of top videos to return
+            page_token: Token for next page of results
 
         Returns:
             Dict with 'videos' sorted by view count and 'next_page_token'
@@ -220,7 +222,8 @@ class YouTubeClient:
         # Fetch more than needed so we have a good pool to sort
         result = self.get_channel_videos(
             channel_id=channel_id,
-            max_results=min(max_results * 2, 50)
+            max_results=min(max_results * 2, 50),
+            page_token=page_token
         )
 
         videos = result.get("videos", []) if isinstance(result, dict) else result
@@ -249,7 +252,7 @@ class YouTubeClient:
             Dict with 'videos' list and optional 'next_page_token'
         """
         if sort == "popular":
-            return self.get_videos_by_popularity(channel_id, max_results)
+            return self.get_videos_by_popularity(channel_id, max_results, page_token)
         else:
             result = self.get_channel_videos(channel_id, max_results, page_token)
             videos = result.get("videos", []) if isinstance(result, dict) else result

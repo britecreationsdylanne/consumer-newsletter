@@ -1436,14 +1436,25 @@ def export_to_docs():
                 for recipient in recipients:
                     try:
                         email_html = f"""
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <h2 style="color: #008181;">Consumer Newsletter - Ready for Review</h2>
-                            <p>The <strong>{month} {year}</strong> consumer newsletter has been exported to Google Docs for copy review.</p>
-                            <p style="margin: 20px 0;">
-                                <a href="{doc_url}" style="background: #008181; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
-                                    Open Google Doc
-                                </a>
-                            </p>
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <h1 style="color: #272d3f; margin: 0;">BriteCo Consumer Newsletter</h1>
+                                <p style="color: #008181; margin: 5px 0;">Copy Review</p>
+                            </div>
+                            <div style="background: #f5f7fa; border-radius: 8px; padding: 30px; text-align: center;">
+                                <h2 style="color: #272d3f; margin-top: 0;">Copy Ready for Review</h2>
+                                <p style="color: #5D7283; font-size: 16px;">
+                                    The <strong>{month} {year}</strong> consumer newsletter has been exported to Google Docs and is ready for your review.
+                                </p>
+                                <p style="margin: 30px 0;">
+                                    <a href="{doc_url}" style="background: #008181; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">
+                                        Open in Google Docs
+                                    </a>
+                                </p>
+                                <p style="color: #888; font-size: 14px;">
+                                    Click the button above to review and make any necessary edits.
+                                </p>
+                            </div>
                         </div>
                         """
 
@@ -1502,21 +1513,37 @@ def send_doc_notification():
         for recipient in recipients:
             try:
                 email_html = f"""
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #008181;">Consumer Newsletter - Copy Review</h2>
-                    <p>The <strong>{month} {year}</strong> consumer newsletter is ready for review.</p>
-                    <p style="margin: 20px 0;">
-                        <a href="{doc_url}" style="background: #008181; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
-                            Open Google Doc
-                        </a>
-                    </p>
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #272d3f; margin: 0;">BriteCo Consumer Newsletter</h1>
+                        <p style="color: #008181; margin: 5px 0;">Copy Review</p>
+                    </div>
+                    <div style="background: #f5f7fa; border-radius: 8px; padding: 30px; text-align: center;">
+                        <h2 style="color: #272d3f; margin-top: 0;">Copy Ready for Review</h2>
+                        <p style="color: #5D7283; font-size: 16px;">
+                            The <strong>{month} {year}</strong> consumer newsletter has been exported to Google Docs and is ready for your review.
+                        </p>
+                        <p style="margin: 30px 0;">
+                            <a href="{doc_url}" style="background: #008181; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">
+                                Open in Google Docs
+                            </a>
+                        </p>
+                        <p style="color: #888; font-size: 14px;">
+                            Click the button above to review and make any necessary edits.
+                        </p>
+                    </div>
+                    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <p style="color: #888; font-size: 12px; margin: 0;">
+                            This notification was sent by the BriteCo Consumer Newsletter generator.
+                        </p>
+                    </div>
                 </div>
                 """
 
                 message = Mail(
                     from_email=(from_email, from_name),
                     to_emails=recipient,
-                    subject=f"Consumer Newsletter - {month} {year} - Copy Review",
+                    subject=f"Consumer Newsletter - {month} {year} - Copy Ready for Review",
                     html_content=email_html
                 )
                 response = sg.send(message)
