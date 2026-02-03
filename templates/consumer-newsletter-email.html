@@ -45,6 +45,8 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; text-align: center !important; }
 .gtp-image img { width: 100% !important; max-width: 100% !important; margin: 0 auto !important; }
 .gtp-details { display: block !important; width: 100% !important; }
+.gtp-hero-img { height: auto !important; }
+.whats-inside-spacer { height: 25px !important; }
 .section-badge { font-size: 14px !important; padding: 5px 14px !important; }
 .badge-table { margin: 0 0 20px 0 !important; }
 .badge-row { padding-bottom: 8px !important; }
@@ -56,6 +58,8 @@ u + .body .mobile-padding { padding-left: 20px !important; padding-right: 20px !
 u + .body .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-right: 0 !important; padding-bottom: 20px !important; text-align: center !important; }
 u + .body .gtp-image img { width: 100% !important; max-width: 100% !important; }
 u + .body .gtp-details { display: block !important; width: 100% !important; }
+u + .body .gtp-hero-img { height: auto !important; }
+u + .body .whats-inside-spacer { height: 25px !important; }
 u + .body .mobile-img-full { width: 100% !important; max-width: 100% !important; height: auto !important; }
 u + .body .section-badge { font-size: 14px !important; }
 u + .body .cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; }
@@ -77,9 +81,6 @@ u + .body .cta-heading { font-size: 24px !important; }
 
 <!-- Outer Container 680px -->
 <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 680px;" class="mobile-full">
-
-<!-- Top Spacer -->
-<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
 
 <!-- ============================================ -->
 <!-- HEADER - BriteCo Logo                        -->
@@ -131,8 +132,8 @@ u + .body .cta-heading { font-size: 24px !important; }
 </td>
 </tr>
 
-<!-- Spacer (extra space after What's Inside) -->
-<tr><td style="height: 35px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+<!-- Spacer -->
+<tr><td style="height: 20px; font-size: 1px; line-height: 1px;" class="whats-inside-spacer">&nbsp;</td></tr>
 
 <!-- ============================================ -->
 <!-- NEWS OF THE MONTH - YouTube video            -->
@@ -429,19 +430,8 @@ u + .body .cta-heading { font-size: 24px !important; }
 </tr>
 </table>
 
-<!-- Tip content with bullet icon -->
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-<tr>
-<!-- BriteCo check icon -->
-<td width="100" valign="top" style="padding-right: 12px; padding-top: 0;">
-<img src="/static/briteco-check.png" width="88" height="88" alt="&#10003;" style="width: 88px; height: 88px; display: block; border: 0;">
-</td>
-<!-- Tip text -->
-<td valign="top">
+<!-- Tip content -->
 <p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">{{QUICK_TIP_TEXT}}</p>
-</td>
-</tr>
-</table>
 
 <!-- Quick tip image (optional) -->
 {{QUICK_TIP_IMAGE_BLOCK}}
@@ -519,20 +509,8 @@ u + .body .cta-heading { font-size: 24px !important; }
 <tr>
 <td style="background-color: #272d3e; padding: 35px 45px; text-align: center;" class="mobile-padding">
 <a href="https://brite.co" target="_blank">
-<img src="/static/briteco-logo-white.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto 18px auto;">
+<img src="/static/briteco-logo-white.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto;">
 </a>
-<p style="margin: 0 0 8px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #aaaaaa;">
-805 Greenwood Street, Evanston, IL 60201
-</p>
-<p style="margin: 0 0 12px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; line-height: 20px; font-weight: 400; color: #31D7CA;">
-<a href="https://brite.co" target="_blank" style="color: #31D7CA; text-decoration: underline;">brite.co</a>
-</p>
-<p style="margin: 0 0 12px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 11px; line-height: 16px; font-weight: 400; color: #888888;">
-<a href="[unsubscribe]" style="color: #888888; text-decoration: underline;">Unsubscribe</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://brite.co/privacy" style="color: #888888; text-decoration: underline;">Privacy Policy</a>
-</p>
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 10px; line-height: 14px; font-weight: 400; color: #666666;">
-&copy; {{YEAR}} BriteCo Inc. All rights reserved.
-</p>
 </td>
 </tr>
 

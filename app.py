@@ -1754,6 +1754,7 @@ def render_email_template():
         # Intro - clean any AI-generated prefixes
         intro_val = content.get('intro', f'Welcome to the {month} edition!')
         intro_val = re.sub(r'^(?:\w+\s+)?newsletter\s+intro(?:duction)?[\s:;\-–—]*', '', intro_val, flags=re.IGNORECASE).strip()
+        intro_val = re.sub(r'^(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+intro(?:duction)?[\s:;\-–—]*', '', intro_val, flags=re.IGNORECASE).strip()
         if intro_val.startswith('"') and intro_val.endswith('"'):
             intro_val = intro_val[1:-1].strip()
         html = html.replace('{{INTRO_TEXT}}', intro_val or f'Welcome to the {month} edition!')
@@ -1828,8 +1829,13 @@ def render_email_template():
                                 'GTP_WHERE_IT_LIVES', 'GTP_FUN_FACT', 'GTP_QUESTION', 'GTP_LINK']:
                 html = html.replace('{{' + placeholder + '}}', '')
 
-        # Quick Tip
-        html = html.replace('{{QUICK_TIP_TEXT}}', content.get('quick_tip', ''))
+        # Quick Tip - clean any AI-generated prefixes
+        quick_tip_val = content.get('quick_tip', '')
+        quick_tip_val = re.sub(r'^(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+quick\s*tip[\s:;\-–—]*', '', quick_tip_val, flags=re.IGNORECASE).strip()
+        quick_tip_val = re.sub(r'^quick\s*tip[\s:;\-–—]*', '', quick_tip_val, flags=re.IGNORECASE).strip()
+        if quick_tip_val.startswith('"') and quick_tip_val.endswith('"'):
+            quick_tip_val = quick_tip_val[1:-1].strip()
+        html = html.replace('{{QUICK_TIP_TEXT}}', quick_tip_val)
 
         # Quick tip image block
         quick_tip_image = images.get('quick_tip', {}).get('url', '')
@@ -2040,6 +2046,25 @@ def delete_draft():
         return jsonify({'success': True})
 
 
+@app.route('/api/delete-published', methods=['DELETE'])
+def delete_published():
+    """Delete a published newsletter from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True})
+    try:
+        filename = request.json.get('file')
+        if not filename:
+            return jsonify({'success': False, 'error': 'No file specified'}), 400
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        blob = bucket.blob(filename)
+        if blob.exists():
+            blob.delete()
+        return jsonify({'success': True})
+    except Exception as e:
+        safe_print(f"[PUBLISHED DELETE ERROR] {str(e)}")
+        return jsonify({'success': True})
+
+
 # ============================================================================
 # ROUTES - SAVED ITEMS (for Guess the Price)
 # ============================================================================
@@ -2158,7 +2183,6 @@ def upload_images_to_gcs():
                 if section.startswith('_'):
                     asset_map = {
                         '_logo': ('static/briteco-logo-white.png', 'image/png'),
-                        '_check': ('static/briteco-check.png', 'image/png'),
                     }
                     if section in asset_map:
                         local_path, content_type = asset_map[section]
