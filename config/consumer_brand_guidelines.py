@@ -593,7 +593,7 @@ AI_PROMPTS = {
         "- 💎 Can you guess the price of this high-profile rock?"
     ),
     "generate_video_description": (
-        "Write a {max_words}-word description for a YouTube video to be featured "
+        "Write a {max_words}-word description for a YouTube video to include "
         "in a consumer jewelry newsletter.\n\n"
         "Video title: {title}\n"
         "Video description: {description}\n\n"
@@ -602,7 +602,10 @@ AI_PROMPTS = {
         "- Consumer-friendly language — no industry jargon\n"
         "- End with a hook encouraging the reader to watch\n"
         "- Conversational, engaging tone\n"
-        "- Max {max_words} words"
+        "- Max {max_words} words\n"
+        "- Do NOT include any label, prefix, or title like 'Featured Video:', "
+        "'Video Description:', or 'News of the Month:' — return ONLY the "
+        "description paragraph"
     ),
     "generate_guess_the_price_details": (
         "Generate details for a 'Guess the Price' jewelry newsletter section.\n\n"
@@ -632,7 +635,8 @@ AI_PROMPTS = {
         "- Friendly, helpful tone — like a knowledgeable friend\n"
         "- 1-2 short paragraphs\n"
         "- Max 60 words\n"
-        "- Do not use bullet points — flowing prose only"
+        "- Do not use bullet points — flowing prose only\n"
+        "- Do NOT include a title, heading, or label — return ONLY the tip text"
     ),
     "generate_subject_lines": (
         "Generate 5 email subject lines AND 5 matching preheader texts for a consumer jewelry newsletter.\n\n"

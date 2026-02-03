@@ -3106,9 +3106,12 @@
         if (rawIntro.startsWith("'") && rawIntro.endsWith("'")) rawIntro = rawIntro.slice(1, -1).trim();
         const cleanIntro = cleanForEmail(rawIntro);
         const nom = content.news_of_month || {};
-        const cleanNomDesc = cleanForEmail(nom.description || '');
+        // Strip AI labels like "Featured Video:", "News of the Month:", etc.
+        let rawNomDesc = (nom.description || '').replace(/^(featured\s+video|video\s+description|news\s+of\s+the\s+month)[\s:;\-–—]+/i, '').trim();
+        const cleanNomDesc = cleanForEmail(rawNomDesc);
         const ta = content.trend_alert || {};
-        const cleanTaDesc = cleanForEmail(ta.description || '');
+        let rawTaDesc = (ta.description || '').replace(/^(featured\s+video|video\s+description|trend\s+alert)[\s:;\-–—]+/i, '').trim();
+        const cleanTaDesc = cleanForEmail(rawTaDesc);
         const blogs = content.blog_articles || [{}, {}];
         const blog1 = blogs[0] || {};
         const blog2 = blogs[1] || {};

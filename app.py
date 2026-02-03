@@ -278,6 +278,32 @@ def convert_markdown_to_html(text):
     return text
 
 
+def strip_ai_title(text):
+    """Strip AI-generated title lines from the beginning of content.
+    AI often generates a title like 'Summer Travel Tip for Your Jewelry'
+    on its own line before the actual content."""
+    if not text:
+        return text
+    lines = text.strip().split('\n')
+    if len(lines) <= 1:
+        return text.strip()
+    # If the first line is short (title-like) and followed by blank line or longer content, strip it
+    first_line = lines[0].strip()
+    # Skip markdown headers
+    if first_line.startswith('#'):
+        first_line = first_line.lstrip('#').strip()
+        lines = [first_line] + lines[1:]
+    # Check if first line looks like a title (short, no period at end, followed by actual content)
+    rest = '\n'.join(lines[1:]).strip()
+    if (len(first_line) < 60 and not first_line.endswith('.') and
+            not first_line.endswith('!') and rest and len(rest) > len(first_line)):
+        return rest
+    # Also strip bold markdown title like **Title Here**
+    if first_line.startswith('**') and first_line.endswith('**'):
+        return rest if rest else first_line.strip('*').strip()
+    return text.strip()
+
+
 def process_generated_content(content):
     """Process generated content to convert markdown to HTML"""
     if isinstance(content, dict):
@@ -471,48 +497,31 @@ def gtp_search():
         if not perplexity_client or not perplexity_client.is_available():
             return jsonify({'success': False, 'error': 'Perplexity API not configured'}), 503
 
-        search_query = f"""Find specific, real jewelry pieces with known prices or estimated values: {query}
+        search_query = f"""{query}
 
-I need actual jewelry items that would work for a "Guess the Price" game in a newsletter. Each result MUST be a specific, identifiable piece of jewelry (not a category or general article).
+Find specific jewelry pieces matching this search. Each result should be an identifiable piece (not a general article or category)."""
 
-Focus on:
-- Specific celebrity engagement rings or jewelry with reported prices
-- Individual auction lots from Christie's, Sotheby's, or Bonhams with hammer prices
-- Named famous diamonds, gems, or collections (e.g., Hope Diamond, Pink Star)
-- Specific jewelry pieces worn at red carpet events with estimated values
-- Individual vintage or antique pieces with known sale prices
-- Specific pieces from luxury brands with retail prices
+        gtp_system_prompt = """You are a jewelry research assistant. Search the web for specific jewelry pieces matching the user's query.
 
-Each result should include the piece name, an estimated or actual price, and enough detail to identify it."""
-
-        gtp_system_prompt = """You are a jewelry research expert finding specific, notable jewelry pieces with known or estimated prices.
-
-For each piece found, provide:
-1. The specific name or description of the jewelry piece
-2. The source URL where the piece is featured (must be a real URL)
-3. The publisher/source name
-4. A 2-3 sentence description including materials, origin, and price if known
-5. An image URL if available
-
-Return your findings as a JSON array with this structure:
+Return results as JSON:
 {
     "results": [
         {
-            "title": "Specific piece name - e.g. 'The Blue Moon Diamond'",
-            "url": "https://real-source-url.com/article",
+            "title": "Name or description of the jewelry piece",
+            "url": "https://source-url.com/article",
             "publisher": "Source name",
             "published_date": "YYYY-MM-DD or null",
-            "summary": "2-3 sentence description with materials and price details",
+            "summary": "2-3 sentence description with materials, origin, or price details",
             "image_url": "URL to image if found, or null"
         }
     ]
 }
 
-Important:
-- Every result must be a SPECIFIC identifiable piece, not a listicle or category
-- Only include results with REAL, verifiable URLs
-- Include price information when available
-- Return exactly 6 results"""
+Rules:
+- Each result must be a specific piece of jewelry, not a listicle
+- Include price or estimated value when available
+- Use real URLs from your search results
+- Return 6-8 results"""
 
         results = perplexity_client.search(
             query=search_query,
@@ -594,6 +603,8 @@ def generate_quick_tip():
         )
 
         tip_text = response.get('content', '').strip()
+        # Strip AI-generated title lines (short line before the actual tip)
+        tip_text = strip_ai_title(tip_text)
 
         # Generate an image prompt for the tip
         image_prompt = f"Photorealistic jewelry care photography, {season} setting, elegant flat lay with jewelry cleaning supplies and fine jewelry, soft natural lighting, stock photo quality, {themes[0] if themes else 'jewelry care'}"
@@ -779,9 +790,12 @@ def generate_newsletter():
                     description=news_of_month.get('description', '')[:500]
                 )
                 response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=0.6)
+                nom_desc = response.get('content', '').strip()
+                # Strip AI-generated labels like "Featured Video:", "Video Description:", etc.
+                nom_desc = re.sub(r'^(featured\s+video|video\s+description|news\s+of\s+the\s+month)[\s:;\-–—]+', '', nom_desc, flags=re.IGNORECASE).strip()
                 generated['news_of_month'] = {
                     'title': news_of_month.get('title', ''),
-                    'description': response.get('content', '').strip(),
+                    'description': nom_desc,
                     'thumbnail_url': news_of_month.get('thumbnail_url', ''),
                     'video_url': news_of_month.get('url', '')
                 }
@@ -803,9 +817,12 @@ def generate_newsletter():
                     description=trend_alert.get('description', '')[:500]
                 )
                 response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=0.6)
+                ta_desc = response.get('content', '').strip()
+                # Strip AI-generated labels
+                ta_desc = re.sub(r'^(featured\s+video|video\s+description|trend\s+alert)[\s:;\-–—]+', '', ta_desc, flags=re.IGNORECASE).strip()
                 generated['trend_alert'] = {
                     'title': trend_alert.get('title', ''),
-                    'description': response.get('content', '').strip(),
+                    'description': ta_desc,
                     'thumbnail_url': trend_alert.get('thumbnail_url', ''),
                     'video_url': trend_alert.get('url', '')
                 }
@@ -872,9 +889,13 @@ Return ONLY the question text."""
                     themes=', '.join(themes)
                 )
                 response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=0.7)
-                generated['quick_tip'] = response.get('content', '').strip()
+                generated['quick_tip'] = strip_ai_title(response.get('content', '').strip())
             except:
                 generated['quick_tip'] = f"Keep your jewelry sparkling this {season}!"
+
+        # Strip any title from quick tip if manually provided
+        if quick_tip and generated.get('quick_tip') == quick_tip:
+            generated['quick_tip'] = strip_ai_title(generated['quick_tip'])
 
         # Convert markdown links to HTML
         generated = process_generated_content(generated)
