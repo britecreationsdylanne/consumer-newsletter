@@ -573,6 +573,59 @@ def gtp_generate_details():
 
 
 # ============================================================================
+# ROUTES - SPECIAL SECTION GENERATION
+# ============================================================================
+
+@app.route('/api/generate-special-section', methods=['POST'])
+def generate_special_section():
+    """AI-generate copy for a special/announcement section"""
+    try:
+        data = request.json
+        title = data.get('title', '').strip()
+        notes = data.get('notes', '').strip()
+
+        if not title:
+            return jsonify({'success': False, 'error': 'Title is required'}), 400
+
+        if not claude_client:
+            return jsonify({'success': False, 'error': 'Claude not available'}), 503
+
+        prompt = f"""Write a short, engaging announcement for a consumer jewelry newsletter.
+
+Title: {title}
+{f"Additional context: {notes}" if notes else ""}
+
+Requirements:
+- 2-4 sentences, max 80 words
+- Consumer-friendly, fun, conversational tone
+- No headings, labels, or prefixes — return ONLY the body text
+- Use serial commas and em dashes where appropriate
+- Do not start with the title or repeat it"""
+
+        response = claude_client.generate_content(
+            prompt=prompt,
+            max_tokens=250,
+            temperature=0.7
+        )
+
+        body_text = response.get('content', '').strip()
+        body_text = strip_ai_title(body_text)
+
+        # Generate an image prompt for this section
+        image_prompt = f"Photorealistic jewelry lifestyle photography related to '{title}', elegant styling, soft natural lighting, stock photo quality, luxury aesthetic"
+
+        return jsonify({
+            'success': True,
+            'body': body_text,
+            'image_prompt': image_prompt
+        })
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Generate special section: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
 # ROUTES - QUICK TIP GENERATION
 # ============================================================================
 
@@ -649,6 +702,7 @@ def rewrite_content():
             'video_description': 80,
             'quick_tip': 60,
             'guess_the_price_question': 30,
+            'special_section': 80,
         }
 
         max_words = word_limits.get(section, 100)

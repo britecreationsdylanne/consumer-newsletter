@@ -884,6 +884,110 @@
                 </div>
             </div>
 
+            <!-- ============ SPECIAL SECTION (collapsible) ============ -->
+            <div style="margin-top: 24px; border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+                <div onclick="toggleSpecialSection()" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#f9fafb;cursor:pointer;user-select:none;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span id="specialSectionToggleIcon" style="font-size:18px;transition:transform 0.2s;">&#9654;</span>
+                        <label style="font-weight:600;font-size:15px;cursor:pointer;margin:0;">Add Special Section</label>
+                        <span style="font-size:12px;color:#999;font-weight:400;">(optional announcement block)</span>
+                    </div>
+                    <div id="specialSectionBadge" style="display:none;background:#018181;color:white;font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600;">ACTIVE</div>
+                </div>
+                <div id="specialSectionPanel" style="display:none;padding:20px;border-top:2px solid #e5e7eb;">
+
+                    <div class="form-group">
+                        <label>Section Title</label>
+                        <input type="text" id="specialSectionTitle" placeholder="e.g., Valentine's Day Sale, Holiday Hours, New Collection" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;box-sizing:border-box;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Color Scheme</label>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;" id="colorSchemeSwatches">
+                            <div onclick="selectColorScheme('white')" class="color-swatch selected" data-scheme="white" style="cursor:pointer;border:3px solid #018181;border-radius:8px;padding:10px 16px;text-align:center;min-width:80px;background:#ffffff;">
+                                <div style="width:30px;height:30px;border-radius:50%;margin:0 auto 6px;background:#ffffff;border:2px solid #e5e7eb;"></div>
+                                <span style="font-size:12px;font-weight:600;color:#333;">White</span>
+                            </div>
+                            <div onclick="selectColorScheme('slate_blue')" class="color-swatch" data-scheme="slate_blue" style="cursor:pointer;border:3px solid transparent;border-radius:8px;padding:10px 16px;text-align:center;min-width:80px;background:#f9fafb;">
+                                <div style="width:30px;height:30px;border-radius:50%;margin:0 auto 6px;background:#466f88;"></div>
+                                <span style="font-size:12px;font-weight:600;color:#333;">Slate Blue</span>
+                            </div>
+                            <div onclick="selectColorScheme('teal')" class="color-swatch" data-scheme="teal" style="cursor:pointer;border:3px solid transparent;border-radius:8px;padding:10px 16px;text-align:center;min-width:80px;background:#f9fafb;">
+                                <div style="width:30px;height:30px;border-radius:50%;margin:0 auto 6px;background:#008181;"></div>
+                                <span style="font-size:12px;font-weight:600;color:#333;">Teal</span>
+                            </div>
+                            <div onclick="selectColorScheme('dark_navy')" class="color-swatch" data-scheme="dark_navy" style="cursor:pointer;border:3px solid transparent;border-radius:8px;padding:10px 16px;text-align:center;min-width:80px;background:#f9fafb;">
+                                <div style="width:30px;height:30px;border-radius:50%;margin:0 auto 6px;background:#272d3f;"></div>
+                                <span style="font-size:12px;font-weight:600;color:#333;">Dark Navy</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Body Text</label>
+                        <textarea id="specialSectionBody" rows="4" placeholder="Write your announcement text here, or use AI Generate to draft it..."></textarea>
+                        <div class="textarea-actions">
+                            <span class="word-count" id="specialSectionWordCount">0 words</span>
+                            <div style="display:flex;gap:8px;">
+                                <button class="btn-small" onclick="aiGenerateSpecialSection()">AI Generate</button>
+                                <button class="btn-small" style="background:#6b7280;" onclick="aiRewriteSpecialSection()">AI Rewrite</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Image <span style="font-size:12px;color:#999;font-weight:400;">(optional)</span></label>
+                        <div style="display:flex;gap:8px;margin-bottom:8px;">
+                            <label class="btn-small" style="background:#466F88;cursor:pointer;">
+                                Upload Image
+                                <input type="file" accept="image/*" style="display:none;" onchange="uploadSpecialSectionImage(this)">
+                            </label>
+                            <button class="btn-small" onclick="showSpecialSectionImagePrompt()">AI Generate Image</button>
+                        </div>
+                        <div id="specialSectionImageResult" style="margin-top:8px;"></div>
+                        <div id="specialSectionImagePromptWrap" style="display:none;margin-top:10px;">
+                            <label style="font-size:13px;font-weight:600;">Image Prompt</label>
+                            <textarea id="specialSectionImagePrompt" rows="2" placeholder="Describe the image..." style="font-size:13px;"></textarea>
+                            <button class="btn-small" onclick="generateSpecialSectionImageFromPrompt()" style="margin-top:6px;">Generate</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="specialSectionCTAToggle" onchange="toggleSpecialCTA()">
+                            Add CTA Button <span style="font-size:12px;color:#999;font-weight:400;">(optional)</span>
+                        </label>
+                        <div id="specialSectionCTAFields" style="display:none;margin-top:10px;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label style="font-size:13px;font-weight:600;">Button Text</label>
+                                    <input type="text" id="specialSectionCTAText" placeholder="e.g., Learn More" style="width:100%;padding:8px;border:2px solid #e5e7eb;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                                </div>
+                                <div>
+                                    <label style="font-size:13px;font-weight:600;">Button URL</label>
+                                    <input type="text" id="specialSectionCTAUrl" placeholder="https://..." style="width:100%;padding:8px;border:2px solid #e5e7eb;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Position in Newsletter</label>
+                        <select id="specialSectionPosition" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:6px;font-size:14px;background:white;">
+                            <option value="after_intro">After Intro (top of newsletter)</option>
+                            <option value="after_trend">After Trend Alert</option>
+                            <option value="after_blogs" selected>After Blog Articles</option>
+                            <option value="after_gtp">After Guess the Price</option>
+                            <option value="after_quicktip">After Quick Tip (before CTA)</option>
+                        </select>
+                    </div>
+
+                    <div style="text-align:right;margin-top:8px;">
+                        <button class="btn-small" style="background:#dc3545;" onclick="removeSpecialSection()">Remove Special Section</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(4)">&larr; Back</button>
                 <button class="btn btn-green" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
@@ -1184,6 +1288,20 @@
                             <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage('guess_the_price', this);">
                         </label>
                         <button class="btn-small" style="background:#008181;" onclick="openGTPCropperFromReview()">Crop</button>
+                    </div>
+                </div>
+
+                <!-- Special Section Image Review (shown only when active) -->
+                <div id="reviewSpecialSectionCard" style="background:#f9fafb;border:2px solid #e5e7eb;border-radius:12px;padding:20px;display:none;">
+                    <h4 style="color:#018181;margin:0 0 12px 0;">Special Section Image</h4>
+                    <div id="reviewSpecialSectionImage" style="min-height:150px;display:flex;align-items:center;justify-content:center;">
+                        <p style="color:#999;">No image</p>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:12px;">
+                        <label class="btn-small" style="background:#6b7280;cursor:pointer;">
+                            Upload New
+                            <input type="file" accept="image/*" style="display:none;" onchange="uploadSpecialSectionImage(this); populateImageReview();">
+                        </label>
                     </div>
                 </div>
             </div>
@@ -2152,6 +2270,8 @@
         document.getElementById('cropModal').classList.remove('active');
         if (gtpCropper) { gtpCropper.destroy(); gtpCropper = null; }
         gtpCropSourceUrl = '';
+        specialCropSourceUrl = '';
+        window._specialCropActive = false;
         document.getElementById('gtpFileUpload').value = '';
     }
 
@@ -2171,6 +2291,16 @@
             closeCropModal();
             return;
         }
+        // Check if this crop is for the special section
+        if (window._specialCropActive) {
+            window._specialCropActive = false;
+            specialCropSourceUrl = '';
+            generatedImages['special_section'] = { url: dataUrl, prompt: 'uploaded-cropped' };
+            showSpecialSectionImageResult(dataUrl);
+            closeCropModal();
+            return;
+        }
+
         const origin = gtpCropOrigin;
         closeCropModal();
 
@@ -2229,6 +2359,19 @@
         const gtpImg = generatedImages.guess_the_price ? (generatedImages.guess_the_price.url || generatedImages.guess_the_price) : (selectedContent.guess_the_price?.image_url || '');
         qtDiv.innerHTML = qtImg ? `<img src="${qtImg}" style="max-width:100%;max-height:300px;border-radius:8px;display:block;">` : '<p style="color:#999;">No image generated</p>';
         gtpDiv.innerHTML = gtpImg ? `<img src="${gtpImg}" style="max-width:100%;max-height:300px;border-radius:8px;display:block;">` : '<p style="color:#999;">No image generated</p>';
+        // Special section image review
+        const ssCard = document.getElementById('reviewSpecialSectionCard');
+        const ssDiv = document.getElementById('reviewSpecialSectionImage');
+        const ssImg = generatedImages.special_section ? (generatedImages.special_section.url || generatedImages.special_section) : '';
+        if (specialSectionEnabled && ssImg) {
+            ssCard.style.display = 'block';
+            ssDiv.innerHTML = `<img src="${ssImg}" style="max-width:100%;max-height:300px;border-radius:8px;display:block;">`;
+        } else if (specialSectionEnabled) {
+            ssCard.style.display = 'block';
+            ssDiv.innerHTML = '<p style="color:#999;">No image</p>';
+        } else {
+            ssCard.style.display = 'none';
+        }
     }
 
     function openGTPCropperFromReview() {
@@ -2578,7 +2721,8 @@
                 question: getEditableText('fc-gtp') || generatedContent.guess_the_price?.question || '',
                 link: selectedContent.guess_the_price?.source_link || ''
             },
-            quick_tip: getEditableText('fc-tip') || generatedContent.quick_tip || ''
+            quick_tip: getEditableText('fc-tip') || generatedContent.quick_tip || '',
+            special_section: getSpecialSectionData()
         };
     }
 
@@ -2946,6 +3090,256 @@
     }
 
     // ============================================================
+    // SPECIAL SECTION
+    // ============================================================
+    let specialSectionEnabled = false;
+    let specialSectionColorScheme = 'white';
+
+    function toggleSpecialSection() {
+        const panel = document.getElementById('specialSectionPanel');
+        const icon = document.getElementById('specialSectionToggleIcon');
+        const badge = document.getElementById('specialSectionBadge');
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            icon.style.transform = 'rotate(90deg)';
+            specialSectionEnabled = true;
+            badge.style.display = 'inline-block';
+        } else {
+            panel.style.display = 'none';
+            icon.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function selectColorScheme(scheme) {
+        specialSectionColorScheme = scheme;
+        document.querySelectorAll('#colorSchemeSwatches .color-swatch').forEach(s => {
+            if (s.dataset.scheme === scheme) {
+                s.style.borderColor = '#018181';
+                s.classList.add('selected');
+            } else {
+                s.style.borderColor = 'transparent';
+                s.classList.remove('selected');
+            }
+        });
+    }
+
+    function toggleSpecialCTA() {
+        const fields = document.getElementById('specialSectionCTAFields');
+        fields.style.display = document.getElementById('specialSectionCTAToggle').checked ? 'block' : 'none';
+    }
+
+    function removeSpecialSection() {
+        specialSectionEnabled = false;
+        document.getElementById('specialSectionPanel').style.display = 'none';
+        document.getElementById('specialSectionToggleIcon').style.transform = 'rotate(0deg)';
+        document.getElementById('specialSectionBadge').style.display = 'none';
+        document.getElementById('specialSectionTitle').value = '';
+        document.getElementById('specialSectionBody').value = '';
+        document.getElementById('specialSectionImageResult').innerHTML = '';
+        document.getElementById('specialSectionImagePromptWrap').style.display = 'none';
+        document.getElementById('specialSectionCTAToggle').checked = false;
+        document.getElementById('specialSectionCTAFields').style.display = 'none';
+        document.getElementById('specialSectionCTAText').value = '';
+        document.getElementById('specialSectionCTAUrl').value = '';
+        selectColorScheme('white');
+        generatedImages['special_section'] = null;
+    }
+
+    async function aiGenerateSpecialSection() {
+        const title = document.getElementById('specialSectionTitle').value.trim();
+        if (!title) { alert('Enter a title first'); return; }
+        const bodyEl = document.getElementById('specialSectionBody');
+        bodyEl.style.opacity = '0.5';
+        try {
+            const resp = await fetch(`${API_BASE}/api/generate-special-section`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, notes: bodyEl.value.trim() })
+            });
+            const data = await resp.json();
+            if (data.success && data.body) {
+                bodyEl.value = data.body;
+                updateSpecialSectionWordCount();
+                if (data.image_prompt) {
+                    document.getElementById('specialSectionImagePrompt').value = data.image_prompt;
+                }
+            } else {
+                alert('Generation failed: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) { alert('Error: ' + e.message); }
+        bodyEl.style.opacity = '1';
+    }
+
+    async function aiRewriteSpecialSection() {
+        const bodyEl = document.getElementById('specialSectionBody');
+        const content = bodyEl.value.trim();
+        if (!content) { alert('No content to rewrite'); return; }
+        bodyEl.style.opacity = '0.5';
+        try {
+            const resp = await fetch(`${API_BASE}/api/rewrite-content`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, tone: 'friendly', section: 'special_section' })
+            });
+            const data = await resp.json();
+            if (data.success && data.rewritten) {
+                bodyEl.value = data.rewritten;
+                updateSpecialSectionWordCount();
+            }
+        } catch (e) { console.error('Rewrite error:', e); }
+        bodyEl.style.opacity = '1';
+    }
+
+    function updateSpecialSectionWordCount() {
+        const text = document.getElementById('specialSectionBody')?.value || '';
+        const count = text.trim() ? text.trim().split(/\s+/).length : 0;
+        const el = document.getElementById('specialSectionWordCount');
+        if (el) el.textContent = count + ' words';
+    }
+
+    function uploadSpecialSectionImage(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const dataUrl = e.target.result;
+            // Open cropper for special section images
+            specialCropSourceUrl = dataUrl;
+            openSpecialSectionCropper();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    let specialCropSourceUrl = '';
+
+    function openSpecialSectionCropper() {
+        if (!specialCropSourceUrl) return;
+        const modal = document.getElementById('cropModal');
+        const cropImg = document.getElementById('cropImage');
+        if (specialCropSourceUrl.startsWith('http')) {
+            cropImg.crossOrigin = 'anonymous';
+        } else {
+            cropImg.removeAttribute('crossOrigin');
+        }
+        cropImg.src = specialCropSourceUrl;
+        modal.classList.add('active');
+        cropImg.onload = function() {
+            if (gtpCropper) { gtpCropper.destroy(); }
+            gtpCropper = new Cropper(cropImg, {
+                aspectRatio: 16 / 9,
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 1,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: false,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+                checkCrossOrigin: true,
+                checkOrientation: false,
+            });
+        };
+        // Override applyCrop to handle special section
+        window._specialCropActive = true;
+    }
+
+    function showSpecialSectionImagePrompt() {
+        const wrap = document.getElementById('specialSectionImagePromptWrap');
+        wrap.style.display = 'block';
+        const prompt = document.getElementById('specialSectionImagePrompt');
+        if (!prompt.value.trim()) {
+            const title = document.getElementById('specialSectionTitle').value.trim();
+            prompt.value = `Photorealistic jewelry lifestyle photography related to '${title || 'special announcement'}', elegant styling, soft natural lighting, stock photo quality`;
+        }
+    }
+
+    async function generateSpecialSectionImageFromPrompt() {
+        const prompt = document.getElementById('specialSectionImagePrompt')?.value?.trim();
+        if (!prompt) { alert('Enter an image prompt first'); return; }
+        const resultDiv = document.getElementById('specialSectionImageResult');
+        resultDiv.innerHTML = '<div class="loading"><div class="spinner" style="width:30px;height:30px;"></div><p>Generating image...</p></div>';
+        try {
+            const resp = await fetch(`${API_BASE}/api/generate-single-image`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt, section: 'special_section' })
+            });
+            const data = await resp.json();
+            if (data.success && data.image_url) {
+                generatedImages['special_section'] = { url: data.image_url, prompt };
+                showSpecialSectionImageResult(data.image_url);
+            } else {
+                resultDiv.innerHTML = '<p style="color:#dc3545;">Generation failed: ' + (data.error || '') + '</p>';
+            }
+        } catch (e) {
+            resultDiv.innerHTML = '<p style="color:#dc3545;">Error: ' + e.message + '</p>';
+        }
+    }
+
+    async function aiGenerateSpecialSectionImage() {
+        const title = document.getElementById('specialSectionTitle').value.trim();
+        if (!title) { alert('Enter a title first so we can generate a relevant image'); return; }
+        document.getElementById('specialSectionImagePrompt').value = `Photorealistic jewelry lifestyle photography related to '${title}', elegant styling, soft natural lighting, stock photo quality, luxury aesthetic`;
+        document.getElementById('specialSectionImagePromptWrap').style.display = 'block';
+        await generateSpecialSectionImageFromPrompt();
+    }
+
+    function showSpecialSectionImageResult(imageUrl) {
+        document.getElementById('specialSectionImageResult').innerHTML = `
+            <img src="${imageUrl}" style="max-width:300px;border-radius:8px;display:block;margin-bottom:8px;">
+            <div style="display:flex;gap:8px;">
+                <button class="btn-small" style="background:#dc3545;" onclick="document.getElementById('specialSectionImageResult').innerHTML='';generatedImages['special_section']=null;">Remove</button>
+                <button class="btn-small" style="background:#466F88;" onclick="specialCropSourceUrl=generatedImages['special_section']?.url||'';if(specialCropSourceUrl)openSpecialSectionCropper();">Crop</button>
+            </div>
+        `;
+    }
+
+    function getSpecialSectionData() {
+        if (!specialSectionEnabled) return null;
+        const title = document.getElementById('specialSectionTitle')?.value?.trim();
+        if (!title) return null;
+        return {
+            enabled: true,
+            title: title,
+            body: document.getElementById('specialSectionBody')?.value?.trim() || '',
+            color_scheme: specialSectionColorScheme,
+            position: document.getElementById('specialSectionPosition')?.value || 'after_blogs',
+            image_url: generatedImages['special_section'] ? (generatedImages['special_section'].url || generatedImages['special_section']) : '',
+            cta_enabled: document.getElementById('specialSectionCTAToggle')?.checked || false,
+            cta_text: document.getElementById('specialSectionCTAText')?.value?.trim() || '',
+            cta_url: document.getElementById('specialSectionCTAUrl')?.value?.trim() || ''
+        };
+    }
+
+    function restoreSpecialSection(data) {
+        if (!data || !data.enabled) return;
+        specialSectionEnabled = true;
+        document.getElementById('specialSectionPanel').style.display = 'block';
+        document.getElementById('specialSectionToggleIcon').style.transform = 'rotate(90deg)';
+        document.getElementById('specialSectionBadge').style.display = 'inline-block';
+        document.getElementById('specialSectionTitle').value = data.title || '';
+        document.getElementById('specialSectionBody').value = data.body || '';
+        selectColorScheme(data.color_scheme || 'white');
+        document.getElementById('specialSectionPosition').value = data.position || 'after_blogs';
+        if (data.cta_enabled) {
+            document.getElementById('specialSectionCTAToggle').checked = true;
+            document.getElementById('specialSectionCTAFields').style.display = 'block';
+            document.getElementById('specialSectionCTAText').value = data.cta_text || '';
+            document.getElementById('specialSectionCTAUrl').value = data.cta_url || '';
+        }
+        if (data.image_url) {
+            generatedImages['special_section'] = { url: data.image_url, prompt: 'restored' };
+            showSpecialSectionImageResult(data.image_url);
+        }
+        updateSpecialSectionWordCount();
+    }
+
+    // Attach word count listener
+    document.addEventListener('DOMContentLoaded', function() {
+        const ssBody = document.getElementById('specialSectionBody');
+        if (ssBody) ssBody.addEventListener('input', updateSpecialSectionWordCount);
+    });
+
+    // ============================================================
     // SUBJECT LINES
     // ============================================================
     function generateSubjectLinesWithTone() {
@@ -3124,7 +3518,61 @@
         if (rawQuickTip.startsWith('"') && rawQuickTip.endsWith('"')) rawQuickTip = rawQuickTip.slice(1, -1).trim();
         const cleanQuickTip = cleanForEmail(rawQuickTip);
 
-        return '<!DOCTYPE html>\n<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<meta name="x-apple-disable-message-reformatting">\n<meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">\n<title>BriteCo Consumer Newsletter - ' + month + ' ' + year + '</title>\n<style>\nhtml, body { margin: 0 auto !important; padding: 0 !important; height: 100% !important; width: 100% !important; }\n* { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }\ntable, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }\ntable { border-spacing: 0 !important; border-collapse: collapse !important; margin: 0 auto !important; }\n.badge-table { margin: 0 0 30px 0 !important; }\nimg { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }\na { text-decoration: none; }\n.button-link { transition: all 100ms ease-in; }\n.button-link:hover { opacity: 0.9; }\n@media screen and (max-width: 700px) {\n.mobile-full { width: 100% !important; max-width: 100% !important; min-width: 100% !important; }\n.mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }\n.mobile-stack { display: block !important; width: 100% !important; max-width: 100% !important; }\n.mobile-img-full { width: 100% !important; height: auto !important; max-width: 100% !important; }\n.gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; text-align: center !important; }\n.gtp-image img { width: 100% !important; max-width: 100% !important; margin: 0 auto !important; }\n.gtp-details { display: block !important; width: 100% !important; }\n.gtp-hero-img { height: auto !important; }\n.whats-inside-spacer { height: 25px !important; }\n.section-badge p { font-size: 14px !important; padding: 5px 14px !important; }\n.badge-table { margin: 0 0 20px 0 !important; }\n.cta-heading { font-size: 24px !important; line-height: 32px !important; }\n.cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; text-align: center !important; }\n}\nu + .body .mobile-full { width: 100% !important; max-width: 100% !important; }\nu + .body .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }\nu + .body .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-right: 0 !important; padding-bottom: 20px !important; text-align: center !important; }\nu + .body .gtp-image img { width: 100% !important; max-width: 100% !important; }\nu + .body .gtp-details { display: block !important; width: 100% !important; }\nu + .body .gtp-hero-img { height: auto !important; }\nu + .body .whats-inside-spacer { height: 25px !important; }\nu + .body .mobile-img-full { width: 100% !important; max-width: 100% !important; height: auto !important; }\nu + .body .section-badge { font-size: 14px !important; }\nu + .body .cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; }\nu + .body .cta-heading { font-size: 24px !important; }\n</style>\n</head>\n<body width="100%" class="body" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #e8e8e8;">\n\n<div style="display: none; max-height: 0px; overflow: hidden;">' + preheader + '</div>\n\n<div class="body" role="article" aria-roledescription="email" aria-label="BriteCo Newsletter" lang="en" style="font-size: 16px; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; background-color: #e8e8e8;">\n\n<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 680px;" class="mobile-full">\n\n<!-- HEADER -->\n<tr>\n<td align="center" style="background-color: #272d3f; padding: 30px 40px;">\n<a href="https://brite.co" target="_blank">\n<img src="/static/briteco-logo-white.png" width="140" alt="BriteCo" style="width: 140px; max-width: 140px; height: auto; display: block;">\n</a>\n</td>\n</tr>\n\n<!-- INTRO -->\n<tr>\n<td style="background-color: #f2f2f2; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 20px; line-height: 30px; font-weight: 400; color: #4b4b4b; font-style: italic;">' + cleanIntro + '</p>\n</td>\n</tr>\n\n<!-- WHATS INSIDE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 20px auto;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">What\'s Inside</p>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n' + agendaHtml + '\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;" class="whats-inside-spacer">&nbsp;</td></tr>\n\n<!-- NEWS OF THE MONTH -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">News of the Month</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (nom.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank">\n<img src="' + (nom.thumbnail_url || '') + '" width="590" alt="' + (nom.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + cleanNomDesc + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- TREND ALERT -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">Trend Alert</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (ta.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank">\n<img src="' + (ta.thumbnail_url || '') + '" width="590" alt="' + (ta.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + cleanTaDesc + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- BLOG ARTICLES -->\n<tr>\n<td style="background-color: #ffffff; padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden; margin-bottom: 24px;">\n<tr><td><a href="' + (blog1.url || '#') + '" target="_blank"><img src="' + (blog1.featured_image_url || '') + '" width="590" alt="' + (blog1.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 20px 22px 8px 22px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 18px; line-height: 26px; font-weight: 700; color: #282e40;">' + (blog1.title || '') + '</p></td></tr>\n<tr><td style="padding: 8px 22px 22px 22px;"><a href="' + (blog1.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">\n<tr><td><a href="' + (blog2.url || '#') + '" target="_blank"><img src="' + (blog2.featured_image_url || '') + '" width="590" alt="' + (blog2.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 20px 22px 8px 22px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 18px; line-height: 26px; font-weight: 700; color: #282e40;">' + (blog2.title || '') + '</p></td></tr>\n<tr><td style="padding: 8px 22px 22px 22px;"><a href="' + (blog2.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- GUESS THE PRICE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">Guess the Price</p>\n</td>\n</tr>\n</table>\n<h2 style="margin: 0 0 20px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #282e40;">' + (gtp.title || '') + '</h2>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 30px;">\n<tr>\n<td align="center">\n<img src="' + (gtpImage || '') + '" width="590" height="350" alt="' + (gtp.title || '') + '" style="width: 100%; max-width: 590px; height: 350px; object-fit: cover; display: block; border-radius: 6px;" class="mobile-img-full gtp-hero-img">\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Material</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (gtp.material || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Found In</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (gtp.found_in || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Where It Lives</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (gtp.where_it_lives || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 20px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Fun Fact</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (gtp.fun_fact || '') + '</p></td></tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 25px;">\n<tr>\n<td style="padding: 16px 20px; background-color: #f2f2f2; border-radius: 6px; text-align: center;">\n<a href="' + (gtp.link || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; line-height: 24px; font-weight: 700; color: #008181; text-decoration: none;">' + cleanGtpQuestion + ' <span style="text-decoration: underline;">Click here to find out!</span></a>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- QUICK TIP -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">Quick Tip</p>\n</td>\n</tr>\n</table>\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + cleanQuickTip + '</p>\n' + quickTipImageBlock + '\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- INSURANCE CTA -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 45px 45px; text-align: center;" class="mobile-padding">\n<h2 style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 28px; line-height: 36px; font-weight: 700; color: #ffffff;" class="cta-heading">Cover Your Sparkle</h2>\n<p style="margin: 0 0 25px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">BriteCo offers affordable, comprehensive insurance that\'s easy to set up and gives you peace of mind.</p>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">\n<tr>\n<td style="padding-right: 12px;">\n<a href="https://brite.co/jewelry-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">JEWELRY INSURANCE</a>\n</td>\n<td style="padding-left: 12px;">\n<a href="https://brite.co/wedding-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">WEDDING INSURANCE</a>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<!-- FOOTER -->\n<tr>\n<td style="background-color: #272d3e; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<a href="https://brite.co" target="_blank">\n<img src="/static/briteco-logo-white.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto;">\n</a>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n</table>\n</div>\n</body>\n</html>';
+        // Build special section HTML if enabled
+        const ss = getSpecialSectionData();
+        let specialSectionBlock = '';
+        if (ss && ss.body) {
+            const schemes = {
+                white: { bg: '#ffffff', text: '#282e40', border: true, badgeBg: '#44b9b4' },
+                slate_blue: { bg: '#466f88', text: '#ffffff', border: false, badgeBg: '#44b9b4' },
+                teal: { bg: '#008181', text: '#ffffff', border: false, badgeBg: '#44b9b4' },
+                dark_navy: { bg: '#272d3f', text: '#ffffff', border: false, badgeBg: '#44b9b4' }
+            };
+            const sc = schemes[ss.color_scheme] || schemes.white;
+            const ssBody = cleanForEmail(ss.body);
+            const ssImage = ss.image_url || '';
+            let ssImageHtml = '';
+            if (ssImage) {
+                ssImageHtml = '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 20px;"><tr><td><img src="' + ssImage + '" width="590" alt="' + ss.title + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full"></td></tr></table>';
+            }
+            let ssCtaHtml = '';
+            if (ss.cta_enabled && ss.cta_text && ss.cta_url) {
+                ssCtaHtml = '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px;"><tr><td><a href="' + ss.cta_url + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">' + ss.cta_text.toUpperCase() + '</a></td></tr></table>';
+            }
+            const borderTop = sc.border ? '<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>' : '';
+            const borderBottom = sc.border ? '<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>' : '';
+            specialSectionBlock = '\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- SPECIAL SECTION -->\n<tr>\n<td style="background-color: ' + sc.bg + '; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n' + borderTop + '\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">\n<tr>\n<td style="background-color: ' + sc.badgeBg + '; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">' + ss.title + '</p>\n</td>\n</tr>\n</table>\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: ' + sc.text + ';">' + ssBody + '</p>\n' + ssImageHtml + '\n' + ssCtaHtml + '\n</td>\n</tr>\n' + borderBottom + '\n</table>\n</td>\n</tr>';
+        }
+
+        // Position markers for special section injection
+        const ssAfterIntro = (ss && ss.position === 'after_intro') ? specialSectionBlock : '';
+        const ssAfterTrend = (ss && ss.position === 'after_trend') ? specialSectionBlock : '';
+        const ssAfterBlogs = (ss && ss.position === 'after_blogs') ? specialSectionBlock : '';
+        const ssAfterGtp = (ss && ss.position === 'after_gtp') ? specialSectionBlock : '';
+        // Build the section block without leading spacer (existing spacer serves as gap before)
+        // Trailing spacer will be added during injection
+        let specialSectionBlockClean = specialSectionBlock.replace(/^\n<tr><td style="height: 20px[^<]*<\/td><\/tr>/, '');
+
+        let fullHtml = '<!DOCTYPE html>\n<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<meta name="x-apple-disable-message-reformatting">\n<meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">\n<title>BriteCo Consumer Newsletter - ' + month + ' ' + year + '</title>\n<style>\nhtml, body { margin: 0 auto !important; padding: 0 !important; height: 100% !important; width: 100% !important; }\n* { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }\ntable, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }\ntable { border-spacing: 0 !important; border-collapse: collapse !important; margin: 0 auto !important; }\n.badge-table { margin: 0 0 30px 0 !important; }\nimg { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }\na { text-decoration: none; }\n.button-link { transition: all 100ms ease-in; }\n.button-link:hover { opacity: 0.9; }\n@media screen and (max-width: 700px) {\n.mobile-full { width: 100% !important; max-width: 100% !important; min-width: 100% !important; }\n.mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }\n.mobile-stack { display: block !important; width: 100% !important; max-width: 100% !important; }\n.mobile-img-full { width: 100% !important; height: auto !important; max-width: 100% !important; }\n.gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; text-align: center !important; }\n.gtp-image img { width: 100% !important; max-width: 100% !important; margin: 0 auto !important; }\n.gtp-details { display: block !important; width: 100% !important; }\n.gtp-hero-img { height: auto !important; }\n.whats-inside-spacer { height: 25px !important; }\n.section-badge p { font-size: 14px !important; padding: 5px 14px !important; }\n.badge-table { margin: 0 0 20px 0 !important; }\n.cta-heading { font-size: 24px !important; line-height: 32px !important; }\n.cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; text-align: center !important; }\n}\nu + .body .mobile-full { width: 100% !important; max-width: 100% !important; }\nu + .body .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }\nu + .body .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-right: 0 !important; padding-bottom: 20px !important; text-align: center !important; }\nu + .body .gtp-image img { width: 100% !important; max-width: 100% !important; }\nu + .body .gtp-details { display: block !important; width: 100% !important; }\nu + .body .gtp-hero-img { height: auto !important; }\nu + .body .whats-inside-spacer { height: 25px !important; }\nu + .body .mobile-img-full { width: 100% !important; max-width: 100% !important; height: auto !important; }\nu + .body .section-badge { font-size: 14px !important; }\nu + .body .cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; }\nu + .body .cta-heading { font-size: 24px !important; }\n</style>\n</head>\n<body width="100%" class="body" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #e8e8e8;">\n\n<div style="display: none; max-height: 0px; overflow: hidden;">' + preheader + '</div>\n\n<div class="body" role="article" aria-roledescription="email" aria-label="BriteCo Newsletter" lang="en" style="font-size: 16px; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; background-color: #e8e8e8;">\n\n<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 auto; max-width: 680px;" class="mobile-full">\n\n<!-- HEADER -->\n<tr>\n<td align="center" style="background-color: #272d3f; padding: 30px 40px;">\n<a href="https://brite.co" target="_blank">\n<img src="/static/briteco-logo-white.png" width="140" alt="BriteCo" style="width: 140px; max-width: 140px; height: auto; display: block;">\n</a>\n</td>\n</tr>\n\n<!-- INTRO -->\n<tr>\n<td style="background-color: #f2f2f2; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 20px; line-height: 30px; font-weight: 400; color: #4b4b4b; font-style: italic;">' + cleanIntro + '</p>\n</td>\n</tr>\n\n<!-- WHATS INSIDE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 20px auto;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">What\'s Inside</p>\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n' + agendaHtml + '\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;" class="whats-inside-spacer">&nbsp;</td></tr>\n\n<!-- NEWS OF THE MONTH -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">News of the Month</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (nom.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank">\n<img src="' + (nom.thumbnail_url || '') + '" width="590" alt="' + (nom.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + cleanNomDesc + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (nom.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- TREND ALERT -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 30px 45px 0 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">Trend Alert</p>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 15px 45px;" class="mobile-padding">\n<h2 style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #ffffff;">' + (ta.title || '') + '</h2>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 20px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank">\n<img src="' + (ta.thumbnail_url || '') + '" width="590" alt="' + (ta.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">\n</a>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 10px 45px;" class="mobile-padding">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">' + cleanTaDesc + '</p>\n</td>\n</tr>\n<tr>\n<td style="padding: 0 45px 35px 45px;" class="mobile-padding">\n<a href="' + (ta.video_url || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; font-weight: 600; color: #31D7CA; text-decoration: underline;">Watch the full video here &rarr;</a>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- BLOG ARTICLES -->\n<tr>\n<td style="background-color: #ffffff; padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden; margin-bottom: 24px;">\n<tr><td><a href="' + (blog1.url || '#') + '" target="_blank"><img src="' + (blog1.featured_image_url || '') + '" width="590" alt="' + (blog1.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 20px 22px 8px 22px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 18px; line-height: 26px; font-weight: 700; color: #282e40;">' + (blog1.title || '') + '</p></td></tr>\n<tr><td style="padding: 8px 22px 22px 22px;"><a href="' + (blog1.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">\n<tr><td><a href="' + (blog2.url || '#') + '" target="_blank"><img src="' + (blog2.featured_image_url || '') + '" width="590" alt="' + (blog2.title || '') + '" style="width: 100%; max-width: 590px; height: auto; display: block;" class="mobile-img-full"></a></td></tr>\n<tr><td style="padding: 20px 22px 8px 22px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 18px; line-height: 26px; font-weight: 700; color: #282e40;">' + (blog2.title || '') + '</p></td></tr>\n<tr><td style="padding: 8px 22px 22px 22px;"><a href="' + (blog2.url || '#') + '" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a></td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- GUESS THE PRICE -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">Guess the Price</p>\n</td>\n</tr>\n</table>\n<h2 style="margin: 0 0 20px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #282e40;">' + (gtp.title || '') + '</h2>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 30px;">\n<tr>\n<td align="center">\n<img src="' + (gtpImage || '') + '" width="590" height="350" alt="' + (gtp.title || '') + '" style="width: 100%; max-width: 590px; height: 350px; object-fit: cover; display: block; border-radius: 6px;" class="mobile-img-full gtp-hero-img">\n</td>\n</tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Material</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (gtp.material || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Found In</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (gtp.found_in || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 14px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Where It Lives</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (gtp.where_it_lives || '') + '</p></td></tr>\n<tr><td style="padding-bottom: 20px;"><p style="margin: 0 0 3px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Fun Fact</p><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + (gtp.fun_fact || '') + '</p></td></tr>\n</table>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 25px;">\n<tr>\n<td style="padding: 16px 20px; background-color: #f2f2f2; border-radius: 6px; text-align: center;">\n<a href="' + (gtp.link || '#') + '" target="_blank" style="font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; line-height: 24px; font-weight: 700; color: #008181; text-decoration: none;">' + cleanGtpQuestion + ' <span style="text-decoration: underline;">Click here to find out!</span></a>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- QUICK TIP -->\n<tr>\n<td style="background-color: #ffffff; padding: 0;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n<tr>\n<td style="padding: 30px 45px;" class="mobile-padding">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="badge-table" style="margin: 0 0 30px 0;">\n<tr>\n<td style="background-color: #44b9b4; padding: 6px 18px; border-radius: 4px;">\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 700; color: #ffffff;" class="section-badge">Quick Tip</p>\n</td>\n</tr>\n</table>\n<p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">' + cleanQuickTip + '</p>\n' + quickTipImageBlock + '\n</td>\n</tr>\n<tr><td style="height: 3px; background-color: #008181; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n</table>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n<!-- INSURANCE CTA -->\n<tr>\n<td>\n<div style="background-color: #466f88;">\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">\n<tr>\n<td style="padding: 45px 45px; text-align: center;" class="mobile-padding">\n<h2 style="margin: 0 0 12px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 28px; line-height: 36px; font-weight: 700; color: #ffffff;" class="cta-heading">Cover Your Sparkle</h2>\n<p style="margin: 0 0 25px 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #ffffff;">BriteCo offers affordable, comprehensive insurance that\'s easy to set up and gives you peace of mind.</p>\n<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">\n<tr>\n<td style="padding-right: 12px;">\n<a href="https://brite.co/jewelry-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">JEWELRY INSURANCE</a>\n</td>\n<td style="padding-left: 12px;">\n<a href="https://brite.co/wedding-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">WEDDING INSURANCE</a>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n</div>\n</td>\n</tr>\n\n<!-- FOOTER -->\n<tr>\n<td style="background-color: #272d3e; padding: 35px 45px; text-align: center;" class="mobile-padding">\n<a href="https://brite.co" target="_blank">\n<img src="/static/briteco-logo-white.png" width="100" alt="BriteCo" style="width: 100px; max-width: 100px; height: auto; display: block; margin: 0 auto;">\n</a>\n</td>\n</tr>\n\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n</table>\n</div>\n</body>\n</html>';
+
+        // Inject special section at the chosen position
+        if (specialSectionBlockClean) {
+            const spacer = '\n<tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>\n\n';
+            const positionMap = {
+                'after_intro': '<!-- NEWS OF THE MONTH -->',
+                'after_trend': '<!-- BLOG ARTICLES -->',
+                'after_blogs': '<!-- GUESS THE PRICE -->',
+                'after_gtp': '<!-- QUICK TIP -->',
+                'after_quicktip': '<!-- INSURANCE CTA -->'
+            };
+            const pos = ss ? ss.position : 'after_blogs';
+            const marker = positionMap[pos];
+            if (marker) {
+                fullHtml = fullHtml.replace(marker, specialSectionBlockClean + spacer + marker);
+            }
+        }
+
+        return fullHtml;
     }
 
     function populatePreview() {
@@ -3183,7 +3631,7 @@
 
     async function uploadImagesToGCS() {
         const images = {};
-        const sections = ['quick_tip', 'guess_the_price'];
+        const sections = ['quick_tip', 'guess_the_price', 'special_section'];
         for (const section of sections) {
             const img = generatedImages[section];
             if (img) {
@@ -3361,6 +3809,7 @@
                     quickTipText: document.getElementById('quickTipContent')?.value || '',
                     subjectLine: document.getElementById('finalSubjectLine')?.value || '',
                     preheader: document.getElementById('finalPreheader')?.value || '',
+                    specialSection: getSpecialSectionData(),
                     savedBy: userEmail
                 })
             });
@@ -3444,6 +3893,9 @@
                 document.getElementById('gtpSourceLink').value = gtp.source_link || '';
                 document.getElementById('step4NextBtn').disabled = false;
             }
+
+            // Restore special section
+            if (d.specialSection) restoreSpecialSection(d.specialSection);
 
             // Mark things as already generated if draft has content
             if (d.introText || d.quickTipText || generatedContent.intro) introAndTipGenerated = true;
