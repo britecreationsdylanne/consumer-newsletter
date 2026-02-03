@@ -2137,31 +2137,55 @@ def upload_images_to_gcs():
         year = data.get('year', datetime.now().year)
 
         if not images_data:
-            return jsonify({'success': False, 'error': 'No images provided'}), 400
+            return jsonify({'success': True, 'urls': {}, 'count': 0})
 
         bucket = gcs_client.bucket(GCS_IMAGES_BUCKET)
         uploaded_urls = {}
         timestamp = datetime.now(CHICAGO_TZ).strftime('%Y%m%d-%H%M%S')
 
-        for section, data_url in images_data.items():
-            if not data_url or not data_url.startswith('data:image'):
+        for section, img_url in images_data.items():
+            if not img_url:
                 continue
 
             try:
-                header, b64_data = data_url.split(',', 1)
-                img_format = 'png'
-                if 'jpeg' in header or 'jpg' in header:
-                    img_format = 'jpg'
-                elif 'webp' in header:
-                    img_format = 'webp'
-
-                image_bytes = base64.b64decode(b64_data)
-
                 safe_section = section.replace('_', '-')
+
+                if img_url.startswith('data:image'):
+                    # Base64 data URL - decode and upload
+                    header, b64_data = img_url.split(',', 1)
+                    img_format = 'png'
+                    if 'jpeg' in header or 'jpg' in header:
+                        img_format = 'jpg'
+                    elif 'webp' in header:
+                        img_format = 'webp'
+                    image_bytes = base64.b64decode(b64_data)
+                    content_type = f'image/{img_format}'
+
+                elif img_url.startswith('http'):
+                    # External URL - download and re-host to GCS
+                    import requests as req
+                    safe_print(f"[GCS] Downloading external image for {section}: {img_url[:100]}...")
+                    resp = req.get(img_url, timeout=30, headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    })
+                    resp.raise_for_status()
+                    image_bytes = resp.content
+                    content_type = resp.headers.get('Content-Type', 'image/jpeg')
+                    if 'png' in content_type:
+                        img_format = 'png'
+                    elif 'webp' in content_type:
+                        img_format = 'webp'
+                    elif 'gif' in content_type:
+                        img_format = 'gif'
+                    else:
+                        img_format = 'jpg'
+                else:
+                    continue
+
                 filename = f"newsletters/{year}/{month.lower()}/{timestamp}-{safe_section}.{img_format}"
 
                 blob = bucket.blob(filename)
-                blob.upload_from_string(image_bytes, content_type=f'image/{img_format}')
+                blob.upload_from_string(image_bytes, content_type=content_type)
                 blob.make_public()
 
                 uploaded_urls[section] = blob.public_url

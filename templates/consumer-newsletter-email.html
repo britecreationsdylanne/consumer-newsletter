@@ -45,7 +45,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 .blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }
 .blog-card-inner { width: 100% !important; max-width: 100% !important; }
 .blog-card-inner img { max-width: 100% !important; width: 100% !important; height: auto !important; max-height: none !important; }
-.blog-card-inner td[height="66"] { height: auto !important; }
+.blog-spacer { display: none !important; }
 .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; text-align: center !important; }
 .gtp-image img { width: 100% !important; max-width: 100% !important; margin: 0 auto !important; }
 .gtp-details { display: block !important; width: 100% !important; }
@@ -60,7 +60,7 @@ u + .body .mobile-padding { padding-left: 20px !important; padding-right: 20px !
 u + .body .blog-card { display: block !important; width: 100% !important; max-width: 100% !important; min-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }
 u + .body .blog-card-inner { width: 100% !important; max-width: 100% !important; min-width: 100% !important; }
 u + .body .blog-card-inner img { width: 100% !important; max-width: 100% !important; min-width: 100% !important; height: auto !important; max-height: none !important; }
-u + .body .blog-card-inner td[height="66"] { height: auto !important; }
+u + .body .blog-spacer { display: none !important; }
 u + .body .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-right: 0 !important; padding-bottom: 20px !important; text-align: center !important; }
 u + .body .gtp-image img { width: 100% !important; max-width: 100% !important; }
 u + .body .gtp-details { display: block !important; width: 100% !important; }
@@ -76,7 +76,7 @@ u + .body .cta-heading { font-size: 24px !important; }
 <div style="display: none; max-height: 0px; overflow: hidden;">{{PREHEADER}}</div>
 <div style="display: none; max-height: 0px; overflow: hidden;">&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
 
-<div role="article" aria-roledescription="email" aria-label="BriteCo Newsletter" lang="en" style="font-size: 16px; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; background-color: #e8e8e8;">
+<div class="body" role="article" aria-roledescription="email" aria-label="BriteCo Newsletter" lang="en" style="font-size: 16px; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; background-color: #e8e8e8;">
 <!--[if mso | IE]>
 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #e8e8e8;">
 <tr>
@@ -277,7 +277,7 @@ u + .body .cta-heading { font-size: 24px !important; }
 <td width="48%" valign="top" style="padding-right: 12px;">
 <![endif]-->
 <div class="blog-card" style="display: inline-block; width: 48%; max-width: 280px; vertical-align: top; padding-right: 12px; font-size: 16px; text-align: left;">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" height="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">
 <!-- Article image -->
 <tr>
 <td>
@@ -288,13 +288,17 @@ u + .body .cta-heading { font-size: 24px !important; }
 </tr>
 <!-- Article title -->
 <tr>
-<td height="66" valign="top" style="padding: 18px 18px 12px 18px; height: 66px;">
+<td valign="top" style="padding: 18px 18px 0 18px;">
 <p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">{{BLOG_1_TITLE}}</p>
 </td>
 </tr>
+<!-- Spacer to push button to bottom -->
+<tr>
+<td class="blog-spacer" style="height: 100%; font-size: 0; line-height: 0;">&nbsp;</td>
+</tr>
 <!-- READ MORE button -->
 <tr>
-<td style="padding: 0 18px 20px 18px;">
+<td style="padding: 12px 18px 20px 18px;">
 <!--[if mso]>
 <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{BLOG_1_URL}}" style="height:40px;v-text-anchor:middle;width:130px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
 <w:anchorlock/>
@@ -312,7 +316,7 @@ u + .body .cta-heading { font-size: 24px !important; }
 </td><td width="48%" valign="top" style="padding-left: 12px;">
 <![endif]-->
 <div class="blog-card" style="display: inline-block; width: 48%; max-width: 280px; vertical-align: top; padding-left: 12px; font-size: 16px; text-align: left;">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" height="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">
 <!-- Article image -->
 <tr>
 <td>
@@ -323,13 +327,17 @@ u + .body .cta-heading { font-size: 24px !important; }
 </tr>
 <!-- Article title -->
 <tr>
-<td height="66" valign="top" style="padding: 18px 18px 12px 18px; height: 66px;">
+<td valign="top" style="padding: 18px 18px 0 18px;">
 <p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">{{BLOG_2_TITLE}}</p>
 </td>
 </tr>
+<!-- Spacer to push button to bottom -->
+<tr>
+<td class="blog-spacer" style="height: 100%; font-size: 0; line-height: 0;">&nbsp;</td>
+</tr>
 <!-- READ MORE button -->
 <tr>
-<td style="padding: 0 18px 20px 18px;">
+<td style="padding: 12px 18px 20px 18px;">
 <!--[if mso]>
 <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{BLOG_2_URL}}" style="height:40px;v-text-anchor:middle;width:130px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
 <w:anchorlock/>
@@ -373,7 +381,7 @@ u + .body .cta-heading { font-size: 24px !important; }
 </table>
 
 <!-- GTP Title -->
-<h2 style="margin: 0 0 20px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; color: #282e40;">{{GTP_TITLE}}</h2>
+<h2 style="margin: 0 0 20px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #282e40;">{{GTP_TITLE}}</h2>
 
 <!-- Item image - full width centered, constrained height -->
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 30px;">
@@ -390,28 +398,28 @@ u + .body .cta-heading { font-size: 24px !important; }
 <tr>
 <td style="padding-bottom: 14px;">
 <p style="margin: 0 0 3px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Material</p>
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">{{GTP_MATERIAL}}</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">{{GTP_MATERIAL}}</p>
 </td>
 </tr>
 <!-- Found In -->
 <tr>
 <td style="padding-bottom: 14px;">
 <p style="margin: 0 0 3px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Found In</p>
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">{{GTP_FOUND_IN}}</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">{{GTP_FOUND_IN}}</p>
 </td>
 </tr>
 <!-- Where It Lives -->
 <tr>
 <td style="padding-bottom: 14px;">
 <p style="margin: 0 0 3px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Where It Lives</p>
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">{{GTP_WHERE_IT_LIVES}}</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">{{GTP_WHERE_IT_LIVES}}</p>
 </td>
 </tr>
 <!-- Fun Fact -->
 <tr>
 <td style="padding-bottom: 20px;">
 <p style="margin: 0 0 3px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; color: #008181; text-transform: uppercase; letter-spacing: 0.5px;">Fun Fact</p>
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 22px; font-weight: 400; color: #282e40;">{{GTP_FUN_FACT}}</p>
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 26px; font-weight: 400; color: #282e40;">{{GTP_FUN_FACT}}</p>
 </td>
 </tr>
 </table>
@@ -458,8 +466,8 @@ u + .body .cta-heading { font-size: 24px !important; }
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 <tr>
 <!-- BriteCo check icon -->
-<td width="50" valign="top" style="padding-right: 12px; padding-top: 0;">
-<img src="/static/briteco-check.png" width="44" height="44" alt="&#10003;" style="width: 44px; height: 44px; display: block; border: 0;">
+<td width="100" valign="top" style="padding-right: 12px; padding-top: 0;">
+<img src="/static/briteco-check.png" width="88" height="88" alt="&#10003;" style="width: 88px; height: 88px; display: block; border: 0;">
 </td>
 <!-- Tip text -->
 <td valign="top">
