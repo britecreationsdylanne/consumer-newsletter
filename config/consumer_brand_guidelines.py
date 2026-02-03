@@ -614,7 +614,10 @@ AI_PROMPTS = {
         "2. Found In (max 15 words): Where it was discovered, sold, or featured\n"
         "3. Where It Lives (max 15 words): Current home or owner type\n"
         "4. Fun Fact (max 20 words): An intriguing, shareable piece of trivia\n\n"
-        "Also suggest a teasing question that builds suspense about the price.\n\n"
+        "IMPORTANT: Do NOT include, mention, or hint at the price or value of the item "
+        "in any of the fields. The entire point is for readers to guess the price.\n\n"
+        "Also suggest a teasing question that builds suspense about the price "
+        "(without revealing or hinting at the actual price).\n\n"
         "Return as JSON: {{\"material\": \"...\", \"found_in\": \"...\", "
         "\"where_it_lives\": \"...\", \"fun_fact\": \"...\", \"suggested_question\": \"...\"}}"
     ),

@@ -267,15 +267,16 @@ u + .body .cta-heading { font-size: 24px !important; }
 <tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
 
 <!-- ============================================ -->
-<!-- TWO BLOG ARTICLES - Side by side cards       -->
+<!-- TWO BLOG ARTICLES - Fluid hybrid layout      -->
 <!-- ============================================ -->
 <tr>
-<td style="background-color: #ffffff; padding: 30px 45px;" class="mobile-padding">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-<!-- Two column cards -->
-<tr>
-<!-- Blog Article 1 -->
-<td width="48%" valign="top" class="blog-card" style="padding-right: 12px;">
+<td style="background-color: #ffffff; padding: 30px 45px; font-size: 0; text-align: center;" class="mobile-padding">
+
+<!--[if mso]>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+<td width="48%" valign="top" style="padding-right: 12px;">
+<![endif]-->
+<div class="blog-card" style="display: inline-block; width: 48%; max-width: 280px; vertical-align: top; padding-right: 12px; font-size: 16px; text-align: left;">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">
 <!-- Article image -->
 <tr>
@@ -306,10 +307,11 @@ u + .body .cta-heading { font-size: 24px !important; }
 </td>
 </tr>
 </table>
-</td>
-
-<!-- Blog Article 2 -->
-<td width="48%" valign="top" class="blog-card" style="padding-left: 12px;">
+</div>
+<!--[if mso]>
+</td><td width="48%" valign="top" style="padding-left: 12px;">
+<![endif]-->
+<div class="blog-card" style="display: inline-block; width: 48%; max-width: 280px; vertical-align: top; padding-left: 12px; font-size: 16px; text-align: left;">
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">
 <!-- Article image -->
 <tr>
@@ -340,9 +342,11 @@ u + .body .cta-heading { font-size: 24px !important; }
 </td>
 </tr>
 </table>
-</td>
-</tr>
-</table>
+</div>
+<!--[if mso]>
+</td></tr></table>
+<![endif]-->
+
 </td>
 </tr>
 
@@ -371,11 +375,11 @@ u + .body .cta-heading { font-size: 24px !important; }
 <!-- GTP Title -->
 <h2 style="margin: 0 0 20px 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; color: #282e40;">{{GTP_TITLE}}</h2>
 
-<!-- Item image - full width centered -->
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 20px;">
+<!-- Item image - full width centered, constrained height -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 30px;">
 <tr>
 <td align="center">
-<img src="{{GTP_IMAGE}}" width="590" alt="{{GTP_TITLE}}" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full">
+<img src="{{GTP_IMAGE}}" width="590" height="350" alt="{{GTP_TITLE}}" style="width: 100%; max-width: 590px; height: 350px; object-fit: cover; display: block; border-radius: 6px;" class="mobile-img-full gtp-hero-img">
 </td>
 </tr>
 </table>
