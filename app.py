@@ -2139,6 +2139,7 @@ def upload_images_to_gcs():
         if not images_data:
             return jsonify({'success': True, 'urls': {}, 'count': 0})
 
+        safe_print(f"[GCS] Uploading {len(images_data)} images to bucket '{GCS_IMAGES_BUCKET}'...")
         bucket = gcs_client.bucket(GCS_IMAGES_BUCKET)
         uploaded_urls = {}
         timestamp = datetime.now(CHICAGO_TZ).strftime('%Y%m%d-%H%M%S')
@@ -2182,7 +2183,12 @@ def upload_images_to_gcs():
                 else:
                     continue
 
-                filename = f"newsletters/{year}/{month.lower()}/{timestamp}-{safe_section}.{img_format}"
+                # Static assets go to assets/ folder, newsletter images go to newsletters/
+                if section.startswith('_'):
+                    asset_name = section.lstrip('_')
+                    filename = f"assets/{asset_name}.{img_format}"
+                else:
+                    filename = f"newsletters/{year}/{month.lower()}/{timestamp}-{safe_section}.{img_format}"
 
                 blob = bucket.blob(filename)
                 blob.upload_from_string(image_bytes, content_type=content_type)

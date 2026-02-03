@@ -42,10 +42,6 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 .mobile-img-full { width: 100% !important; height: auto !important; max-width: 100% !important; }
 .mobile-hide { display: none !important; }
 .mobile-spacer { height: 15px !important; }
-.blog-card { display: block !important; width: 100% !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }
-.blog-card-inner { width: 100% !important; max-width: 100% !important; }
-.blog-card-inner img { max-width: 100% !important; width: 100% !important; height: auto !important; max-height: none !important; }
-.blog-spacer { display: none !important; }
 .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-bottom: 20px !important; padding-right: 0 !important; text-align: center !important; }
 .gtp-image img { width: 100% !important; max-width: 100% !important; margin: 0 auto !important; }
 .gtp-details { display: block !important; width: 100% !important; }
@@ -57,10 +53,6 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 }
 u + .body .mobile-full { width: 100% !important; max-width: 100% !important; }
 u + .body .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
-u + .body .blog-card { display: block !important; width: 100% !important; max-width: 100% !important; min-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 20px !important; }
-u + .body .blog-card-inner { width: 100% !important; max-width: 100% !important; min-width: 100% !important; }
-u + .body .blog-card-inner img { width: 100% !important; max-width: 100% !important; min-width: 100% !important; height: auto !important; max-height: none !important; }
-u + .body .blog-spacer { display: none !important; }
 u + .body .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-right: 0 !important; padding-bottom: 20px !important; text-align: center !important; }
 u + .body .gtp-image img { width: 100% !important; max-width: 100% !important; }
 u + .body .gtp-details { display: block !important; width: 100% !important; }
@@ -267,93 +259,68 @@ u + .body .cta-heading { font-size: 24px !important; }
 <tr><td style="height: 20px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
 
 <!-- ============================================ -->
-<!-- TWO BLOG ARTICLES - Fluid hybrid layout      -->
+<!-- TWO BLOG ARTICLES - Stacked full-width       -->
 <!-- ============================================ -->
 <tr>
-<td style="background-color: #ffffff; padding: 30px 45px; font-size: 0; text-align: center;" class="mobile-padding">
+<td style="background-color: #ffffff; padding: 30px 45px;" class="mobile-padding">
 
-<!--[if mso]>
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
-<td width="48%" valign="top" style="padding-right: 12px;">
-<![endif]-->
-<div class="blog-card" style="display: inline-block; width: 48%; max-width: 280px; vertical-align: top; padding-right: 12px; font-size: 16px; text-align: left;">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" height="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">
-<!-- Article image -->
+<!-- Blog Card 1 -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden; margin-bottom: 24px;">
 <tr>
 <td>
 <a href="{{BLOG_1_URL}}" target="_blank">
-<img src="{{BLOG_1_IMAGE}}" width="280" alt="{{BLOG_1_TITLE}}" style="width: 100%; max-width: 280px; max-height: 200px; object-fit: cover; display: block;" class="mobile-img-full">
+<img src="{{BLOG_1_IMAGE}}" width="590" alt="{{BLOG_1_TITLE}}" style="width: 100%; max-width: 590px; height: auto; display: block;" class="mobile-img-full">
 </a>
 </td>
 </tr>
-<!-- Article title -->
 <tr>
-<td valign="top" style="padding: 18px 18px 0 18px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">{{BLOG_1_TITLE}}</p>
+<td style="padding: 20px 22px 8px 22px;">
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 18px; line-height: 26px; font-weight: 700; color: #282e40;">{{BLOG_1_TITLE}}</p>
 </td>
 </tr>
-<!-- Spacer to push button to bottom -->
 <tr>
-<td class="blog-spacer" style="height: 100%; font-size: 0; line-height: 0;">&nbsp;</td>
-</tr>
-<!-- READ MORE button -->
-<tr>
-<td style="padding: 12px 18px 20px 18px;">
+<td style="padding: 8px 22px 22px 22px;">
 <!--[if mso]>
-<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{BLOG_1_URL}}" style="height:40px;v-text-anchor:middle;width:130px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{BLOG_1_URL}}" style="height:40px;v-text-anchor:middle;width:140px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
 <w:anchorlock/>
 <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;">READ MORE</center>
 </v:roundrect>
 <![endif]-->
 <!--[if !mso]><!-->
-<a href="{{BLOG_1_URL}}" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 24px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a>
+<a href="{{BLOG_1_URL}}" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a>
 <!--<![endif]-->
 </td>
 </tr>
 </table>
-</div>
-<!--[if mso]>
-</td><td width="48%" valign="top" style="padding-left: 12px;">
-<![endif]-->
-<div class="blog-card" style="display: inline-block; width: 48%; max-width: 280px; vertical-align: top; padding-left: 12px; font-size: 16px; text-align: left;">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" height="100%" class="blog-card-inner" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">
-<!-- Article image -->
+
+<!-- Blog Card 2 -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 2px solid #008181; border-radius: 6px; overflow: hidden;">
 <tr>
 <td>
 <a href="{{BLOG_2_URL}}" target="_blank">
-<img src="{{BLOG_2_IMAGE}}" width="280" alt="{{BLOG_2_TITLE}}" style="width: 100%; max-width: 280px; max-height: 200px; object-fit: cover; display: block;" class="mobile-img-full">
+<img src="{{BLOG_2_IMAGE}}" width="590" alt="{{BLOG_2_TITLE}}" style="width: 100%; max-width: 590px; height: auto; display: block;" class="mobile-img-full">
 </a>
 </td>
 </tr>
-<!-- Article title -->
 <tr>
-<td valign="top" style="padding: 18px 18px 0 18px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #282e40;">{{BLOG_2_TITLE}}</p>
+<td style="padding: 20px 22px 8px 22px;">
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 18px; line-height: 26px; font-weight: 700; color: #282e40;">{{BLOG_2_TITLE}}</p>
 </td>
 </tr>
-<!-- Spacer to push button to bottom -->
 <tr>
-<td class="blog-spacer" style="height: 100%; font-size: 0; line-height: 0;">&nbsp;</td>
-</tr>
-<!-- READ MORE button -->
-<tr>
-<td style="padding: 12px 18px 20px 18px;">
+<td style="padding: 8px 22px 22px 22px;">
 <!--[if mso]>
-<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{BLOG_2_URL}}" style="height:40px;v-text-anchor:middle;width:130px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{BLOG_2_URL}}" style="height:40px;v-text-anchor:middle;width:140px;" arcsize="10%" strokecolor="#fe8916" fillcolor="#fe8916">
 <w:anchorlock/>
 <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;">READ MORE</center>
 </v:roundrect>
 <![endif]-->
 <!--[if !mso]><!-->
-<a href="{{BLOG_2_URL}}" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 24px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a>
+<a href="{{BLOG_2_URL}}" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 700; padding: 10px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">READ MORE</a>
 <!--<![endif]-->
 </td>
 </tr>
 </table>
-</div>
-<!--[if mso]>
-</td></tr></table>
-<![endif]-->
 
 </td>
 </tr>
