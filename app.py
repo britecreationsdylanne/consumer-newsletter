@@ -2150,17 +2150,38 @@ def upload_images_to_gcs():
 
             try:
                 safe_section = section.replace('_', '-')
+                image_bytes = None
+                content_type = 'image/png'
+                img_format = 'png'
 
-                if img_url.startswith('data:image'):
+                # Static assets (prefixed with _) - read from local filesystem
+                if section.startswith('_'):
+                    asset_map = {
+                        '_logo': ('static/briteco-logo-white.png', 'image/png'),
+                        '_check': ('static/briteco-check.png', 'image/png'),
+                    }
+                    if section in asset_map:
+                        local_path, content_type = asset_map[section]
+                        full_path = os.path.join(os.path.dirname(__file__), local_path)
+                        if os.path.exists(full_path):
+                            with open(full_path, 'rb') as f:
+                                image_bytes = f.read()
+                            safe_print(f"[GCS] Read local asset {local_path} ({len(image_bytes)} bytes)")
+                        else:
+                            safe_print(f"[GCS] Local asset not found: {full_path}")
+                            continue
+
+                elif img_url.startswith('data:image'):
                     # Base64 data URL - decode and upload
                     header, b64_data = img_url.split(',', 1)
-                    img_format = 'png'
                     if 'jpeg' in header or 'jpg' in header:
                         img_format = 'jpg'
+                        content_type = 'image/jpeg'
                     elif 'webp' in header:
                         img_format = 'webp'
+                        content_type = 'image/webp'
                     image_bytes = base64.b64decode(b64_data)
-                    content_type = f'image/{img_format}'
+                    safe_print(f"[GCS] Decoded base64 for {section} ({len(image_bytes)} bytes)")
 
                 elif img_url.startswith('http'):
                     # External URL - download and re-host to GCS
@@ -2180,7 +2201,11 @@ def upload_images_to_gcs():
                         img_format = 'gif'
                     else:
                         img_format = 'jpg'
+                    safe_print(f"[GCS] Downloaded {len(image_bytes)} bytes for {section}")
                 else:
+                    continue
+
+                if not image_bytes:
                     continue
 
                 # Static assets go to assets/ folder, newsletter images go to newsletters/
@@ -2192,13 +2217,22 @@ def upload_images_to_gcs():
 
                 blob = bucket.blob(filename)
                 blob.upload_from_string(image_bytes, content_type=content_type)
-                blob.make_public()
 
-                uploaded_urls[section] = blob.public_url
-                safe_print(f"[GCS] Uploaded {section} -> {blob.public_url}")
+                # Try to make public via ACL; if bucket uses uniform access, construct URL manually
+                try:
+                    blob.make_public()
+                    uploaded_urls[section] = blob.public_url
+                except Exception:
+                    # Uniform bucket-level access - ACLs disabled, use direct URL
+                    uploaded_urls[section] = f"https://storage.googleapis.com/{GCS_IMAGES_BUCKET}/{filename}"
+                    safe_print(f"[GCS] make_public() failed (uniform access?), using direct URL")
+
+                safe_print(f"[GCS] Uploaded {section} -> {uploaded_urls[section]}")
 
             except Exception as img_error:
                 safe_print(f"[GCS] Error uploading {section}: {str(img_error)}")
+                import traceback
+                traceback.print_exc()
                 continue
 
         return jsonify({

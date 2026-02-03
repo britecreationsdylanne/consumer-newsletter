@@ -3068,10 +3068,17 @@
         const year = new Date().getFullYear();
         const preheader = document.getElementById('finalPreheader')?.value || 'Your monthly jewelry inspiration from BriteCo - ' + month + ' ' + year;
 
-        // Build agenda items HTML - strip markdown and filter out "What's Inside" duplicates
+        // Build agenda items HTML - filter out AI preamble and "What's Inside" duplicates
         const agendaItems = (content.agenda_items || []).filter(item => {
             const text = (typeof item === 'string' ? item : String(item)).toLowerCase().trim();
-            return text && !text.match(/^[\s\W]*(what'?s?\s+inside|whats\s+inside)[\s\W]*$/i);
+            if (!text) return false;
+            // Filter out "What's Inside" header duplicates
+            if (text.match(/^[\s\W]*(what'?s?\s+inside|whats\s+inside)[\s\W]*$/i)) return false;
+            // Filter out AI preamble lines like "Here are 4 bullet items for your newsletter:"
+            if (text.match(/^here\s+are\s+\d+/i)) return false;
+            if (text.match(/bullet\s*(items?|points?)/i)) return false;
+            if (text.match(/^(below|following)\s+(are|is)/i)) return false;
+            return true;
         });
         let agendaHtml = '';
         agendaItems.slice(0, 4).forEach(item => {
