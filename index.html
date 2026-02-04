@@ -836,9 +836,17 @@
                         <label>Fun Fact</label>
                         <textarea id="gtpFunFact" rows="2" placeholder="An interesting fact about this piece..."></textarea>
                     </div>
-                    <div style="margin-top:12px;">
+                    <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <button class="btn-small" onclick="saveGTPItem()">Save for Later</button>
-                        <button class="btn-small btn-small" style="background:#3b82f6;margin-left:8px;" onclick="regenerateGTPDetails()">Regenerate Details</button>
+                        <select id="gtpToneSelect" style="padding:6px 10px;border:2px solid #e5e7eb;border-radius:6px;font-size:13px;background:white;">
+                            <option value="">Default Tone</option>
+                            <option value="playful">Playful & Fun</option>
+                            <option value="witty">Witty & Clever</option>
+                            <option value="luxurious">Luxurious & Elegant</option>
+                            <option value="mysterious">Mysterious & Intriguing</option>
+                            <option value="informative">Informative & Detailed</option>
+                        </select>
+                        <button class="btn-small" style="background:#3b82f6;" onclick="regenerateGTPDetails()">Regenerate Details</button>
                     </div>
                 </div>
             </div>
@@ -2077,7 +2085,11 @@
         }
     }
 
-    async function selectGTPItem(item) {
+    async function selectGTPItem(item, tone) {
+        // Clear previous selection completely
+        selectedContent.guess_the_price = null;
+        generatedImages.guess_the_price = null;
+
         // Show details form
         document.getElementById('gtpDetailsForm').style.display = 'block';
         document.getElementById('gtpTitle').value = item.title || '';
@@ -2125,7 +2137,7 @@
         try {
             const resp = await fetch(`${API_BASE}/api/guess-the-price/generate-details`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: item.title || '', url: item.url || '', snippet: item.snippet || item.description || '' })
+                body: JSON.stringify({ title: item.title || '', url: item.url || '', snippet: item.snippet || item.description || '', tone: tone || '' })
             });
             const data = await resp.json();
             if (data.success && data.details) {
@@ -2230,7 +2242,7 @@
         reader.readAsDataURL(file);
     }
 
-    function openGTPCropper() {
+    async function openGTPCropper() {
         if (!gtpCropSourceUrl) {
             const url = document.getElementById('gtpImageUrl').value.trim();
             if (!url) { alert('Enter an image URL or upload a file first'); return; }
@@ -2238,13 +2250,26 @@
         }
         const modal = document.getElementById('cropModal');
         const cropImg = document.getElementById('cropImage');
-        // Set crossOrigin for URL-based images to allow canvas export
+        // Proxy external images through backend to avoid CORS issues
+        let imgSrc = gtpCropSourceUrl;
         if (gtpCropSourceUrl.startsWith('http')) {
+            try {
+                const proxyResp = await fetch(`${API_BASE}/api/proxy-image`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: gtpCropSourceUrl })
+                });
+                const proxyData = await proxyResp.json();
+                if (proxyData.success && proxyData.data_url) {
+                    imgSrc = proxyData.data_url;
+                }
+            } catch (e) {
+                console.warn('Image proxy failed, trying direct:', e);
+            }
             cropImg.crossOrigin = 'anonymous';
         } else {
             cropImg.removeAttribute('crossOrigin');
         }
-        cropImg.src = gtpCropSourceUrl;
+        cropImg.src = imgSrc;
         modal.classList.add('active');
         cropImg.onload = function() {
             if (gtpCropper) { gtpCropper.destroy(); }
@@ -2397,8 +2422,9 @@
     async function regenerateGTPDetails() {
         const title = document.getElementById('gtpTitle').value;
         const url = document.getElementById('gtpSourceLink').value;
+        const tone = document.getElementById('gtpToneSelect')?.value || '';
         if (!title) { alert('Enter a title first'); return; }
-        await selectGTPItem({ title, url, snippet: '', image_url: document.getElementById('gtpImageUrl').value });
+        await selectGTPItem({ title, url, snippet: '', image_url: document.getElementById('gtpImageUrl').value }, tone);
     }
 
     // ============================================================
@@ -4164,30 +4190,27 @@
     // AI GENERATE INTRO (manual button)
     // ============================================================
     async function aiGenerateIntro() {
-        const btn = event.target;
-        btn.disabled = true; btn.textContent = 'Generating...';
+        const btn = document.querySelector('#step5 .btn-small[onclick*="aiGenerateIntro"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
         try {
             const highlights = [];
             if (selectedContent.news_of_month?.title) highlights.push('Video: ' + selectedContent.news_of_month.title);
             if (selectedContent.trend_alert?.title) highlights.push('Trend: ' + selectedContent.trend_alert.title);
             if (selectedContent.guess_the_price?.title) highlights.push('GTP: ' + selectedContent.guess_the_price.title);
 
-            const resp = await fetch(`${API_BASE}/api/generate-newsletter`, {
+            const resp = await fetch(`${API_BASE}/api/generate-intro`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    month: selectedMonth, intro: '',
-                    news_of_month: { title: selectedContent.news_of_month?.title || '', description: '' },
-                    trend_alert: { title: selectedContent.trend_alert?.title || '', description: '' },
-                    blog_articles: [], guess_the_price: { title: selectedContent.guess_the_price?.title || '' },
-                    quick_tip: document.getElementById('quickTipContent')?.value || ''
+                    month: selectedMonth || 'january',
+                    highlights: highlights
                 })
             });
             const data = await resp.json();
-            if (data.success && data.generated?.intro) {
-                document.getElementById('introContent').value = stripMarkdown(data.generated.intro);
-            } else { alert('Generation failed: ' + (data.error || '')); }
-        } catch (e) { alert('Error: ' + e.message); }
-        btn.disabled = false; btn.textContent = 'AI Generate';
+            if (data.success && data.intro) {
+                document.getElementById('introContent').value = stripMarkdown(data.intro);
+            } else { alert('Generation failed: ' + (data.error || 'Unknown error')); }
+        } catch (e) { alert('Error generating intro: ' + e.message); }
+        if (btn) { btn.disabled = false; btn.textContent = 'AI Generate'; }
         updateWordCount('introContent', 'introWordCount');
     }
 

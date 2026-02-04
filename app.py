@@ -486,6 +486,33 @@ def get_blog_categories():
 # ROUTES - GUESS THE PRICE
 # ============================================================================
 
+@app.route('/api/proxy-image', methods=['POST'])
+def proxy_image():
+    """Proxy an external image to avoid CORS issues for cropping"""
+    try:
+        data = request.json
+        url = data.get('url', '')
+        if not url or not url.startswith('http'):
+            return jsonify({'success': False, 'error': 'Invalid URL'}), 400
+
+        import base64
+        import requests as req
+        resp = req.get(url, timeout=15, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        resp.raise_for_status()
+        content_type = resp.headers.get('Content-Type', 'image/jpeg')
+        if 'image' not in content_type:
+            content_type = 'image/jpeg'
+        b64 = base64.b64encode(resp.content).decode('utf-8')
+        data_url = f"data:{content_type};base64,{b64}"
+        return jsonify({'success': True, 'data_url': data_url})
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Proxy image: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/guess-the-price/search', methods=['POST'])
 def gtp_search():
     """Search for Guess the Price items via Perplexity"""
@@ -519,6 +546,8 @@ Return results as JSON:
 
 Rules:
 - Each result must be a specific piece of jewelry, not a listicle
+- Results should come from news articles, auction houses, museums, galleries, or editorial features
+- Do NOT include shopping pages, product listings, or e-commerce sites (no Etsy, Amazon, eBay, retail stores)
 - Include price or estimated value when available
 - Use real URLs from your search results
 - Return 6-8 results"""
@@ -545,6 +574,7 @@ def gtp_generate_details():
         title = data.get('title', '')
         url = data.get('url', '')
         snippet = data.get('snippet', '')
+        tone = data.get('tone', '')
 
         if not claude_client:
             return jsonify({'success': False, 'error': 'Claude not available'}), 503
@@ -555,10 +585,22 @@ def gtp_generate_details():
             snippet=snippet
         )
 
+        # Add tone instruction if specified
+        if tone:
+            tone_instructions = {
+                'playful': 'Use a playful, fun, lighthearted tone with personality.',
+                'witty': 'Use a witty, clever tone with wordplay or humor.',
+                'luxurious': 'Use an elegant, luxurious tone that evokes sophistication.',
+                'mysterious': 'Use a mysterious, intriguing tone that builds suspense.',
+                'informative': 'Use a straightforward, informative tone with rich details.',
+            }
+            tone_desc = tone_instructions.get(tone, f'Use a {tone} tone.')
+            prompt += f"\n\nTone: {tone_desc}"
+
         response = claude_client.generate_content(
             prompt=prompt,
             max_tokens=400,
-            temperature=0.5
+            temperature=0.7 if tone else 0.5
         )
 
         details = parse_json_from_llm(response.get('content', '{}'))
@@ -741,6 +783,44 @@ Return ONLY the rewritten text, nothing else."""
 
     except Exception as e:
         safe_print(f"[API ERROR] Rewrite: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/generate-intro', methods=['POST'])
+def generate_intro():
+    """Generate just the newsletter intro using Claude"""
+    try:
+        data = request.json
+        month = data.get('month', 'january').title()
+        highlights = data.get('highlights', [])
+
+        if not claude_client:
+            return jsonify({'success': False, 'error': 'Claude not available'}), 503
+
+        highlights_str = '; '.join(highlights) if highlights else 'jewelry news and trends'
+
+        prompt = AI_PROMPTS['generate_intro'].format(
+            month=month,
+            highlights=highlights_str
+        )
+
+        response = claude_client.generate_content(prompt=prompt, max_tokens=150, temperature=0.8)
+        intro_text = response.get('content', '').strip()
+
+        # Clean AI prefixes
+        intro_text = re.sub(
+            r'^(?:\w+\s+)?newsletter\s+intro(?:duction)?[\s:;\-–—]*',
+            '', intro_text, flags=re.IGNORECASE
+        ).strip()
+        if intro_text.startswith('"') and intro_text.endswith('"'):
+            intro_text = intro_text[1:-1].strip()
+        if intro_text.startswith("'") and intro_text.endswith("'"):
+            intro_text = intro_text[1:-1].strip()
+
+        return jsonify({'success': True, 'intro': intro_text})
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Generate intro: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
