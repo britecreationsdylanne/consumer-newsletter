@@ -1098,6 +1098,23 @@
                 <div class="editable" contenteditable="true" id="fc-tip"></div>
             </div>
 
+            <!-- Special Section (conditional) -->
+            <div class="content-section" id="fc-special-section-review" style="display:none;">
+                <h3>Special Section
+                    <button class="btn-small" onclick="aiRewriteSection('special_section')" style="float:right;">AI Rewrite</button>
+                </h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('fc-special')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-fc-special">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('fc-special')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('fc-special')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="fc-special"></div>
+            </div>
+
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="goToStep(5)">&larr; Back</button>
                 <button class="btn btn-green" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
@@ -1406,6 +1423,21 @@
                 <div>
                     <label style="display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; color: #666;">Preheader:</label>
                     <div id="previewPreheader" contenteditable="true" style="padding: 12px; background: #f9fafb; border-radius: 6px; font-size: 14px; color: #666; border: 2px solid transparent; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='transparent'; savePreheaderEdit(this)">Your preheader will appear here</div>
+                </div>
+            </div>
+
+            <!-- Special Section Position Control (shown when special section is active) -->
+            <div id="previewSSPositionControl" style="display:none; background: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #008181;">
+                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <span style="font-weight: 600; color: #272d3f; font-size: 14px;">Special Section Position:</span>
+                    <select id="previewSSPosition" onchange="moveSpecialSectionPreview()" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;">
+                        <option value="after_intro">After Intro</option>
+                        <option value="after_trend">After Trend Alert</option>
+                        <option value="after_blogs">After Blog Articles</option>
+                        <option value="after_gtp">After Guess the Price</option>
+                        <option value="after_quicktip">After Quick Tip</option>
+                    </select>
+                    <span style="font-size: 13px; color: #666;">Change where the special section appears and the preview will update.</span>
                 </div>
             </div>
 
@@ -2650,6 +2682,18 @@
 
         // Quick tip
         setContent('fc-tip', gc.quick_tip || '');
+
+        // Special section (show if enabled)
+        const ssData = getSpecialSectionData();
+        const ssReviewDiv = document.getElementById('fc-special-section-review');
+        if (ssData && ssData.body) {
+            ssReviewDiv.style.display = 'block';
+            setContent('fc-special', ssData.body);
+            // Update the heading to show the title
+            ssReviewDiv.querySelector('h3').childNodes[0].textContent = 'Special Section: ' + ssData.title + ' ';
+        } else {
+            ssReviewDiv.style.display = 'none';
+        }
     }
 
     async function aiRewriteSection(section) {
@@ -2657,7 +2701,8 @@
             'news_of_month': 'fc-news',
             'trend_alert': 'fc-trend',
             'guess_the_price': 'fc-gtp',
-            'quick_tip': 'fc-tip'
+            'quick_tip': 'fc-tip',
+            'special_section': 'fc-special'
         };
         const elId = sectionMap[section];
         if (!elId) return;
@@ -2748,7 +2793,14 @@
                 link: selectedContent.guess_the_price?.source_link || ''
             },
             quick_tip: getEditableText('fc-tip') || generatedContent.quick_tip || '',
-            special_section: getSpecialSectionData()
+            special_section: (() => {
+                const ss = getSpecialSectionData();
+                if (!ss) return null;
+                // If the review editable has been populated, use its content (user may have edited it)
+                const editedBody = getEditableText('fc-special');
+                if (editedBody && editedBody.trim()) ss.body = editedBody.trim();
+                return ss;
+            })()
         };
     }
 
@@ -2792,6 +2844,10 @@
             document.getElementById('fc-tip')?.innerHTML || '',
             suggestions.filter(s => s.section === 'quick_tip' || s.section === 'tip')
         );
+        const specialContent = highlightContent(
+            document.getElementById('fc-special')?.innerHTML || '',
+            suggestions.filter(s => s.section === 'special_section' || s.section === 'special')
+        );
 
         // Display each section with highlighted content
         const sections = [
@@ -2801,6 +2857,11 @@
             { label: 'Guess the Price', content: gtpContent },
             { label: 'Quick Tip', content: tipContent }
         ];
+        // Add special section if it has content
+        if (specialContent && specialContent.trim()) {
+            const ssTitle = getSpecialSectionData()?.title || 'Special Section';
+            sections.push({ label: ssTitle, content: specialContent });
+        }
 
         sections.forEach(s => {
             html += '<h3 style="margin: 25px 0 10px 0; color: #272d3f;">' + s.label + '</h3>';
@@ -3546,6 +3607,11 @@
 
         // Build special section HTML if enabled
         const ss = getSpecialSectionData();
+        // Use edited body from review step if available
+        if (ss) {
+            const editedSSBody = getEditableText('fc-special');
+            if (editedSSBody && editedSSBody.trim()) ss.body = editedSSBody.trim();
+        }
         let specialSectionBlock = '';
         if (ss && ss.body) {
             const schemes = {
@@ -3608,11 +3674,30 @@
         document.getElementById('previewPreheader').textContent = preheader;
         document.getElementById('ontraportSubjectInput').value = subjectLine;
 
+        // Show/hide special section position control
+        const ssData = getSpecialSectionData();
+        const ssControl = document.getElementById('previewSSPositionControl');
+        if (ssData && ssData.body) {
+            ssControl.style.display = 'block';
+            document.getElementById('previewSSPosition').value = ssData.position || 'after_blogs';
+        } else {
+            ssControl.style.display = 'none';
+        }
+
         const previewDiv = document.getElementById('newsletterPreview');
         const previewHtml = generateConsumerNewsletterHTML();
         renderedEmailHTML = previewHtml;
         previewDiv.innerHTML = previewHtml;
         enableNewsletterEditing();
+    }
+
+    function moveSpecialSectionPreview() {
+        // Sync the preview position dropdown back to the Step 5 dropdown
+        const newPos = document.getElementById('previewSSPosition').value;
+        const step5Dropdown = document.getElementById('specialSectionPosition');
+        if (step5Dropdown) step5Dropdown.value = newPos;
+        // Re-render preview
+        populatePreview();
     }
 
     function refreshPreview() { populatePreview(); }

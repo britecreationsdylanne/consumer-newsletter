@@ -515,7 +515,7 @@ def proxy_image():
 
 @app.route('/api/guess-the-price/search', methods=['POST'])
 def gtp_search():
-    """Search for Guess the Price items via Perplexity"""
+    """Search for Guess the Price items via Perplexity with Claude query expansion"""
     try:
         data = request.json
         query = data.get('query', 'rare expensive jewelry 2026')
@@ -524,9 +524,34 @@ def gtp_search():
         if not perplexity_client or not perplexity_client.is_available():
             return jsonify({'success': False, 'error': 'Perplexity API not configured'}), 503
 
-        search_query = f"""{query}
+        # Step 1: Use Claude to expand the query into 2-3 better search variations
+        search_queries = [query]  # fallback: just use original
+        if claude_client:
+            try:
+                expansion_prompt = f"""You are a jewelry research expert. The user wants to find interesting, specific jewelry pieces for a "Guess the Price" newsletter feature.
 
-Find specific jewelry pieces matching this search. Each result should be an identifiable piece (not a general article or category)."""
+Their search query is: "{query}"
+
+Generate exactly 3 different search queries that would find interesting, specific jewelry pieces related to this topic. Each query should:
+- Target news articles, auction results, museum exhibits, or editorial features (NOT shopping/e-commerce)
+- Use different angles or phrasings to maximize result diversity
+- Be specific enough to find individual named pieces, not generic lists
+
+Return ONLY a JSON array of 3 strings, nothing else:
+["query 1", "query 2", "query 3"]"""
+
+                expansion_resp = claude_client.generate_content(
+                    prompt=expansion_prompt,
+                    max_tokens=200,
+                    temperature=0.8
+                )
+                expanded_raw = expansion_resp.get('content', '').strip()
+                expanded = parse_json_from_llm(expanded_raw)
+                if isinstance(expanded, list) and len(expanded) >= 2:
+                    search_queries = expanded[:3]
+                    safe_print(f"[GTP] Query expansion: {query} → {search_queries}")
+            except Exception as ex:
+                safe_print(f"[GTP] Query expansion failed, using original: {ex}")
 
         gtp_system_prompt = """You are a jewelry research assistant. Search the web for specific jewelry pieces matching the user's query.
 
@@ -552,14 +577,34 @@ Rules:
 - Use real URLs from your search results
 - Return 6-8 results"""
 
-        results = perplexity_client.search(
-            query=search_query,
-            time_window=time_window,
-            max_results=6,
-            system_prompt=gtp_system_prompt
-        )
+        # Step 2: Run Perplexity search for each expanded query
+        all_results = []
+        seen_urls = set()
 
-        return jsonify({'success': True, 'results': results})
+        for sq in search_queries:
+            search_query = f"""{sq}
+
+Find specific jewelry pieces matching this search. Each result should be an identifiable piece (not a general article or category)."""
+
+            try:
+                results = perplexity_client.search(
+                    query=search_query,
+                    time_window=time_window,
+                    max_results=6,
+                    system_prompt=gtp_system_prompt
+                )
+                # Deduplicate by URL
+                for r in results:
+                    url = r.get('url', '')
+                    if url and url not in seen_urls:
+                        seen_urls.add(url)
+                        all_results.append(r)
+            except Exception as search_err:
+                safe_print(f"[GTP] Search query failed ({sq}): {search_err}")
+
+        safe_print(f"[GTP] Total results after dedup: {len(all_results)} from {len(search_queries)} queries")
+
+        return jsonify({'success': True, 'results': all_results})
 
     except Exception as e:
         safe_print(f"[API ERROR] GTP search: {e}")
@@ -807,9 +852,16 @@ def generate_intro():
         response = claude_client.generate_content(prompt=prompt, max_tokens=150, temperature=0.8)
         intro_text = response.get('content', '').strip()
 
-        # Clean AI prefixes
+        # Clean AI prefixes - catch patterns like "June Newsletter Intro:", "Newsletter Introduction:", etc.
         intro_text = re.sub(
-            r'^(?:\w+\s+)?newsletter\s+intro(?:duction)?[\s:;\-–—]*',
+            r'^(?:(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+)?'
+            r'(?:newsletter\s+)?intro(?:duction)?[\s:;\-–—]*',
+            '', intro_text, flags=re.IGNORECASE
+        ).strip()
+        # Also catch "Month Intro:" without "Newsletter"
+        intro_text = re.sub(
+            r'^(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+'
+            r'(?:newsletter\s+)?intro(?:duction)?[\s:;\-–—]*',
             '', intro_text, flags=re.IGNORECASE
         ).strip()
         if intro_text.startswith('"') and intro_text.endswith('"'):
@@ -867,7 +919,8 @@ def generate_newsletter():
         # Clean intro: strip AI-generated prefixes like "May Newsletter Intro:" etc.
         intro_text = generated.get('intro', '')
         intro_text = re.sub(
-            r'^(?:\w+\s+)?newsletter\s+intro(?:duction)?[\s:;\-–—]*',
+            r'^(?:(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+)?'
+            r'(?:newsletter\s+)?intro(?:duction)?[\s:;\-–—]*',
             '', intro_text, flags=re.IGNORECASE
         ).strip()
         # Also strip quoted wrapping if AI wrapped in quotes
@@ -1576,6 +1629,14 @@ def export_to_docs():
         if content.get('quick_tip'):
             add_text('Quick Tip', bold=True)
             add_text(content['quick_tip'])
+
+        # Special Section
+        ss = content.get('special_section', {})
+        if isinstance(ss, dict) and ss.get('body'):
+            add_text(ss.get('title', 'Special Section'), bold=True)
+            add_text(ss['body'])
+            if ss.get('cta_enabled') and ss.get('cta_text') and ss.get('cta_url'):
+                add_text(f"{ss['cta_text']}: {ss['cta_url']}", link_url=ss['cta_url'])
 
         # Execute batch update
         if requests_list:
