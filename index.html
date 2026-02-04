@@ -1559,7 +1559,7 @@
 
             <div style="text-align: center; margin: 20px 0; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
                 <button class="btn" onclick="savePreviewEdits()" style="background: #0284c7; padding: 12px 28px; font-size: 15px;">Save Changes to HTML</button>
-                <button class="btn btn-secondary" onclick="undoPreviewEdits()" style="background: #dc3545; padding: 12px 28px; font-size: 15px;">Undo All Edits</button>
+                <button class="btn btn-secondary" id="undoPreviewBtn" onclick="undoPreviewEdits()" style="background: #dc3545; padding: 12px 28px; font-size: 15px;" disabled>Undo</button>
                 <span id="saveStatus" style="margin-left: 10px; font-size: 14px; color: #166534; display: none; align-self: center;">Changes saved!</span>
             </div>
 
@@ -3893,22 +3893,23 @@
         const previewDiv = document.getElementById('newsletterPreview');
         const previewHtml = generateConsumerNewsletterHTML();
         renderedEmailHTML = previewHtml;
-        window._originalPreviewHTML = previewHtml; // Store for undo
+        previewUndoStack = []; // Reset undo stack on fresh preview
         previewDiv.innerHTML = previewHtml;
         enableNewsletterEditing();
     }
 
     function undoPreviewEdits() {
-        if (!window._originalPreviewHTML) { alert('No original version to revert to'); return; }
+        if (previewUndoStack.length === 0) { alert('Nothing to undo'); return; }
+        const previousState = previewUndoStack.pop();
         const previewDiv = document.getElementById('newsletterPreview');
-        previewDiv.innerHTML = window._originalPreviewHTML;
-        renderedEmailHTML = window._originalPreviewHTML;
-        savedEditedHTML = null;
+        previewDiv.innerHTML = previousState;
+        renderedEmailHTML = previousState;
+        savedEditedHTML = previousState;
         const htmlCode = document.getElementById('htmlCode');
-        if (htmlCode) htmlCode.textContent = window._originalPreviewHTML;
+        if (htmlCode) htmlCode.textContent = previousState;
         enableNewsletterEditing();
         const status = document.getElementById('saveStatus');
-        if (status) { status.textContent = 'Edits reverted!'; status.style.color = '#dc3545'; status.style.display = 'inline'; setTimeout(() => { status.style.display = 'none'; status.textContent = 'Changes saved!'; status.style.color = '#166534'; }, 2000); }
+        if (status) { status.textContent = 'Edit undone!'; status.style.color = '#dc3545'; status.style.display = 'inline'; setTimeout(() => { status.style.display = 'none'; status.textContent = 'Changes saved!'; status.style.color = '#166534'; }, 2000); }
     }
 
     function moveSpecialSectionPreview() {
@@ -4601,6 +4602,8 @@
     // PREVIEW EDITING (matching jeweler)
     // ============================================================
     let savedEditedHTML = null;
+    let previewUndoStack = [];
+    const MAX_UNDO_STEPS = 30;
 
     function enableNewsletterEditing() {
         const preview = document.getElementById('newsletterPreview');
@@ -4608,10 +4611,18 @@
         const textElements = preview.querySelectorAll('p, div[style*="font-size"], h2, h3, h4, h5');
         textElements.forEach(el => {
             if (el.children.length > 0 && el.textContent.trim().length < 50) return;
+            if (el.dataset.editBound) return; // prevent duplicate listeners
+            el.dataset.editBound = 'true';
             el.setAttribute('contenteditable', 'true');
             el.style.cursor = 'text';
             el.style.transition = 'background-color 0.2s';
             el.addEventListener('focus', () => {
+                // Save snapshot before edit starts
+                const current = preview.innerHTML;
+                if (!previewUndoStack.length || previewUndoStack[previewUndoStack.length - 1] !== current) {
+                    previewUndoStack.push(current);
+                    if (previewUndoStack.length > MAX_UNDO_STEPS) previewUndoStack.shift();
+                }
                 el.style.backgroundColor = '#fef3c7';
                 el.style.outline = '2px solid #f59e0b';
             });
@@ -4621,6 +4632,12 @@
                 updateNewsletterHTML();
             });
         });
+        updateUndoButtonState();
+    }
+
+    function updateUndoButtonState() {
+        const btn = document.getElementById('undoPreviewBtn');
+        if (btn) btn.disabled = previewUndoStack.length === 0;
     }
 
     function updateNewsletterHTML() {
@@ -4630,6 +4647,7 @@
         renderedEmailHTML = savedEditedHTML;
         const htmlCode = document.getElementById('htmlCode');
         if (htmlCode) htmlCode.textContent = savedEditedHTML;
+        updateUndoButtonState();
     }
 
     function savePreviewEdits() {
