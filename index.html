@@ -1707,6 +1707,8 @@
         if (step === 7) { runBrandCheck(); return; }
         if (step === 10) { try { populatePreview(); } catch(err) { console.error('Preview error:', err); } }
         if (step === 11) {
+            // Auto-save any preview edits before going to Ontraport
+            updateNewsletterHTML();
             const subjectLine = document.getElementById('finalSubjectLine')?.value || 'BriteCo Newsletter - ' + selectedMonth;
             const subjectInput = document.getElementById('ontraportSubjectInput');
             if (subjectInput) subjectInput.value = subjectLine;
@@ -4018,9 +4020,9 @@
             const gcsUrls = uploadResult.success ? (uploadResult.urls || {}) : {};
             console.log('GCS upload result:', uploadResult);
 
-            // Step 2: Generate HTML first (with base64 data URIs embedded)
-            btnText.textContent = 'Generating HTML...';
-            let html = generateConsumerNewsletterHTML();
+            // Step 2: Use saved/edited HTML if available, otherwise generate fresh
+            btnText.textContent = 'Preparing HTML...';
+            let html = savedEditedHTML || renderedEmailHTML || generateConsumerNewsletterHTML();
 
             // Replace static asset paths with GCS-hosted URLs (or fallback to app URL)
             const logoUrl = gcsUrls['_logo'] || (window.location.origin + '/static/briteco-logo-white.png');
