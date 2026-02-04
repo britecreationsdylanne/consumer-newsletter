@@ -888,7 +888,10 @@
                 <textarea id="quickTipContent" rows="3" placeholder="A quick seasonal jewelry care tip for readers... or click AI Generate below"></textarea>
                 <div class="textarea-actions">
                     <span class="word-count" id="quickTipWordCount">0 words</span>
-                    <button class="btn-small" onclick="generateQuickTip()">AI Generate</button>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn-small" onclick="generateQuickTip()">AI Generate</button>
+                        <button class="btn-small" style="background:#6b7280;" onclick="aiRewriteQuickTip()">AI Rewrite</button>
+                    </div>
                 </div>
             </div>
 
@@ -1186,6 +1189,104 @@
 
             <div class="buttons">
                 <button class="btn btn-secondary" onclick="showStep('6b')">&larr; Back to Edit</button>
+                <button class="btn" onclick="showStep('7d')">Final Copy &rarr;</button>
+            </div>
+        </div>
+
+        <!-- ============ STEP 7d: Final Copy Review ============ -->
+        <div id="step7d" class="step">
+            <h2>Final Copy Review</h2>
+            <p class="step-description">Review your final copy after brand check edits. Make any last changes before moving to images.</p>
+
+            <div class="content-section">
+                <h3>Introduction</h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('final-intro')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-final-intro">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('final-intro')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('final-intro')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="final-intro"></div>
+            </div>
+
+            <div class="content-section">
+                <h3>News of the Month - Description
+                    <button class="btn-small" onclick="aiRewriteFinalSection('news_of_month')" style="float:right;">AI Rewrite</button>
+                </h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('final-news')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-final-news">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('final-news')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('final-news')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="final-news"></div>
+            </div>
+
+            <div class="content-section">
+                <h3>Trend Alert - Description
+                    <button class="btn-small" onclick="aiRewriteFinalSection('trend_alert')" style="float:right;">AI Rewrite</button>
+                </h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('final-trend')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-final-trend">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('final-trend')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('final-trend')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="final-trend"></div>
+            </div>
+
+            <div class="content-section">
+                <h3>Guess the Price - Question
+                    <button class="btn-small" onclick="aiRewriteFinalSection('guess_the_price')" style="float:right;">AI Rewrite</button>
+                </h3>
+                <div class="editable" contenteditable="true" id="final-gtp"></div>
+            </div>
+
+            <div class="content-section">
+                <h3>Quick Tip
+                    <button class="btn-small" onclick="aiRewriteFinalSection('quick_tip')" style="float:right;">AI Rewrite</button>
+                </h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('final-tip')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-final-tip">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('final-tip')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('final-tip')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="final-tip"></div>
+            </div>
+
+            <!-- Special Section (conditional) -->
+            <div class="content-section" id="final-special-section-review" style="display:none;">
+                <h3 id="finalSpecialHeading">Special Section
+                    <button class="btn-small" onclick="aiRewriteFinalSection('special_section')" style="float:right;">AI Rewrite</button>
+                </h3>
+                <div class="link-toolbar"><button class="link-toolbar-btn" onclick="showLinkPopover('final-special')" type="button">&#128279; Insert Link</button></div>
+                <div class="link-popover" id="lp-final-special">
+                    <input type="text" placeholder="Display text" class="lp-text">
+                    <input type="text" placeholder="https://..." class="lp-url">
+                    <div class="link-popover-actions">
+                        <button type="button" onclick="hideLinkPopover('final-special')">Cancel</button>
+                        <button type="button" class="link-insert-btn" onclick="insertLink('final-special')">Insert</button>
+                    </div>
+                </div>
+                <div class="editable" contenteditable="true" id="final-special"></div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="showStep('7b')">&larr; Back to Brand Check</button>
+                <button class="btn btn-green" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
                 <button class="btn" onclick="goToStep(8)">Continue to Images &rarr;</button>
             </div>
         </div>
@@ -1390,9 +1491,16 @@
                     </div>
                 </div>
 
-                <!-- Regenerate -->
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <button class="btn-small" onclick="regenerateSubjectLines()" style="background:#466F88;">Regenerate with Different Tone</button>
+                <!-- Regenerate with tone dropdown (inline) -->
+                <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <select id="subjectRegenTone" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white;">
+                        <option value="playful">Playful &amp; Fun</option>
+                        <option value="witty">Witty &amp; Clever</option>
+                        <option value="friendly">Friendly &amp; Conversational</option>
+                        <option value="informative">Informative &amp; Professional</option>
+                        <option value="exclusive">Exclusive &amp; Premium</option>
+                    </select>
+                    <button class="btn-small" onclick="regenerateSubjectLinesInline()" style="background:#466F88; padding: 8px 20px;">Regenerate</button>
                 </div>
             </div>
 
@@ -1449,9 +1557,10 @@
                 <pre id="htmlCode"></pre>
             </div>
 
-            <div style="text-align: center; margin: 20px 0;">
+            <div style="text-align: center; margin: 20px 0; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
                 <button class="btn" onclick="savePreviewEdits()" style="background: #0284c7; padding: 12px 28px; font-size: 15px;">Save Changes to HTML</button>
-                <span id="saveStatus" style="margin-left: 10px; font-size: 14px; color: #166534; display: none;">Changes saved!</span>
+                <button class="btn btn-secondary" onclick="undoPreviewEdits()" style="background: #dc3545; padding: 12px 28px; font-size: 15px;">Undo All Edits</button>
+                <span id="saveStatus" style="margin-left: 10px; font-size: 14px; color: #166534; display: none; align-self: center;">Changes saved!</span>
             </div>
 
             <div class="buttons">
@@ -1470,7 +1579,9 @@
             <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
                 <div style="padding: 15px; background-color: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e; margin-bottom: 20px;">
                     <label style="display: block; font-weight: 600; color: #166534; margin-bottom: 5px;">Subject Line:</label>
-                    <input type="text" id="ontraportSubjectInput" style="width: 100%; padding: 10px; font-size: 16px; color: #272d3f; border: 2px solid #22c55e; border-radius: 6px; background: #ffffff; box-sizing: border-box;" placeholder="Enter subject line..." />
+                    <input type="text" id="ontraportSubjectInput" style="width: 100%; padding: 10px; font-size: 16px; color: #272d3f; border: 2px solid #22c55e; border-radius: 6px; background: #ffffff; box-sizing: border-box; margin-bottom: 12px;" placeholder="Enter subject line..." />
+                    <label style="display: block; font-weight: 600; color: #166534; margin-bottom: 5px;">Preheader:</label>
+                    <input type="text" id="ontraportPreheaderInput" style="width: 100%; padding: 10px; font-size: 14px; color: #272d3f; border: 2px solid #22c55e; border-radius: 6px; background: #ffffff; box-sizing: border-box;" placeholder="Preview text shown in email clients..." />
                 </div>
 
                 <button class="btn" onclick="pushToOntraport()" id="ontraportBtn" style="width: 100%; padding: 15px; font-size: 16px; background: #018181;">
@@ -1571,7 +1682,8 @@
         1: 'Select Month', 2: 'Select Videos', 3: 'Blog Articles',
         4: 'Guess the Price', '4b': 'Generating...', 5: 'Intro & Quick Tip', 6: 'Generating...',
         '6b': 'Review Content', 7: 'Brand Check...', '7b': 'Brand Check & Export',
-        '7c': 'Generating Prompts...', 8: 'Image Generation', '8b': 'Review Images', 9: 'Subject Line', 10: 'Preview',
+        '7c': 'Generating Prompts...', '7d': 'Final Copy',
+        8: 'Image Generation', '8b': 'Review Images', 9: 'Subject Line', 10: 'Preview',
         11: 'Push to Ontraport'
     };
 
@@ -1598,6 +1710,9 @@
             const subjectLine = document.getElementById('finalSubjectLine')?.value || 'BriteCo Newsletter - ' + selectedMonth;
             const subjectInput = document.getElementById('ontraportSubjectInput');
             if (subjectInput) subjectInput.value = subjectLine;
+            const preheader = document.getElementById('finalPreheader')?.value || '';
+            const preheaderInput = document.getElementById('ontraportPreheaderInput');
+            if (preheaderInput) preheaderInput.value = preheader;
         }
         if (step === 2 && youtubeVideos.length === 0) loadYoutubeVideos();
         if (step === 3 && blogPosts.length === 0) loadBlogPosts();
@@ -1636,7 +1751,7 @@
     }
 
     function showStep(stepId) {
-        const savePoints = ['6b', '7b'];
+        const savePoints = ['6b', '7b', '7d'];
         if (selectedMonth && savePoints.includes(stepId)) saveDraft();
         currentStep = stepId;
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -1645,10 +1760,11 @@
         updateProgressBar();
         window.scrollTo(0, 0);
         if (stepId === '8b') populateImageReview();
+        if (stepId === '7d') populateFinalCopy();
     }
 
     function updateProgressBar() {
-        const stepMap = { 1:1, 2:2, 3:3, 4:4, '4b':5, 5:5, 6:6, '6b':6, 7:7, '7b':7, '7c':8, 8:8, '8b':8, 9:9, 10:10, 11:11 };
+        const stepMap = { 1:1, 2:2, 3:3, 4:4, '4b':5, 5:5, 6:6, '6b':6, 7:7, '7b':7, '7d':7, '7c':8, 8:8, '8b':8, 9:9, 10:10, 11:11 };
         const num = stepMap[currentStep] || 1;
         const pct = (num / totalSteps) * 100;
         document.getElementById('progressBar').style.width = pct + '%';
@@ -2174,6 +2290,7 @@
             const data = await resp.json();
             if (data.success && data.details) {
                 const d = data.details;
+                if (d.rewritten_title) document.getElementById('gtpTitle').value = d.rewritten_title;
                 document.getElementById('gtpMaterial').value = d.material || '';
                 document.getElementById('gtpFoundIn').value = d.found_in || '';
                 document.getElementById('gtpWhereItLives').value = d.where_it_lives || '';
@@ -2416,14 +2533,15 @@
         const gtpImg = generatedImages.guess_the_price ? (generatedImages.guess_the_price.url || generatedImages.guess_the_price) : (selectedContent.guess_the_price?.image_url || '');
         qtDiv.innerHTML = qtImg ? `<img src="${qtImg}" style="max-width:100%;max-height:300px;border-radius:8px;display:block;">` : '<p style="color:#999;">No image generated</p>';
         gtpDiv.innerHTML = gtpImg ? `<img src="${gtpImg}" style="max-width:100%;max-height:300px;border-radius:8px;display:block;">` : '<p style="color:#999;">No image generated</p>';
-        // Special section image review
+        // Special section image review - only show when toggled on with content
         const ssCard = document.getElementById('reviewSpecialSectionCard');
         const ssDiv = document.getElementById('reviewSpecialSectionImage');
         const ssImg = generatedImages.special_section ? (generatedImages.special_section.url || generatedImages.special_section) : '';
-        if (specialSectionEnabled && ssImg) {
+        const ssHasContent = specialSectionEnabled && getSpecialSectionData();
+        if (ssHasContent && ssImg) {
             ssCard.style.display = 'block';
             ssDiv.innerHTML = `<img src="${ssImg}" style="max-width:100%;max-height:300px;border-radius:8px;display:block;">`;
-        } else if (specialSectionEnabled) {
+        } else if (ssHasContent) {
             ssCard.style.display = 'block';
             ssDiv.innerHTML = '<p style="color:#999;">No image</p>';
         } else {
@@ -2479,6 +2597,25 @@
         } catch (e) { alert('Error: ' + e.message); }
         btn.disabled = false; btn.textContent = 'AI Rewrite';
         updateWordCount('introContent', 'introWordCount');
+    }
+
+    async function aiRewriteQuickTip() {
+        const textarea = document.getElementById('quickTipContent');
+        const content = textarea.value.trim();
+        if (!content) { alert('Write some quick tip text first, then click AI Rewrite'); return; }
+        const btn = document.querySelector('#step5 .btn-small[onclick*="aiRewriteQuickTip"]');
+        btn.disabled = true; btn.textContent = 'Rewriting...';
+        try {
+            const resp = await fetch(`${API_BASE}/api/rewrite-content`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, tone: 'friendly', section: 'quick_tip' })
+            });
+            const data = await resp.json();
+            if (data.success && data.rewritten) textarea.value = data.rewritten;
+            else alert('Rewrite failed: ' + (data.error || 'Unknown error'));
+        } catch (e) { alert('Error: ' + e.message); }
+        btn.disabled = false; btn.textContent = 'AI Rewrite';
+        updateWordCount('quickTipContent', 'quickTipWordCount');
     }
 
     async function generateQuickTip() {
@@ -2764,17 +2901,17 @@
 
     function buildContentObject() {
         return {
-            intro: getEditableText('fc-intro') || generatedContent.intro || '',
+            intro: getFinalText('final-intro', 'fc-intro') || generatedContent.intro || '',
             agenda_items: generatedContent.agenda_items || [],
             news_of_month: {
                 title: selectedContent.news_of_month?.title || '',
-                description: getEditableText('fc-news') || generatedContent.news_of_month?.description || '',
+                description: getFinalText('final-news', 'fc-news') || generatedContent.news_of_month?.description || '',
                 thumbnail_url: selectedContent.news_of_month?.thumbnail_url || generatedContent.news_of_month?.thumbnail_url || '',
                 video_url: selectedContent.news_of_month?.url || generatedContent.news_of_month?.video_url || ''
             },
             trend_alert: {
                 title: selectedContent.trend_alert?.title || '',
-                description: getEditableText('fc-trend') || generatedContent.trend_alert?.description || '',
+                description: getFinalText('final-trend', 'fc-trend') || generatedContent.trend_alert?.description || '',
                 thumbnail_url: selectedContent.trend_alert?.thumbnail_url || generatedContent.trend_alert?.thumbnail_url || '',
                 video_url: selectedContent.trend_alert?.url || generatedContent.trend_alert?.video_url || ''
             },
@@ -2789,15 +2926,14 @@
                 found_in: selectedContent.guess_the_price?.found_in || '',
                 where_it_lives: selectedContent.guess_the_price?.where_it_lives || '',
                 fun_fact: selectedContent.guess_the_price?.fun_fact || '',
-                question: getEditableText('fc-gtp') || generatedContent.guess_the_price?.question || '',
+                question: getFinalText('final-gtp', 'fc-gtp') || generatedContent.guess_the_price?.question || '',
                 link: selectedContent.guess_the_price?.source_link || ''
             },
-            quick_tip: getEditableText('fc-tip') || generatedContent.quick_tip || '',
+            quick_tip: getFinalText('final-tip', 'fc-tip') || generatedContent.quick_tip || '',
             special_section: (() => {
                 const ss = getSpecialSectionData();
                 if (!ss) return null;
-                // If the review editable has been populated, use its content (user may have edited it)
-                const editedBody = getEditableText('fc-special');
+                const editedBody = getFinalText('final-special', 'fc-special');
                 if (editedBody && editedBody.trim()) ss.body = editedBody.trim();
                 return ss;
             })()
@@ -2948,6 +3084,68 @@
             const originalText = originalSpan ? originalSpan.textContent : '';
             suggestionEl.outerHTML = originalText;
         }
+    }
+
+    // ============================================================
+    // FINAL COPY REVIEW (Step 7d)
+    // ============================================================
+    function populateFinalCopy() {
+        // Copy post-brand-check content from fc-* editables to final-* editables
+        const copyMap = {
+            'fc-intro': 'final-intro',
+            'fc-news': 'final-news',
+            'fc-trend': 'final-trend',
+            'fc-gtp': 'final-gtp',
+            'fc-tip': 'final-tip',
+            'fc-special': 'final-special'
+        };
+        Object.entries(copyMap).forEach(([src, dest]) => {
+            const srcEl = document.getElementById(src);
+            const destEl = document.getElementById(dest);
+            if (srcEl && destEl) destEl.innerHTML = srcEl.innerHTML;
+        });
+        // Show/hide special section
+        const ssData = getSpecialSectionData();
+        const ssDiv = document.getElementById('final-special-section-review');
+        if (ssData && ssData.body) {
+            ssDiv.style.display = 'block';
+            document.getElementById('finalSpecialHeading').childNodes[0].textContent = 'Special Section: ' + ssData.title + ' ';
+        } else {
+            ssDiv.style.display = 'none';
+        }
+    }
+
+    async function aiRewriteFinalSection(section) {
+        const sectionMap = {
+            'news_of_month': 'final-news',
+            'trend_alert': 'final-trend',
+            'guess_the_price': 'final-gtp',
+            'quick_tip': 'final-tip',
+            'special_section': 'final-special'
+        };
+        const elId = sectionMap[section];
+        if (!elId) return;
+        const el = document.getElementById(elId);
+        const content = el.textContent || el.innerText;
+        if (!content.trim()) { alert('No content to rewrite'); return; }
+        el.style.opacity = '0.5';
+        try {
+            const resp = await fetch(`${API_BASE}/api/rewrite-content`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, tone: 'friendly', section })
+            });
+            const data = await resp.json();
+            if (data.success && data.rewritten) el.innerHTML = data.rewritten;
+        } catch (e) { console.error('Rewrite error:', e); }
+        el.style.opacity = '1';
+    }
+
+    // Helper: get text from final-copy editables if populated, else fall back to fc-* editables
+    function getFinalText(finalId, fcId) {
+        const finalEl = document.getElementById(finalId);
+        const finalText = finalEl ? (finalEl.textContent || finalEl.innerText || '').trim() : '';
+        if (finalText) return finalText;
+        return getEditableText(fcId);
     }
 
     async function exportToDocs() {
@@ -3441,6 +3639,14 @@
         subjectLinesGenerated = false;
     }
 
+    function regenerateSubjectLinesInline() {
+        const tone = document.getElementById('subjectRegenTone')?.value || 'playful';
+        selectedTone = tone;
+        // Keep results visible, just show loading inline
+        document.getElementById('subjectLineLoading').style.display = 'block';
+        generateSubjectLines();
+    }
+
     async function generateSubjectLines() {
         // Hide tone selection, show loading
         document.getElementById('toneSelection').style.display = 'none';
@@ -3607,9 +3813,9 @@
 
         // Build special section HTML if enabled
         const ss = getSpecialSectionData();
-        // Use edited body from review step if available
+        // Use edited body from final copy or review step if available
         if (ss) {
-            const editedSSBody = getEditableText('fc-special');
+            const editedSSBody = getFinalText('final-special', 'fc-special');
             if (editedSSBody && editedSSBody.trim()) ss.body = editedSSBody.trim();
         }
         let specialSectionBlock = '';
@@ -3687,8 +3893,22 @@
         const previewDiv = document.getElementById('newsletterPreview');
         const previewHtml = generateConsumerNewsletterHTML();
         renderedEmailHTML = previewHtml;
+        window._originalPreviewHTML = previewHtml; // Store for undo
         previewDiv.innerHTML = previewHtml;
         enableNewsletterEditing();
+    }
+
+    function undoPreviewEdits() {
+        if (!window._originalPreviewHTML) { alert('No original version to revert to'); return; }
+        const previewDiv = document.getElementById('newsletterPreview');
+        previewDiv.innerHTML = window._originalPreviewHTML;
+        renderedEmailHTML = window._originalPreviewHTML;
+        savedEditedHTML = null;
+        const htmlCode = document.getElementById('htmlCode');
+        if (htmlCode) htmlCode.textContent = window._originalPreviewHTML;
+        enableNewsletterEditing();
+        const status = document.getElementById('saveStatus');
+        if (status) { status.textContent = 'Edits reverted!'; status.style.color = '#dc3545'; status.style.display = 'inline'; setTimeout(() => { status.style.display = 'none'; status.textContent = 'Changes saved!'; status.style.color = '#166534'; }, 2000); }
     }
 
     function moveSpecialSectionPreview() {

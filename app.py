@@ -641,6 +641,7 @@ def gtp_generate_details():
             }
             tone_desc = tone_instructions.get(tone, f'Use a {tone} tone.')
             prompt += f"\n\nTone: {tone_desc}"
+            prompt += f'\n\nAlso rewrite the title to match this tone. Add a "rewritten_title" field to the JSON response.'
 
         response = claude_client.generate_content(
             prompt=prompt,
