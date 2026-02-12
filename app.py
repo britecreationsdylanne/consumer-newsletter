@@ -59,11 +59,11 @@ from config.consumer_brand_guidelines import (
     BRAND_VOICE,
     SECTION_SPECS,
     WRITING_STYLE_GUIDE,
-    BRAND_CHECK_RULES,
     EMAIL_TEMPLATE_CONFIG,
     AI_PROMPTS,
     MONTH_TO_SEASON,
     EDITORIAL_STYLE_GUIDE,
+    EDITORIAL_RULES_FOR_PROMPTS,
 )
 from config.model_config import get_model_for_task
 
@@ -688,8 +688,8 @@ Requirements:
 - 2-4 sentences, max 80 words
 - Consumer-friendly, fun, conversational tone
 - No headings, labels, or prefixes — return ONLY the body text
-- Use serial commas and em dashes where appropriate
-- Do not start with the title or repeat it"""
+- Do not start with the title or repeat it
+{EDITORIAL_RULES_FOR_PROMPTS}"""
 
         response = claude_client.generate_content(
             prompt=prompt,
@@ -1114,61 +1114,6 @@ Return ONLY the question text."""
 
 
 # ============================================================================
-# ROUTES - BRAND CHECK
-# ============================================================================
-
-@app.route('/api/check-brand-guidelines', methods=['POST'])
-def check_brand_guidelines():
-    """Check content against consumer brand guidelines"""
-    try:
-        data = request.json
-        content = data.get('content', {})
-        month = data.get('month', '')
-
-        safe_print(f"\n[API] Checking brand guidelines for {month}...")
-
-        if not claude_client:
-            return jsonify({'success': False, 'error': 'Claude not available'}), 503
-
-        content_text = json.dumps(content, indent=2)[:4000]
-
-        prompt = AI_PROMPTS['brand_check'].format(content=content_text)
-
-        response = claude_client.generate_content(
-            prompt=prompt,
-            max_tokens=1000,
-            temperature=0.3
-        )
-
-        raw_content = response.get('content', '')
-        safe_print(f"[API] Brand check raw response length: {len(raw_content)}")
-
-        try:
-            result = parse_json_from_llm(raw_content)
-        except (json.JSONDecodeError, Exception) as parse_err:
-            safe_print(f"[API] Brand check JSON parse failed: {parse_err}")
-            safe_print(f"[API] Raw content preview: {raw_content[:500]}")
-            # Return the raw text as a fallback so the frontend can still display something
-            result = {
-                'passed': True,
-                'score': 0,
-                'issues': [],
-                'suggestions': [f"Brand check completed but response format was unexpected. Raw feedback: {raw_content[:1000]}"]
-            }
-
-        return jsonify({
-            'success': True,
-            'brand_check': result
-        })
-
-    except Exception as e:
-        safe_print(f"[API ERROR] Brand check: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ============================================================================
 # ROUTES - IMAGE GENERATION
 # ============================================================================
 
@@ -1313,10 +1258,12 @@ def generate_single_image():
         IMAGE_SIZES = {
             'quick_tip': (490, 300),
             'guess_the_price': (250, 250),
+            'special_section': (490, 300),
         }
         ASPECT_RATIOS = {
             'quick_tip': '16:9',
             'guess_the_price': '1:1',
+            'special_section': '16:9',
         }
 
         aspect_ratio = ASPECT_RATIOS.get(section, '1:1')
@@ -1334,6 +1281,52 @@ def generate_single_image():
 
     except Exception as e:
         safe_print(f"[API ERROR] Generate single image: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/enhance-image-prompt', methods=['POST'])
+def enhance_image_prompt():
+    """Use Claude to rewrite a rough image description into a detailed image generation prompt"""
+    try:
+        data = request.json
+        user_prompt = data.get('prompt', '').strip()
+        section_title = data.get('title', '').strip()
+
+        if not user_prompt:
+            return jsonify({'success': False, 'error': 'No prompt provided'}), 400
+
+        if not claude_client:
+            return jsonify({'success': False, 'error': 'Claude not available'}), 503
+
+        enhance_prompt = f"""Rewrite this rough image description into a detailed, specific prompt optimized for AI image generation.
+
+User's description: {user_prompt}
+{f"Context — this is for a newsletter section titled: {section_title}" if section_title else ""}
+
+Requirements for the enhanced prompt:
+- Photorealistic style, stock photo quality
+- Specify lighting (soft natural, warm studio, etc.)
+- Specify composition (flat lay, lifestyle shot, close-up, etc.)
+- Include relevant details: materials, textures, colors, setting
+- Keep it jewelry/lifestyle focused
+- One paragraph, no more than 2-3 sentences
+- Return ONLY the enhanced prompt text, nothing else"""
+
+        response = claude_client.generate_content(
+            prompt=enhance_prompt,
+            max_tokens=200,
+            temperature=0.6
+        )
+
+        enhanced = response.get('content', '').strip()
+
+        return jsonify({
+            'success': True,
+            'enhanced_prompt': enhanced
+        })
+
+    except Exception as e:
+        safe_print(f"[API ERROR] Enhance image prompt: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

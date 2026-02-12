@@ -569,6 +569,25 @@ EMAIL_TEMPLATE_CONFIG = {
 
 
 # ─────────────────────────────────────────────
+# Editorial Rules (appended to all AI prompts)
+# ─────────────────────────────────────────────
+
+EDITORIAL_RULES_FOR_PROMPTS = (
+    "\n\nBriteCo Editorial Style Rules (follow these strictly):\n"
+    "- Use serial/Oxford commas\n"
+    "- Em dashes with no spaces (—)\n"
+    "- Numbers: spell out 1-9, numerals for 10+\n"
+    "- Percentages: use % symbol\n"
+    "- \"Lab-grown\" is always hyphenated\n"
+    "- \"BriteCo\" — capital B, capital C, one word\n"
+    "- Inclusive language: use partner/spouse, singular they\n"
+    "- No fear-based insurance language\n"
+    "- No B2B or industry jargon\n"
+    "- Consumer-friendly, conversational tone"
+)
+
+
+# ─────────────────────────────────────────────
 # AI Prompt Templates
 # ─────────────────────────────────────────────
 
@@ -589,7 +608,7 @@ AI_PROMPTS = {
         "rather—and treat yourself to something that sparkles as much as you do.'\n"
         "- 'PSL's may be over, but sparkle season is just getting started.'\n"
         "- 'New year, new satisfying piece of ice—who needs resolutions when you've got carats?'"
-    ),
+    ) + EDITORIAL_RULES_FOR_PROMPTS,
     "generate_whats_inside": (
         "Generate 4 'What's Inside' bullet items for a consumer jewelry newsletter. "
         "Each bullet should:\n"
@@ -603,7 +622,7 @@ AI_PROMPTS = {
         "- 🔥 Lab-grown vs. natural: the trend that's dividing the industry\n"
         "- 📖 Two must-read guides for protecting your bling\n"
         "- 💎 Can you guess the price of this high-profile rock?"
-    ),
+    ) + EDITORIAL_RULES_FOR_PROMPTS,
     "generate_video_description": (
         "Write a {max_words}-word description for a YouTube video to include "
         "in a consumer jewelry newsletter.\n\n"
@@ -618,7 +637,7 @@ AI_PROMPTS = {
         "- Do NOT include any label, prefix, or title like 'Featured Video:', "
         "'Video Description:', or 'News of the Month:' — return ONLY the "
         "description paragraph"
-    ),
+    ) + EDITORIAL_RULES_FOR_PROMPTS,
     "generate_guess_the_price_details": (
         "Generate details for a 'Guess the Price' jewelry newsletter section.\n\n"
         "Item: {title}\n"
@@ -635,7 +654,7 @@ AI_PROMPTS = {
         "(without revealing or hinting at the actual price).\n\n"
         "Return as JSON: {{\"material\": \"...\", \"found_in\": \"...\", "
         "\"where_it_lives\": \"...\", \"fun_fact\": \"...\", \"suggested_question\": \"...\"}}"
-    ),
+    ) + EDITORIAL_RULES_FOR_PROMPTS,
     "generate_quick_tip": (
         "Write a quick jewelry care or styling tip for the {month} issue of a "
         "consumer newsletter.\n\n"
@@ -654,7 +673,7 @@ AI_PROMPTS = {
         "Do not start with 'Did you know' or 'Pro tip' every time. "
         "Mix up how you open — try a question, a bold statement, a seasonal reference, "
         "or jump straight into the advice."
-    ),
+    ) + EDITORIAL_RULES_FOR_PROMPTS,
     "generate_subject_lines": (
         "Generate 5 email subject lines AND 5 matching preheader texts for a consumer jewelry newsletter.\n\n"
         "Month: {month} {year}\n"
@@ -671,39 +690,7 @@ AI_PROMPTS = {
         "- Tease content to encourage opening\n"
         "- Each preheader should pair with the corresponding subject line\n\n"
         "Return as JSON: {{\"subject_lines\": [\"...\", ...], \"preheaders\": [\"...\", ...]}}"
-    ),
-    "brand_check": (
-        "Review this consumer newsletter content against BriteCo editorial guidelines.\n\n"
-        "Check for:\n"
-        "1. Tone: Friendly, fun, engaging (not B2B or overly formal)\n"
-        "2. BriteCo spelling (capital B, capital C, one word)\n"
-        "3. Serial/Oxford comma usage\n"
-        "4. Em dashes with no spaces\n"
-        "5. Numbers: spell out 1-9, numerals for 10+\n"
-        "6. Percentages use % symbol\n"
-        "7. Lab-grown is hyphenated\n"
-        "8. Title case on section headers\n"
-        "9. Inclusive language (partner/spouse, singular they)\n"
-        "10. No fear-based insurance language\n"
-        "11. No B2B jargon\n"
-        "12. Word count limits respected\n\n"
-        "Content to review:\n{content}\n\n"
-        "Word count limits:\n"
-        "- Intro: 40 words\n"
-        "- Video descriptions: 80 words each\n"
-        "- Quick Tip: 60 words\n"
-        "- Guess the Price detail fields: 20 words each\n\n"
-        "Return a JSON object with:\n"
-        "- passed: boolean (true if no issues found)\n"
-        "- score: number (0-100)\n"
-        "- suggestions: array of objects, each with:\n"
-        "  - section: one of 'intro', 'news_of_month', 'trend_alert', 'guess_the_price', 'quick_tip'\n"
-        "  - original: the exact text that needs changing (copy it verbatim from the content)\n"
-        "  - suggested: the corrected replacement text\n"
-        "  - reason: brief explanation of why this change is needed\n"
-        "  - severity: 'error' or 'warning'\n\n"
-        "IMPORTANT: For each suggestion, 'original' must be an exact substring from the content so it can be found and highlighted."
-    ),
+    ) + EDITORIAL_RULES_FOR_PROMPTS,
 }
 
 

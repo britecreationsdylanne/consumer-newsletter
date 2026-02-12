@@ -350,15 +350,6 @@
         .gen-status.active { color: #2563eb; border-left-color: #2563eb; font-weight: 600; }
         .gen-status.done { color: #059669; border-left-color: #059669; }
 
-        /* Brand check */
-        .brand-suggestion {
-            background: #fffbeb; border: 1px solid #fbbf24; border-radius: 8px;
-            padding: 16px; margin-bottom: 12px;
-        }
-        .brand-suggestion .suggestion-text { font-size: 14px; color: #333; margin-bottom: 8px; }
-        .brand-suggestion .suggestion-actions { display: flex; gap: 8px; }
-        .brand-pass { background: #f0fdf4; border-color: #22c55e; }
-
         /* Export status */
         .export-actions {
             display: flex; gap: 12px; flex-wrap: wrap;
@@ -958,8 +949,11 @@
                         <div id="specialSectionImageResult" style="margin-top:8px;"></div>
                         <div id="specialSectionImagePromptWrap" style="display:none;margin-top:10px;">
                             <label style="font-size:13px;font-weight:600;">Image Prompt</label>
-                            <textarea id="specialSectionImagePrompt" rows="2" placeholder="Describe the image..." style="font-size:13px;"></textarea>
-                            <button class="btn-small" onclick="generateSpecialSectionImageFromPrompt()" style="margin-top:6px;">Generate</button>
+                            <textarea id="specialSectionImagePrompt" rows="2" placeholder="Describe the image in a few words — AI Enhance will turn it into a detailed prompt..." style="font-size:13px;"></textarea>
+                            <div style="display:flex;gap:6px;margin-top:6px;">
+                                <button class="btn-small" onclick="enhanceAndGenerateSpecialSectionImage()">AI Enhance &amp; Generate</button>
+                                <button class="btn-small" style="background:#6b7280;" onclick="generateSpecialSectionImageFromPrompt()">Generate As-Is</button>
+                            </div>
                         </div>
                     </div>
 
@@ -1118,32 +1112,8 @@
                 <div class="editable" contenteditable="true" id="fc-special"></div>
             </div>
 
-            <div class="buttons">
-                <button class="btn btn-secondary" onclick="goToStep(5)">&larr; Back</button>
-                <button class="btn btn-green" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
-                <button class="btn" onclick="goToStep(7)">Brand Check &rarr;</button>
-            </div>
-        </div>
-
-        <!-- ============ STEP 7: Brand Check (Loading) ============ -->
-        <div id="step7" class="step">
-            <div class="loading" id="brandCheckLoading">
-                <div class="spinner"></div>
-                <h3>Checking Brand Guidelines...</h3>
-                <p style="color: #666;">AI is reviewing content for tone, style, and brand consistency</p>
-            </div>
-        </div>
-
-        <!-- ============ STEP 7b: Brand Check Results + Export ============ -->
-        <div id="step7b" class="step">
-            <h2>Brand Guidelines Check</h2>
-            <p class="step-description">Your content has been reviewed for brand consistency.</p>
-
-            <!-- Brand Check Results -->
-            <div id="brandCheckResults" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;"></div>
-
             <!-- Export to Google Docs & Email Section -->
-            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px; margin-bottom: 20px; border: 2px solid #e5e7eb;">
                 <h3 style="margin: 0 0 10px 0; color: #008181;">Export to Google Docs &amp; Email</h3>
                 <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Hit export and once complete, you can auto email the exported link to your team.</p>
 
@@ -1188,7 +1158,7 @@
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="showStep('6b')">&larr; Back to Edit</button>
+                <button class="btn btn-secondary" onclick="goToStep(5)">&larr; Back</button>
                 <button class="btn" onclick="showStep('7d')">Final Copy &rarr;</button>
             </div>
         </div>
@@ -1196,7 +1166,7 @@
         <!-- ============ STEP 7d: Final Copy Review ============ -->
         <div id="step7d" class="step">
             <h2>Final Copy Review</h2>
-            <p class="step-description">Review your final copy after brand check edits. Make any last changes before moving to images.</p>
+            <p class="step-description">Apply any edits from the draft review before moving to images.</p>
 
             <div class="content-section">
                 <h3>Introduction</h3>
@@ -1285,7 +1255,7 @@
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="showStep('7b')">&larr; Back to Brand Check</button>
+                <button class="btn btn-secondary" onclick="showStep('6b')">&larr; Back to Review</button>
                 <button class="btn btn-green" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
                 <button class="btn" onclick="goToStep(8)">Continue to Images &rarr;</button>
             </div>
@@ -1374,7 +1344,7 @@
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" onclick="showStep('7b')">&larr; Back</button>
+                <button class="btn btn-secondary" onclick="showStep('7d')">&larr; Back</button>
                 <button class="btn btn-green" onclick="saveDraft(); showSaveConfirm(this);">Save Draft</button>
                 <button class="btn" onclick="showStep('8b')">Review Images &rarr;</button>
             </div>
@@ -1681,8 +1651,9 @@
     const stepLabels = {
         1: 'Select Month', 2: 'Select Videos', 3: 'Blog Articles',
         4: 'Guess the Price', '4b': 'Generating...', 5: 'Intro & Quick Tip', 6: 'Generating...',
-        '6b': 'Review Content', 7: 'Brand Check...', '7b': 'Brand Check & Export',
-        '7c': 'Generating Prompts...', '7d': 'Final Copy',
+        '6b': 'Review & Export',
+        '7d': 'Final Copy',
+        '7c': 'Generating Prompts...',
         8: 'Image Generation', '8b': 'Review Images', 9: 'Subject Line', 10: 'Preview',
         11: 'Push to Ontraport'
     };
@@ -1700,11 +1671,10 @@
     // NAVIGATION
     // ============================================================
     function goToStep(step) {
-        const savePoints = [5, '6b', '7b', 8, 9, 10, 11];
+        const savePoints = [5, '6b', 8, 9, 10, 11];
         if (selectedMonth && (savePoints.includes(step) || savePoints.includes(String(step)))) {
             saveDraft();
         }
-        if (step === 7) { runBrandCheck(); return; }
         if (step === 10) { try { populatePreview(); } catch(err) { console.error('Preview error:', err); } }
         if (step === 11) {
             // Auto-save any preview edits before going to Ontraport
@@ -1753,7 +1723,7 @@
     }
 
     function showStep(stepId) {
-        const savePoints = ['6b', '7b', '7d'];
+        const savePoints = ['6b', '7d'];
         if (selectedMonth && savePoints.includes(stepId)) saveDraft();
         currentStep = stepId;
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -1761,12 +1731,12 @@
         if (el) el.classList.add('active');
         updateProgressBar();
         window.scrollTo(0, 0);
-        if (stepId === '8b') populateImageReview();
         if (stepId === '7d') populateFinalCopy();
+        if (stepId === '8b') populateImageReview();
     }
 
     function updateProgressBar() {
-        const stepMap = { 1:1, 2:2, 3:3, 4:4, '4b':5, 5:5, 6:6, '6b':6, 7:7, '7b':7, '7d':7, '7c':8, 8:8, '8b':8, 9:9, 10:10, 11:11 };
+        const stepMap = { 1:1, 2:2, 3:3, 4:4, '4b':5, 5:5, 6:6, '6b':6, '7d':7, '7c':8, 8:8, '8b':8, 9:9, 10:10, 11:11 };
         const num = stepMap[currentStep] || 1;
         const pct = (num / totalSteps) * 100;
         document.getElementById('progressBar').style.width = pct + '%';
@@ -2861,36 +2831,8 @@
     }
 
     // ============================================================
-    // BRAND CHECK + EXPORT
+    // EXPORT
     // ============================================================
-    async function runBrandCheck() {
-        // Show step 7 loading screen directly (NOT via goToStep to avoid infinite recursion)
-        currentStep = 7;
-        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-        document.getElementById('step7').classList.add('active');
-        updateProgressBar();
-        window.scrollTo(0, 0);
-
-        try {
-            const contentForCheck = buildContentObject();
-            const resp = await fetch(`${API_BASE}/api/check-brand-guidelines`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: contentForCheck, month: selectedMonth })
-            });
-            const data = await resp.json();
-            if (data.success) {
-                renderBrandCheckResults(data.brand_check);
-            } else {
-                document.getElementById('brandCheckResults').innerHTML =
-                    '<div class="brand-suggestion brand-pass"><p>Brand check could not run: ' + (data.error || 'Unknown error') + '</p></div>';
-            }
-        } catch (e) {
-            document.getElementById('brandCheckResults').innerHTML =
-                '<div class="brand-suggestion brand-pass"><p>Brand check error: ' + e.message + '</p></div>';
-        }
-        showStep('7b');
-    }
-
     function getEditableContent(id) {
         const el = document.getElementById(id);
         return el ? el.innerHTML : '';
@@ -2942,157 +2884,11 @@
         };
     }
 
-    function renderBrandCheckResults(check) {
-        const container = document.getElementById('brandCheckResults');
-        if (!check) { container.innerHTML = '<div class="brand-suggestion brand-pass"><p>No issues found!</p></div>'; return; }
-
-        const suggestions = check.suggestions || check.issues || [];
-        let html = '';
-
-        if (suggestions.length === 0) {
-            html += '<div style="text-align: center; padding: 40px; background: #10b98120; border-radius: 8px; margin-bottom: 20px;">';
-            html += '<h2 style="margin: 0; color: #10b981; font-size: 32px;">Looks Great!</h2>';
-            html += '<p style="margin: 10px 0 0 0; color: #666;">No brand guideline issues found. Your content is ready to go!</p>';
-            html += '</div>';
-        } else {
-            html += '<div style="text-align: center; padding: 20px; background: #fef3c7; border-radius: 8px; margin-bottom: 20px;">';
-            html += '<h2 style="margin: 0; color: #f59e0b; font-size: 28px;">Suggested Changes</h2>';
-            html += '<p style="margin: 10px 0 0 0; color: #666;">Yellow highlights show what needs changing. Green highlights show suggested replacements.</p>';
-            html += '</div>';
-        }
-
-        // Get the full content from each section and apply highlights
-        const introContent = highlightContent(
-            document.getElementById('fc-intro')?.innerHTML || '',
-            suggestions.filter(s => s.section === 'intro' || s.section === 'introduction')
-        );
-        const newsContent = highlightContent(
-            document.getElementById('fc-news')?.innerHTML || '',
-            suggestions.filter(s => s.section === 'news_of_month' || s.section === 'news')
-        );
-        const trendContent = highlightContent(
-            document.getElementById('fc-trend')?.innerHTML || '',
-            suggestions.filter(s => s.section === 'trend_alert' || s.section === 'trend')
-        );
-        const gtpContent = highlightContent(
-            document.getElementById('fc-gtp')?.innerHTML || '',
-            suggestions.filter(s => s.section === 'guess_the_price' || s.section === 'gtp')
-        );
-        const tipContent = highlightContent(
-            document.getElementById('fc-tip')?.innerHTML || '',
-            suggestions.filter(s => s.section === 'quick_tip' || s.section === 'tip')
-        );
-        const specialContent = highlightContent(
-            document.getElementById('fc-special')?.innerHTML || '',
-            suggestions.filter(s => s.section === 'special_section' || s.section === 'special')
-        );
-
-        // Display each section with highlighted content
-        const sections = [
-            { label: 'Introduction', content: introContent },
-            { label: 'News of the Month', content: newsContent },
-            { label: 'Trend Alert', content: trendContent },
-            { label: 'Guess the Price', content: gtpContent },
-            { label: 'Quick Tip', content: tipContent }
-        ];
-        // Add special section if it has content
-        if (specialContent && specialContent.trim()) {
-            const ssTitle = getSpecialSectionData()?.title || 'Special Section';
-            sections.push({ label: ssTitle, content: specialContent });
-        }
-
-        sections.forEach(s => {
-            html += '<h3 style="margin: 25px 0 10px 0; color: #272d3f;">' + s.label + '</h3>';
-            html += '<div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #e5e7eb; font-size: 15px; line-height: 1.6; color: #333;">';
-            html += s.content || '<p style="color: #999;">No content</p>';
-            html += '</div>';
-        });
-
-        // Legend
-        if (suggestions.length > 0) {
-            html += '<div style="margin-top: 25px; padding: 15px; background: #f9fafb; border-radius: 8px; border: 2px dashed #e5e7eb;">';
-            html += '<h4 style="margin: 0 0 10px 0; color: #666;">Legend:</h4>';
-            html += '<div style="display: flex; gap: 20px; flex-wrap: wrap;">';
-            html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 20px; height: 20px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 4px;"></div><span style="font-size: 14px; color: #666;">Current text (needs changing)</span></div>';
-            html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 20px; height: 20px; background: #d1fae5; border: 2px solid #10b981; border-radius: 4px;"></div><span style="font-size: 14px; color: #666;">Suggested replacement</span></div>';
-            html += '</div>';
-            html += '<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">';
-            html += '<strong style="color: #f59e0b;">' + suggestions.length + ' issue' + (suggestions.length === 1 ? '' : 's') + ' found</strong> - Click Accept or Ignore on each highlighted change.';
-            html += '</div></div>';
-        }
-
-        container.innerHTML = html;
-    }
-
-    function highlightContent(content, suggestions) {
-        if (!suggestions || suggestions.length === 0) return content;
-        let highlighted = content;
-        suggestions.forEach((suggestion, index) => {
-            const original = suggestion.original || suggestion.issue || '';
-            const suggested = suggestion.suggested || suggestion.suggestion || '';
-            const reason = suggestion.reason || '';
-            const section = suggestion.section || '';
-            if (!original) return;
-            const suggestionId = 'suggestion-' + section + '-' + index;
-            const highlightedText = '<span id="' + suggestionId + '" style="position: relative; display: inline; margin: 4px 0;">'
-                + '<span style="background: #fef3c7; border-bottom: 3px solid #f59e0b; padding: 2px 4px; text-decoration: line-through;" title="' + escapeForAttribute(reason) + '">' + original + '</span>'
-                + '<span style="background: #d1fae5; border-bottom: 3px solid #10b981; padding: 2px 4px; margin-left: 4px; font-weight: 600;" title="' + escapeForAttribute(reason) + '">' + suggested + '</span>'
-                + '<span style="display: inline-block; margin-left: 8px;">'
-                + '<button onclick="acceptSuggestion(\'' + suggestionId + '\', \'' + escapeForAttribute(original) + '\', \'' + escapeForAttribute(suggested) + '\', \'' + section + '\')" style="background: #10b981; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-right: 4px;" title="Accept this change">Accept</button>'
-                + '<button onclick="ignoreSuggestion(\'' + suggestionId + '\')" style="background: #ef4444; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;" title="Ignore this suggestion">Ignore</button>'
-                + '</span></span>';
-            const regex = new RegExp(escapeRegExp(original), 'gi');
-            highlighted = highlighted.replace(regex, highlightedText);
-        });
-        return highlighted;
-    }
-
-    function escapeRegExp(string) {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
-    function escapeForAttribute(string) {
-        if (!string) return '';
-        return string.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    }
-
-    function acceptSuggestion(suggestionId, original, suggested, section) {
-        const sectionToContentBox = {
-            'intro': 'fc-intro', 'introduction': 'fc-intro',
-            'news_of_month': 'fc-news', 'news': 'fc-news',
-            'trend_alert': 'fc-trend', 'trend': 'fc-trend',
-            'guess_the_price': 'fc-gtp', 'gtp': 'fc-gtp',
-            'quick_tip': 'fc-tip', 'tip': 'fc-tip'
-        };
-        const contentBoxId = sectionToContentBox[section];
-        if (contentBoxId) {
-            const contentBox = document.getElementById(contentBoxId);
-            if (contentBox) {
-                contentBox.innerHTML = contentBox.innerHTML.replace(
-                    new RegExp(escapeRegExp(original), 'gi'), suggested
-                );
-            }
-        }
-        const suggestionEl = document.getElementById(suggestionId);
-        if (suggestionEl) {
-            suggestionEl.outerHTML = '<span style="background: #d1fae5; padding: 2px 4px; border-radius: 4px;">' + suggested + '</span>';
-        }
-    }
-
-    function ignoreSuggestion(suggestionId) {
-        const suggestionEl = document.getElementById(suggestionId);
-        if (suggestionEl) {
-            const originalSpan = suggestionEl.querySelector('span:first-child');
-            const originalText = originalSpan ? originalSpan.textContent : '';
-            suggestionEl.outerHTML = originalText;
-        }
-    }
-
     // ============================================================
     // FINAL COPY REVIEW (Step 7d)
     // ============================================================
     function populateFinalCopy() {
-        // Copy post-brand-check content from fc-* editables to final-* editables
+        // Copy content from fc-* editables to final-* editables
         const copyMap = {
             'fc-intro': 'final-intro',
             'fc-news': 'final-news',
@@ -3130,6 +2926,8 @@
         const el = document.getElementById(elId);
         const content = el.textContent || el.innerText;
         if (!content.trim()) { alert('No content to rewrite'); return; }
+        const btn = document.querySelector('[onclick*="aiRewriteFinalSection(\'' + section + '\')"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Rewriting...'; }
         el.style.opacity = '0.5';
         try {
             const resp = await fetch(`${API_BASE}/api/rewrite-content`, {
@@ -3138,8 +2936,10 @@
             });
             const data = await resp.json();
             if (data.success && data.rewritten) el.innerHTML = data.rewritten;
-        } catch (e) { console.error('Rewrite error:', e); }
+            else alert('Rewrite failed: ' + (data.error || 'Unknown error'));
+        } catch (e) { alert('Error rewriting: ' + e.message); }
         el.style.opacity = '1';
+        if (btn) { btn.disabled = false; btn.textContent = 'AI Rewrite'; }
     }
 
     // Helper: get text from final-copy editables if populated, else fall back to fc-* editables
@@ -3436,6 +3236,8 @@
         const title = document.getElementById('specialSectionTitle').value.trim();
         if (!title) { alert('Enter a title first'); return; }
         const bodyEl = document.getElementById('specialSectionBody');
+        const btn = document.querySelector('[onclick*="aiGenerateSpecialSection"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
         bodyEl.style.opacity = '0.5';
         try {
             const resp = await fetch(`${API_BASE}/api/generate-special-section`, {
@@ -3452,14 +3254,17 @@
             } else {
                 alert('Generation failed: ' + (data.error || 'Unknown error'));
             }
-        } catch (e) { alert('Error: ' + e.message); }
+        } catch (e) { alert('Error generating special section: ' + e.message); }
         bodyEl.style.opacity = '1';
+        if (btn) { btn.disabled = false; btn.textContent = 'AI Generate'; }
     }
 
     async function aiRewriteSpecialSection() {
         const bodyEl = document.getElementById('specialSectionBody');
         const content = bodyEl.value.trim();
-        if (!content) { alert('No content to rewrite'); return; }
+        if (!content) { alert('Write some text first, then click AI Rewrite'); return; }
+        const btn = document.querySelector('[onclick*="aiRewriteSpecialSection"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Rewriting...'; }
         bodyEl.style.opacity = '0.5';
         try {
             const resp = await fetch(`${API_BASE}/api/rewrite-content`, {
@@ -3470,9 +3275,12 @@
             if (data.success && data.rewritten) {
                 bodyEl.value = data.rewritten;
                 updateSpecialSectionWordCount();
+            } else {
+                alert('Rewrite failed: ' + (data.error || 'Unknown error'));
             }
-        } catch (e) { console.error('Rewrite error:', e); }
+        } catch (e) { alert('Error rewriting special section: ' + e.message); }
         bodyEl.style.opacity = '1';
+        if (btn) { btn.disabled = false; btn.textContent = 'AI Rewrite'; }
     }
 
     function updateSpecialSectionWordCount() {
@@ -3538,6 +3346,32 @@
             const title = document.getElementById('specialSectionTitle').value.trim();
             prompt.value = `Photorealistic jewelry lifestyle photography related to '${title || 'special announcement'}', elegant styling, soft natural lighting, stock photo quality`;
         }
+    }
+
+    async function enhanceAndGenerateSpecialSectionImage() {
+        const promptEl = document.getElementById('specialSectionImagePrompt');
+        const userPrompt = promptEl?.value?.trim();
+        if (!userPrompt) { alert('Enter an image description first'); return; }
+        const title = document.getElementById('specialSectionTitle').value.trim();
+        const resultDiv = document.getElementById('specialSectionImageResult');
+        resultDiv.innerHTML = '<div class="loading"><div class="spinner" style="width:30px;height:30px;"></div><p>Enhancing prompt...</p></div>';
+        try {
+            const enhanceResp = await fetch(`${API_BASE}/api/enhance-image-prompt`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: userPrompt, title })
+            });
+            const enhanceData = await enhanceResp.json();
+            if (enhanceData.success && enhanceData.enhanced_prompt) {
+                promptEl.value = enhanceData.enhanced_prompt;
+            } else {
+                resultDiv.innerHTML = '<p style="color:#dc3545;">Prompt enhancement failed: ' + (enhanceData.error || '') + '</p>';
+                return;
+            }
+        } catch (e) {
+            resultDiv.innerHTML = '<p style="color:#dc3545;">Error enhancing prompt: ' + e.message + '</p>';
+            return;
+        }
+        await generateSpecialSectionImageFromPrompt();
     }
 
     async function generateSpecialSectionImageFromPrompt() {
@@ -3815,7 +3649,7 @@
 
         // Build special section HTML if enabled
         const ss = getSpecialSectionData();
-        // Use edited body from final copy or review step if available
+        // Use edited body from review step if available
         if (ss) {
             const editedSSBody = getFinalText('final-special', 'fc-special');
             if (editedSSBody && editedSSBody.trim()) ss.body = editedSSBody.trim();
