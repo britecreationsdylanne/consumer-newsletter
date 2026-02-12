@@ -7,6 +7,7 @@ import os
 import sys
 import json
 import re
+import random
 import base64
 import secrets
 from datetime import datetime
@@ -725,8 +726,12 @@ def generate_quick_tip():
         month = data.get('month', datetime.now().strftime('%B')).lower()
         season = MONTH_TO_SEASON.get(month, 'winter')
 
-        themes = SECTION_SPECS['quick_tip']['seasonal_themes'].get(month, ['jewelry care tips'])
+        all_themes = SECTION_SPECS['quick_tip']['seasonal_themes'].get(month, ['jewelry care tips'])
+        themes = random.sample(all_themes, min(3, len(all_themes)))
         themes_str = ', '.join(themes)
+
+        angles = SECTION_SPECS['quick_tip'].get('tip_angles', ['a practical how-to'])
+        angle = random.choice(angles)
 
         if not claude_client:
             return jsonify({'success': False, 'error': 'Claude not available'}), 503
@@ -734,13 +739,15 @@ def generate_quick_tip():
         prompt = AI_PROMPTS['generate_quick_tip'].format(
             month=month.title(),
             season=season,
-            themes=themes_str
+            themes=themes_str,
+            angle=angle
         )
 
+        temperature = round(random.uniform(0.7, 0.85), 2)
         response = claude_client.generate_content(
             prompt=prompt,
             max_tokens=200,
-            temperature=0.7
+            temperature=temperature
         )
 
         tip_text = response.get('content', '').strip()
@@ -1069,14 +1076,19 @@ Return ONLY the question text."""
         else:
             # Auto-generate if not provided
             season = MONTH_TO_SEASON.get(month.lower(), 'winter')
-            themes = SECTION_SPECS['quick_tip']['seasonal_themes'].get(month.lower(), ['jewelry care'])
+            all_themes = SECTION_SPECS['quick_tip']['seasonal_themes'].get(month.lower(), ['jewelry care'])
+            themes = random.sample(all_themes, min(3, len(all_themes)))
+            angles = SECTION_SPECS['quick_tip'].get('tip_angles', ['a practical how-to'])
+            angle = random.choice(angles)
             try:
                 prompt = AI_PROMPTS['generate_quick_tip'].format(
                     month=month,
                     season=season,
-                    themes=', '.join(themes)
+                    themes=', '.join(themes),
+                    angle=angle
                 )
-                response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=0.7)
+                temperature = round(random.uniform(0.7, 0.85), 2)
+                response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=temperature)
                 generated['quick_tip'] = strip_ai_title(response.get('content', '').strip())
             except:
                 generated['quick_tip'] = f"Keep your jewelry sparkling this {season}!"

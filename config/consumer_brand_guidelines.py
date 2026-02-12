@@ -389,19 +389,29 @@ SECTION_SPECS = {
             "Keep it concise — this is a quick tip, not an article",
         ],
         "seasonal_themes": {
-            "january": ["New Year jewelry care reset", "winter storage tips", "post-holiday cleaning"],
-            "february": ["Valentine's Day gift care", "engagement ring maintenance", "winter skin and jewelry"],
-            "march": ["spring cleaning for jewelry", "switching seasonal pieces", "preparing for spring events"],
-            "april": ["spring event jewelry", "rain and jewelry care", "gemstone spotlight"],
-            "may": ["wedding season prep", "Mother's Day jewelry care", "outdoor event tips"],
-            "june": ["summer jewelry care", "beach and pool safety", "wedding jewelry tips"],
-            "july": ["travel with jewelry", "heat and humidity protection", "summer styling"],
-            "august": ["back-to-school jewelry", "late summer care", "jewelry organization"],
-            "september": ["fall transition pieces", "Labor Day to layering", "appraisal season reminder"],
-            "october": ["fall jewelry trends", "costume vs. fine jewelry", "Halloween sparkle"],
-            "november": ["holiday shopping prep", "Black Friday jewelry tips", "gift guide insights"],
-            "december": ["holiday party jewelry", "year-end appraisals", "winter protection tips"],
+            "january": ["New Year jewelry care reset", "winter storage tips", "post-holiday cleaning", "resolutions for jewelry maintenance", "cold-weather metal care", "refreshing your everyday stack"],
+            "february": ["Valentine's Day gift care", "engagement ring maintenance", "winter skin and jewelry", "caring for sentimental pieces", "gemstone cleaning basics", "date-night jewelry prep"],
+            "march": ["spring cleaning for jewelry", "switching seasonal pieces", "preparing for spring events", "organizing your jewelry box", "polishing silver after winter", "lightweight layering for spring"],
+            "april": ["spring event jewelry", "rain and jewelry care", "gemstone spotlight", "packing jewelry for spring travel", "allergy-friendly jewelry tips", "refreshing tarnished favorites"],
+            "may": ["wedding season prep", "Mother's Day jewelry care", "outdoor event tips", "styling jewelry for graduation", "protecting pieces from sunscreen", "choosing everyday vs. occasion pieces"],
+            "june": ["summer jewelry care", "beach and pool safety", "wedding jewelry tips", "humidity and tarnish prevention", "travel jewelry essentials", "lightweight summer styling"],
+            "july": ["travel with jewelry", "heat and humidity protection", "summer styling", "vacation jewelry do's and don'ts", "cleaning jewelry after swimming", "festival and outdoor event care"],
+            "august": ["back-to-school jewelry", "late summer care", "jewelry organization", "end-of-summer deep clean", "transitioning from summer to fall pieces", "storing seasonal jewelry properly"],
+            "september": ["fall transition pieces", "Labor Day to layering", "appraisal season reminder", "back-to-routine jewelry care", "fall color gemstone pairings", "caring for vintage or inherited pieces"],
+            "october": ["fall jewelry trends", "costume vs. fine jewelry", "Halloween sparkle", "protecting jewelry in cooler weather", "mixing metals for fall outfits", "jewelry safety tips for events"],
+            "november": ["holiday shopping prep", "Black Friday jewelry tips", "gift guide insights", "insuring new purchases", "caring for heirloom holiday pieces", "how to spot quality when gift shopping"],
+            "december": ["holiday party jewelry", "year-end appraisals", "winter protection tips", "safe storage during holiday travel", "New Year's Eve statement pieces", "caring for jewelry in dry heated air"],
         },
+        "tip_angles": [
+            "a practical how-to readers can follow step by step",
+            "a common mistake to avoid (myth-busting tone)",
+            "a surprising 'did you know' fact paired with advice",
+            "a pro jeweler's insider secret",
+            "a quick seasonal reminder framed around an upcoming event",
+            "a simple habit or routine readers can adopt today",
+            "a before-and-after scenario showing the difference good care makes",
+            "a playful comparison or analogy to make the advice memorable",
+        ],
     },
     "insurance_cta": {
         "description": "Static insurance call-to-action section",
@@ -630,7 +640,8 @@ AI_PROMPTS = {
         "Write a quick jewelry care or styling tip for the {month} issue of a "
         "consumer newsletter.\n\n"
         "Season: {season}\n"
-        "Suggested themes: {themes}\n\n"
+        "Suggested themes (pick ONE as your focus): {themes}\n"
+        "Angle: Frame this tip as {angle}\n\n"
         "Guidelines:\n"
         "- Practical, actionable advice readers can use immediately\n"
         "- Tied to the current season or upcoming events\n"
@@ -638,7 +649,11 @@ AI_PROMPTS = {
         "- 1-2 short paragraphs\n"
         "- Max 60 words\n"
         "- Do not use bullet points — flowing prose only\n"
-        "- Do NOT include a title, heading, or label — return ONLY the tip text"
+        "- Do NOT include a title, heading, or label — return ONLY the tip text\n"
+        "- IMPORTANT: Vary your sentence structure and opening words. "
+        "Do not start with 'Did you know' or 'Pro tip' every time. "
+        "Mix up how you open — try a question, a bold statement, a seasonal reference, "
+        "or jump straight into the advice."
     ),
     "generate_subject_lines": (
         "Generate 5 email subject lines AND 5 matching preheader texts for a consumer jewelry newsletter.\n\n"
