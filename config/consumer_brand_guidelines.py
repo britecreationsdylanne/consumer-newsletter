@@ -272,10 +272,10 @@ SECTION_SPECS = {
             "Should feel like a clever friend texting you",
         ],
         "example_openers": [
-            "This holiday season, take a page out of Liz Taylor's book—or jewelry box, rather—and treat yourself to something that sparkles as much as you do.",
-            "PSL's may be over, but sparkle season is just getting started.",
-            "From Louvre drama to PSL-worthy sparkle, this month is serving looks—and we're here for all of them.",
-            "New year, new satisfying piece of ice—who needs resolutions when you've got carats?",
+            "Here's to a year that really shines! (No extra polishing required.)",
+            "If anyone asks what's on your wish list this year… feel free to subtly point at your neck, ears, and wrist.",
+            "Not saying jewelry solves everything… but have you ever seen someone sad while opening a ring box?",
+            "A wedding budget is like a diamond: It starts under pressure and keeps getting cut.",
         ],
     },
     "whats_inside": {
@@ -288,12 +288,14 @@ SECTION_SPECS = {
             "Build curiosity — don't give everything away",
         ],
         "example_items": [
-            "💍 The viral video jewelers don't want you to see",
-            "🔥 Lab-grown vs. natural: the trend that's dividing the industry",
-            "📖 Two must-read guides for protecting your bling",
-            "💎 Can you guess the price of this high-profile rock?",
-            "✨ A quick tip to keep your sparkle game strong all winter",
-            "🐾 How to include pets in your big day (yes, really)",
+            "How Jewelry Is Bringing Relief to the LA Wildfire Victims",
+            "The Average Cost of an Engagement Ring in 2026",
+            "Is Your Cartier Watch the Real Deal?",
+            "Suspects Charged in Louvre Heist 💰",
+            "Pumpkin Spice Jewelry 🎃",
+            "Should T. Swift Insure Her Ring? 💍",
+            "80% of Americans Buy Fine Jewelry ✨",
+            "$1 Million Diamond Gown 💎",
         ],
     },
     "news_of_month": {
@@ -588,6 +590,64 @@ EDITORIAL_RULES_FOR_PROMPTS = (
 
 
 # ─────────────────────────────────────────────
+# Banned Words (AI-sounding phrases to avoid)
+# ─────────────────────────────────────────────
+
+BANNED_WORDS = [
+    "landscape",
+    "navigate",
+    "leverage",
+    "robust",
+    "comprehensive",
+    "cutting-edge",
+    "innovative",
+    "in today's ever-evolving",
+    "in today's evolving",
+    "game-changer",
+    "elevate",
+    "delve",
+    "realm",
+    "fostering",
+    "holistic",
+    "synergy",
+    "paradigm",
+    "streamline",
+    "spearhead",
+    "unprecedented",
+    "interesting development",
+    "unique situation",
+    "various factors",
+    "excited to announce",
+    "It is important to",
+]
+
+
+# ─────────────────────────────────────────────
+# System Prompt (passed as system= to Claude API)
+# ─────────────────────────────────────────────
+
+CONSUMER_SYSTEM_PROMPT = (
+    "You are a copywriter for BriteCo's consumer jewelry newsletter. "
+    "Your audience is jewelry lovers—engaged couples, collectors, fashion-forward individuals, "
+    "and anyone who treasures beautiful jewelry. NOT industry professionals.\n\n"
+    "VOICE & TONE:\n"
+    f"- Tone: {BRAND_VOICE['tone']}\n"
+    f"- Style: {BRAND_VOICE['style']}\n"
+    f"- Perspective: {BRAND_VOICE['perspective']}\n\n"
+    "WIT GUIDANCE:\n"
+    + "\n".join(f"- {w}" for w in BRAND_VOICE['wit_guidance'])
+    + "\n\n"
+    "AVOID:\n"
+    + "\n".join(f"- {a}" for a in BRAND_VOICE['avoid'])
+    + "\n\n"
+    "BANNED WORDS/PHRASES (never use these—they sound like AI-generated copy):\n"
+    + ", ".join(BANNED_WORDS)
+    + "\n"
+    + EDITORIAL_RULES_FOR_PROMPTS
+)
+
+
+# ─────────────────────────────────────────────
 # AI Prompt Templates
 # ─────────────────────────────────────────────
 
@@ -604,11 +664,13 @@ AI_PROMPTS = {
         "return ONLY the intro text itself\n\n"
         "Content highlights this month: {highlights}\n\n"
         "Examples of past intros:\n"
-        "- 'This holiday season, take a page out of Liz Taylor's book—or jewelry box, "
-        "rather—and treat yourself to something that sparkles as much as you do.'\n"
-        "- 'PSL's may be over, but sparkle season is just getting started.'\n"
-        "- 'New year, new satisfying piece of ice—who needs resolutions when you've got carats?'"
-    ) + EDITORIAL_RULES_FOR_PROMPTS,
+        "- 'Here's to a year that really shines! (No extra polishing required.)'\n"
+        "- 'If anyone asks what's on your wish list this year… feel free to subtly point "
+        "at your neck, ears, and wrist.'\n"
+        "- 'Not saying jewelry solves everything… but have you ever seen someone sad while "
+        "opening a ring box?'\n"
+        "- 'A wedding budget is like a diamond: It starts under pressure and keeps getting cut.'"
+    ),
     "generate_whats_inside": (
         "Generate 4 'What's Inside' bullet items for a consumer jewelry newsletter. "
         "Each bullet should:\n"
@@ -617,12 +679,16 @@ AI_PROMPTS = {
         "- Be one short, catchy line\n"
         "- Build curiosity\n\n"
         "Sections to tease:\n{sections}\n\n"
-        "Examples:\n"
-        "- 💍 The viral video jewelers don't want you to see\n"
-        "- 🔥 Lab-grown vs. natural: the trend that's dividing the industry\n"
-        "- 📖 Two must-read guides for protecting your bling\n"
-        "- 💎 Can you guess the price of this high-profile rock?"
-    ) + EDITORIAL_RULES_FOR_PROMPTS,
+        "Examples from past issues:\n"
+        "- How Jewelry Is Bringing Relief to the LA Wildfire Victims\n"
+        "- The Average Cost of an Engagement Ring in 2026\n"
+        "- Is Your Cartier Watch the Real Deal?\n"
+        "- Custom Jewelry Made For You!\n"
+        "- Suspects Charged in Louvre Heist 💰\n"
+        "- Pumpkin Spice Jewelry 🎃\n"
+        "- Should T. Swift Insure Her Ring? 💍\n"
+        "- 80% of Americans Buy Fine Jewelry ✨"
+    ),
     "generate_video_description": (
         "Write a {max_words}-word description for a YouTube video to include "
         "in a consumer jewelry newsletter.\n\n"
@@ -636,8 +702,23 @@ AI_PROMPTS = {
         "- Max {max_words} words\n"
         "- Do NOT include any label, prefix, or title like 'Featured Video:', "
         "'Video Description:', or 'News of the Month:' — return ONLY the "
-        "description paragraph"
-    ) + EDITORIAL_RULES_FOR_PROMPTS,
+        "description paragraph\n\n"
+        "Examples of past video descriptions (match this voice and length):\n"
+        "- 'This month marks the 1-year anniversary of the Los Angeles Wildfires, an event "
+        "that destroyed countless communities and threw the City of Angels into the throes "
+        "of chaos. To help in the effort to rebuild the area, actress Olivia Wilde has "
+        "teamed up with Starling Jewelry to release a pendant that will contribute proceeds "
+        "directly to support groups around the city.'\n"
+        "- 'At least four suspects have now been charged and several others arrested over "
+        "the Louvre heist, where thieves in construction gear stole eight pieces of the "
+        "French Crown Jewels worth around $100 million in under eight minutes. Investigators "
+        "are still hunting additional accomplices, and none of the stolen jewels have been "
+        "recovered so far.'\n"
+        "- 'Designer Galia Lahav just unveiled a $1 million wedding gown, created in "
+        "partnership with Leibish, that features a detachable 30-carat ruby pin encrusted "
+        "with diamonds. The couture piece blends antique lace, taffeta, and fine jewelry to "
+        "redefine what \"something new\" means.'"
+    ),
     "generate_guess_the_price_details": (
         "Generate details for a 'Guess the Price' jewelry newsletter section.\n\n"
         "Item: {title}\n"
@@ -653,8 +734,22 @@ AI_PROMPTS = {
         "Also suggest a teasing question that builds suspense about the price "
         "(without revealing or hinting at the actual price).\n\n"
         "Return as JSON: {{\"material\": \"...\", \"found_in\": \"...\", "
-        "\"where_it_lives\": \"...\", \"fun_fact\": \"...\", \"suggested_question\": \"...\"}}"
-    ) + EDITORIAL_RULES_FOR_PROMPTS,
+        "\"where_it_lives\": \"...\", \"fun_fact\": \"...\", \"suggested_question\": \"...\"}}\n\n"
+        "Example outputs (match this voice and specificity):\n"
+        "{{\"material\": \"3,563-carat purple Star Sapphire\", "
+        "\"found_in\": \"A gem pit near the remote town of Rathnapura, Sri Lanka\", "
+        "\"where_it_lives\": \"Currently owned by an unnamed team who has remained anonymous "
+        "for security reasons\", "
+        "\"fun_fact\": \"Star Sapphires are named for the asterism effect caused by needle-sized "
+        "inclusions of the mineral rutile\", "
+        "\"suggested_question\": \"How much do you think this beautiful Star Sapphire is worth?\"}}\n\n"
+        "{{\"material\": \"Natural fancy vivid blue diamond, 9.51 carats, internally flawless\", "
+        "\"found_in\": \"Mined in South Africa (like most famous blue diamonds)\", "
+        "\"where_it_lives\": \"Now in a private collection after selling at auction\", "
+        "\"fun_fact\": \"It once belonged to American style icon Bunny Mellon and previously set "
+        "auction records in 2014—so this diamond has had two blockbuster careers\", "
+        "\"suggested_question\": \"Can you guess how much this stunning diamond is worth?\"}}"
+    ),
     "generate_quick_tip": (
         "Write a quick jewelry care or styling tip for the {month} issue of a "
         "consumer newsletter.\n\n"
@@ -672,8 +767,20 @@ AI_PROMPTS = {
         "- IMPORTANT: Vary your sentence structure and opening words. "
         "Do not start with 'Did you know' or 'Pro tip' every time. "
         "Mix up how you open — try a question, a bold statement, a seasonal reference, "
-        "or jump straight into the advice."
-    ) + EDITORIAL_RULES_FOR_PROMPTS,
+        "or jump straight into the advice.\n\n"
+        "Examples of past quick tips (match this voice and length):\n"
+        "- 'Give your ring a yearly \"spa day.\" A professional cleaning and prong check "
+        "keeps it sparkling and helps catch loose stones early, before one makes a surprise "
+        "exit during date night or on the dance floor.'\n"
+        "- 'If you're proposing during a holiday trip, do a \"pre-travel check\" on the ring. "
+        "Make sure it's insured, snap a few clear photos, and carry it in your personal bag "
+        "(never in your checked luggage). Between airports, parties, and winter gloves, it's "
+        "the easiest season for rings to go on accidental adventures.'\n"
+        "- 'Before holiday plans take over, spend 5 minutes giving your jewelry a reset. "
+        "Gently clean your rings and earrings with a soft brush and mild soap, then snap a "
+        "photo of each piece. It makes your sparkle pop and gives you an easy reference for "
+        "wishlists, resizing, or future upgrades.'"
+    ),
     "generate_subject_lines": (
         "Generate 5 email subject lines AND 5 matching preheader texts for a consumer jewelry newsletter.\n\n"
         "Month: {month} {year}\n"
@@ -689,8 +796,15 @@ AI_PROMPTS = {
         "- Complement (don't repeat) the subject line\n"
         "- Tease content to encourage opening\n"
         "- Each preheader should pair with the corresponding subject line\n\n"
-        "Return as JSON: {{\"subject_lines\": [\"...\", ...], \"preheaders\": [\"...\", ...]}}"
-    ) + EDITORIAL_RULES_FOR_PROMPTS,
+        "Return as JSON: {{\"subject_lines\": [\"...\", ...], \"preheaders\": [\"...\", ...]}}\n\n"
+        "Examples of past subject lines + preheaders (match this style):\n"
+        "Subject: \"Your December Sparkle Report Is Here\" | Preheader: \"Holiday party "
+        "jewelry, year-end appraisals, and a gemstone guessing game\"\n"
+        "Subject: \"Diamonds, Drama, and a Price Tag That'll Stun You\" | Preheader: "
+        "\"Plus: the viral video jewelers are talking about\"\n"
+        "Subject: \"PSL Season Is Over. Sparkle Season Is Not.\" | Preheader: "
+        "\"Fall trends, ring care tips, and one very famous brooch\""
+    ),
 }
 
 

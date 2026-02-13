@@ -63,7 +63,7 @@ from config.consumer_brand_guidelines import (
     AI_PROMPTS,
     MONTH_TO_SEASON,
     EDITORIAL_STYLE_GUIDE,
-    EDITORIAL_RULES_FOR_PROMPTS,
+    CONSUMER_SYSTEM_PROMPT,
 )
 from config.model_config import get_model_for_task
 
@@ -543,6 +543,7 @@ Return ONLY a JSON array of 3 strings, nothing else:
 
                 expansion_resp = claude_client.generate_content(
                     prompt=expansion_prompt,
+                    system_prompt="You are a jewelry research assistant. Generate diverse search queries to find specific, notable jewelry pieces.",
                     max_tokens=200,
                     temperature=0.8
                 )
@@ -646,8 +647,9 @@ def gtp_generate_details():
 
         response = claude_client.generate_content(
             prompt=prompt,
+            system_prompt=CONSUMER_SYSTEM_PROMPT,
             max_tokens=400,
-            temperature=0.7 if tone else 0.5
+            temperature=0.7 if tone else 0.6
         )
 
         details = parse_json_from_llm(response.get('content', '{}'))
@@ -688,11 +690,11 @@ Requirements:
 - 2-4 sentences, max 80 words
 - Consumer-friendly, fun, conversational tone
 - No headings, labels, or prefixes — return ONLY the body text
-- Do not start with the title or repeat it
-{EDITORIAL_RULES_FOR_PROMPTS}"""
+- Do not start with the title or repeat it"""
 
         response = claude_client.generate_content(
             prompt=prompt,
+            system_prompt=CONSUMER_SYSTEM_PROMPT,
             max_tokens=250,
             temperature=0.7
         )
@@ -746,6 +748,7 @@ def generate_quick_tip():
         temperature = round(random.uniform(0.7, 0.85), 2)
         response = claude_client.generate_content(
             prompt=prompt,
+            system_prompt=CONSUMER_SYSTEM_PROMPT,
             max_tokens=200,
             temperature=temperature
         )
@@ -821,6 +824,7 @@ Return ONLY the rewritten text, nothing else."""
 
         response = claude_client.generate_content(
             prompt=prompt,
+            system_prompt=CONSUMER_SYSTEM_PROMPT,
             max_tokens=300,
             temperature=0.7
         )
@@ -857,7 +861,7 @@ def generate_intro():
             highlights=highlights_str
         )
 
-        response = claude_client.generate_content(prompt=prompt, max_tokens=150, temperature=0.8)
+        response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=150, temperature=0.8)
         intro_text = response.get('content', '').strip()
 
         # Clean AI prefixes - catch patterns like "June Newsletter Intro:", "Newsletter Introduction:", etc.
@@ -918,7 +922,7 @@ def generate_newsletter():
                     month=month,
                     highlights='; '.join(highlights) if highlights else 'jewelry news and trends'
                 )
-                response = claude_client.generate_content(prompt=prompt, max_tokens=150, temperature=0.8)
+                response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=150, temperature=0.8)
                 generated['intro'] = response.get('content', '').strip()
             except Exception as e:
                 safe_print(f"  Error generating intro: {e}")
@@ -954,7 +958,7 @@ def generate_newsletter():
             prompt = AI_PROMPTS['generate_whats_inside'].format(
                 sections='\n'.join(f"- {s}" for s in sections_to_tease)
             )
-            response = claude_client.generate_content(prompt=prompt, max_tokens=300, temperature=0.8)
+            response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=300, temperature=0.8)
             content = response.get('content', '')
 
             # Parse bullet items from response
@@ -984,7 +988,7 @@ def generate_newsletter():
                     title=news_of_month.get('title', ''),
                     description=news_of_month.get('description', '')[:500]
                 )
-                response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=0.6)
+                response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=200, temperature=0.7)
                 nom_desc = response.get('content', '').strip()
                 # Strip AI-generated labels like "Featured Video:", "Video Description:", etc.
                 nom_desc = re.sub(r'^(featured\s+video|video\s+description|news\s+of\s+the\s+month)[\s:;\-–—]+', '', nom_desc, flags=re.IGNORECASE).strip()
@@ -1011,7 +1015,7 @@ def generate_newsletter():
                     title=trend_alert.get('title', ''),
                     description=trend_alert.get('description', '')[:500]
                 )
-                response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=0.6)
+                response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=200, temperature=0.7)
                 ta_desc = response.get('content', '').strip()
                 # Strip AI-generated labels
                 ta_desc = re.sub(r'^(featured\s+video|video\s+description|trend\s+alert)[\s:;\-–—]+', '', ta_desc, flags=re.IGNORECASE).strip()
@@ -1054,7 +1058,7 @@ Examples: "Think you know what this rare gem is worth?", "Can you guess the pric
 
 Return ONLY the question text."""
 
-                response = claude_client.generate_content(prompt=prompt, max_tokens=60, temperature=0.7)
+                response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=60, temperature=0.7)
                 gtp_question = response.get('content', 'Think you know the price?').strip().strip('"')
             except:
                 gtp_question = "Think you know the price?"
@@ -1088,7 +1092,7 @@ Return ONLY the question text."""
                     angle=angle
                 )
                 temperature = round(random.uniform(0.7, 0.85), 2)
-                response = claude_client.generate_content(prompt=prompt, max_tokens=200, temperature=temperature)
+                response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=200, temperature=temperature)
                 generated['quick_tip'] = strip_ai_title(response.get('content', '').strip())
             except:
                 generated['quick_tip'] = f"Keep your jewelry sparkling this {season}!"
@@ -1160,6 +1164,7 @@ Output ONLY the image generation prompt, nothing else."""
             try:
                 response = claude_client.generate_content(
                     prompt=prompt_request,
+                    system_prompt="You are an expert image prompt engineer specializing in luxury jewelry photography. Create vivid, specific prompts for AI image generation.",
                     max_tokens=150,
                     temperature=0.5
                 )
@@ -1314,6 +1319,7 @@ Requirements for the enhanced prompt:
 
         response = claude_client.generate_content(
             prompt=enhance_prompt,
+            system_prompt="You are an expert image prompt engineer. Transform rough descriptions into detailed, optimized prompts for AI image generation of luxury jewelry photography.",
             max_tokens=200,
             temperature=0.6
         )
@@ -1396,6 +1402,7 @@ def generate_subject_lines():
 
         response = claude_client.generate_content(
             prompt=prompt,
+            system_prompt=CONSUMER_SYSTEM_PROMPT,
             max_tokens=500,
             temperature=0.8
         )
