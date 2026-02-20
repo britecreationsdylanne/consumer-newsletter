@@ -796,9 +796,9 @@ def rewrite_content():
         }
 
         word_limits = {
-            'intro': 40,
+            'intro': 20,
             'video_description': 80,
-            'quick_tip': 60,
+            'quick_tip': 40,
             'guess_the_price_question': 30,
             'special_section': 80,
         }
@@ -861,7 +861,7 @@ def generate_intro():
             highlights=highlights_str
         )
 
-        response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=150, temperature=0.8)
+        response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=80, temperature=0.9)
         intro_text = response.get('content', '').strip()
 
         # Clean AI prefixes - catch patterns like "June Newsletter Intro:", "Newsletter Introduction:", etc.

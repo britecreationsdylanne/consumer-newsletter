@@ -864,13 +864,13 @@
             <p class="step-description">Write the newsletter intro and a seasonal jewelry care tip</p>
 
             <div class="form-group">
-                <label>Newsletter Intro</label>
-                <textarea id="introContent" rows="4" placeholder="Write a fun, engaging opening for this month's newsletter... or click AI Generate below"></textarea>
+                <label>Newsletter Intro <span style="font-size:12px;color:#999;font-weight:400;">(short witty pun)</span></label>
+                <textarea id="introContent" rows="2" placeholder="A short, witty pun to kick off the newsletter... or click Generate Pun below"></textarea>
                 <div class="textarea-actions">
                     <span class="word-count" id="introWordCount">0 words</span>
                     <div style="display:flex;gap:8px;">
-                        <button class="btn-small" onclick="aiGenerateIntro()">AI Generate</button>
-                        <button class="btn-small" style="background:#6b7280;" onclick="aiRewriteIntro()">AI Rewrite</button>
+                        <button class="btn-small" onclick="aiGenerateIntro()">Generate Pun</button>
+                        <button class="btn-small" style="background:#6b7280;" onclick="aiGenerateIntro()">Regenerate</button>
                     </div>
                 </div>
             </div>
