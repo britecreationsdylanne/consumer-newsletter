@@ -97,7 +97,7 @@ TEAM_MEMBERS = [
 # Google Drive & GCS
 # ─────────────────────────────────────────────
 
-GOOGLE_DRIVE_FOLDER_ID = "1HafFd1vuelwaHFDlH-fS1dpTIucAGmdg"
+GOOGLE_DRIVE_FOLDER_ID = "1mm_s366_W61-XCxDJm_rafWJQ4rHNI4Q"
 
 GCS_CONFIG = {
     "drafts_bucket": "consumer-drafts",
