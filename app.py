@@ -99,6 +99,10 @@ google = oauth.register(
 
 ALLOWED_DOMAIN = 'brite.co'
 
+CLICKUP_API_TOKEN = os.environ.get('CLICKUP_API_TOKEN') or os.environ.get('_CLICKUP_API_TOKEN')
+CLICKUP_LIST_ID = os.environ.get('CLICKUP_LIST_ID') or os.environ.get('_CLICKUP_LIST_ID')
+CLICKUP_LINK_FIELD_ID = 'e4129c72-f566-490d-a939-9aff1726fabc'
+
 def get_current_user():
     """Get current authenticated user from session"""
     return session.get('user')
@@ -2496,6 +2500,73 @@ def upload_images_to_gcs():
 
     except Exception as e:
         safe_print(f"[GCS UPLOAD] Error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# ROUTES - CLICKUP INTEGRATION
+# ============================================================================
+
+@app.route('/api/clickup/search-tasks', methods=['GET'])
+def clickup_search_tasks():
+    """Search ClickUp for Consumer Newsletter tasks with status 'to do'"""
+    try:
+        if not CLICKUP_API_TOKEN or not CLICKUP_LIST_ID:
+            return jsonify({'success': False, 'error': 'ClickUp not configured'}), 503
+
+        import requests as req
+
+        resp = req.get(
+            f'https://api.clickup.com/api/v2/list/{CLICKUP_LIST_ID}/task',
+            headers={'Authorization': CLICKUP_API_TOKEN},
+            params={'subtasks': 'false', 'statuses[]': 'to do'}
+        )
+        resp.raise_for_status()
+        all_tasks = resp.json().get('tasks', [])
+
+        filtered = [
+            {'id': t['id'], 'name': t['name']}
+            for t in all_tasks
+            if t.get('name', '').lower().startswith('consumer newsletter')
+        ]
+
+        return jsonify({'success': True, 'tasks': filtered})
+
+    except Exception as e:
+        safe_print(f"[CLICKUP SEARCH] Error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/clickup/attach-draft', methods=['POST'])
+def clickup_attach_draft():
+    """Attach a Google Doc URL to a ClickUp task's Link custom field"""
+    try:
+        if not CLICKUP_API_TOKEN:
+            return jsonify({'success': False, 'error': 'ClickUp not configured'}), 503
+
+        data = request.json
+        task_id = data.get('task_id')
+        doc_url = data.get('doc_url')
+
+        if not task_id or not doc_url:
+            return jsonify({'success': False, 'error': 'task_id and doc_url required'}), 400
+
+        import requests as req
+
+        resp = req.post(
+            f'https://api.clickup.com/api/v2/task/{task_id}/field/{CLICKUP_LINK_FIELD_ID}',
+            headers={
+                'Authorization': CLICKUP_API_TOKEN,
+                'Content-Type': 'application/json'
+            },
+            json={'value': doc_url}
+        )
+        resp.raise_for_status()
+
+        return jsonify({'success': True, 'message': 'Draft link attached to ClickUp task'})
+
+    except Exception as e:
+        safe_print(f"[CLICKUP ATTACH] Error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
