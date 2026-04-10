@@ -89,7 +89,7 @@ ONTRAPORT_CONFIG = {
 
 TEAM_MEMBERS = [
     {"name": "Dylanne Crugnale", "email": "dylanne.crugnale@brite.co"},
-    {"name": "Selena Fragassi", "email": "selena.fragassi@brite.co"},
+    {"name": "Stephanie Lynn", "email": "stephanie.lynn@brite.co"},
 ]
 
 
@@ -193,12 +193,12 @@ EDITORIAL_STYLE_GUIDE = {
     },
     "punctuation": {
         "serial_comma": "Always use the serial/Oxford comma",
-        "em_dash": "Use em dashes (—) with no spaces on either side",
+        "em_dash": "Use em dashes (—) with spaces on both sides — like this",
         "ellipsis": "Use three periods with no spaces (...)",
         "exclamation": "Use sparingly — max one per paragraph",
         "examples": [
             "diamonds, emeralds, and sapphires (serial comma)",
-            "The ring—a stunning 3-carat diamond—was appraised at $50,000 (em dash)",
+            "The ring — a stunning 3-carat diamond — was appraised at $50,000 (em dash)",
         ],
     },
     "capitalization": {
@@ -519,7 +519,7 @@ BRAND_CHECK_RULES = {
     "editorial_checks": [
         "BriteCo spelled correctly (capital B, capital C, one word)",
         "Serial/Oxford comma used consistently",
-        "Em dashes with no spaces (—)",
+        "Em dashes with spaces on both sides ( — )",
         "Numbers: spell out 1-9, numerals for 10+",
         "Percentages use % symbol",
         "Lab-grown is hyphenated",
@@ -577,7 +577,7 @@ EMAIL_TEMPLATE_CONFIG = {
 EDITORIAL_RULES_FOR_PROMPTS = (
     "\n\nBriteCo Editorial Style Rules (follow these strictly):\n"
     "- Use serial/Oxford commas\n"
-    "- Em dashes with no spaces (—)\n"
+    "- Em dashes with spaces on both sides ( — )\n"
     "- Numbers: spell out 1-9, numerals for 10+\n"
     "- Percentages: use % symbol\n"
     "- \"Lab-grown\" is always hyphenated\n"
