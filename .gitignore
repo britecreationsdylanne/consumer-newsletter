@@ -42,3 +42,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# brite-skills (local-only shared tooling; not everyone uses it)
+brite-skills/
+.claude/
+CLAUDE.md
