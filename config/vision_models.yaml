@@ -3,7 +3,9 @@
 # Catalog of vision-capable models across providers for benchmarking
 # The 'id' field is the exact string to send to the API
 # VALIDATED: 2026-01-09 - Only models with status "active" have been tested and work
-# Last Updated: 2026-01-09
+# Last Updated: 2026-06-05 - Synced to current models (GPT-5.5, Claude Opus 4.8, Gemini 2.5);
+#   image generation moved to OpenAI GPT Image 2 (gpt-image-2) with Gemini 2.5 Flash Image fallback.
+#   New/replacement models marked active; superseded models marked deprecated with replaced_by.
 
 providers:
   google:
@@ -75,8 +77,9 @@ providers:
         speed: "fast"
         context_window: 1000000
         vision: true
-        status: "active"
-        notes: "VALIDATED - GA model, native tool use, multimodal"
+        status: "deprecated"
+        replaced_by: "gemini-2.5-flash"
+        notes: "Shutdown 2026-03-31 - use Gemini 2.5 Flash"
         cost_per_1m_input: 0.10
         cost_per_1m_output: 0.40
 
@@ -86,8 +89,9 @@ providers:
         speed: "fastest"
         context_window: 1000000
         vision: true
-        status: "active"
-        notes: "VALIDATED - Most cost-efficient model"
+        status: "deprecated"
+        replaced_by: "gemini-2.5-flash"
+        notes: "Shutdown 2026-03-31 - use Gemini 2.5 Flash"
         cost_per_1m_input: 0.02
         cost_per_1m_output: 0.10
 
@@ -118,7 +122,20 @@ providers:
     name: "OpenAI"
     env_key: "OPENAI_API_KEY"
     models:
-      # GPT-5.2 Series - WORKING
+      # GPT-5.5 Series - Current frontier (released 2026-04-23)
+      - id: "gpt-5.5"
+        name: "GPT-5.5"
+        tier: "frontier"
+        speed: "medium"
+        context_window: 1050000
+        max_output: 128000
+        vision: true
+        status: "active"
+        notes: "Current frontier model. 1.05M context (272k at standard pricing). Text+image input, function calling, structured output. Uses max_completion_tokens"
+        cost_per_1m_input: 5.00
+        cost_per_1m_output: 30.00
+
+      # GPT-5.2 Series - Retired 2026-06-05 (superseded by GPT-5.5)
       - id: "gpt-5.2"
         name: "GPT-5.2"
         tier: "frontier"
@@ -126,8 +143,9 @@ providers:
         context_window: 400000
         max_output: 128000
         vision: true
-        status: "active"
-        notes: "VALIDATED - Most advanced frontier model. Uses max_completion_tokens"
+        status: "deprecated"
+        replaced_by: "gpt-5.5"
+        notes: "Superseded by GPT-5.5 (retired 2026-06-05). Uses max_completion_tokens"
         cost_per_1m_input: 1.75
         cost_per_1m_output: 14.00
 
@@ -228,39 +246,80 @@ providers:
     name: "Anthropic (Claude)"
     env_key: "ANTHROPIC_API_KEY"
     models:
-      # Claude 4.5 Series - WORKING
+      # Claude Opus 4.8 - Current frontier (GA 2026-05-30)
+      - id: "claude-opus-4-8"
+        name: "Claude Opus 4.8"
+        tier: "frontier"
+        speed: "slow"
+        context_window: 1000000
+        max_output: 128000
+        vision: true
+        status: "active"
+        notes: "Current most capable model. 1M context, 128k max output. Best vision/reasoning/writing. New fast mode at $10/$50 per 1M"
+        cost_per_1m_input: 5.00
+        cost_per_1m_output: 25.00
+
+      # Claude Opus 4.5 - Superseded by 4.8
       - id: "claude-opus-4-5-20251101"
         name: "Claude Opus 4.5"
         tier: "frontier"
         speed: "slow"
         context_window: 200000
         vision: true
-        status: "active"
-        notes: "VALIDATED - Most capable, best vision/reasoning/math"
-        cost_per_1m_input: 15.00
-        cost_per_1m_output: 75.00
+        status: "deprecated"
+        replaced_by: "claude-opus-4-8"
+        notes: "Superseded by Opus 4.8 (2026-05-30)"
+        cost_per_1m_input: 5.00
+        cost_per_1m_output: 25.00
 
-      # Claude Sonnet 4 - WORKING
+      # Claude Sonnet 4.6 - Current standard (released 2026-02-17)
+      - id: "claude-sonnet-4-6"
+        name: "Claude Sonnet 4.6"
+        tier: "standard"
+        speed: "medium"
+        context_window: 200000
+        max_output: 64000
+        vision: true
+        status: "active"
+        notes: "Current Sonnet - near-Opus coding/agents performance. 1M context beta available"
+        cost_per_1m_input: 3.00
+        cost_per_1m_output: 15.00
+
+      # Claude Sonnet 4 - Superseded by Sonnet 4.6
       - id: "claude-sonnet-4-20250514"
         name: "Claude Sonnet 4"
         tier: "standard"
         speed: "medium"
         context_window: 200000
         vision: true
-        status: "active"
-        notes: "VALIDATED - Balanced capability and speed"
+        status: "deprecated"
+        replaced_by: "claude-sonnet-4-6"
+        notes: "Superseded by Sonnet 4.6"
         cost_per_1m_input: 3.00
         cost_per_1m_output: 15.00
 
-      # Claude 3.5 Series
+      # Claude Haiku 4.5 - Current economy
+      - id: "claude-haiku-4-5-20251001"
+        name: "Claude Haiku 4.5"
+        tier: "economy"
+        speed: "fastest"
+        context_window: 200000
+        vision: true
+        status: "active"
+        notes: "Current fast/affordable model. Replacement for Claude 3.5 Haiku"
+        cost_per_1m_input: 1.00
+        cost_per_1m_output: 5.00
+
+      # Claude 3.5 Haiku - Retired 2026-02-19
       - id: "claude-3-5-haiku-20241022"
         name: "Claude 3.5 Haiku"
         tier: "economy"
         speed: "fastest"
         context_window: 200000
         vision: true
-        status: "active"
-        notes: "VALIDATED - Fast and affordable"
+        status: "deprecated"
+        replaced_by: "claude-haiku-4-5-20251001"
+        notes: "Retired 2026-02-19 - use Claude Haiku 4.5"
         cost_per_1m_input: 0.80
         cost_per_1m_output: 4.00
 
@@ -276,6 +335,55 @@ providers:
         cost_per_1m_input: 15.00
         cost_per_1m_output: 75.00
 
+# =============================================================================
+# IMAGE GENERATION MODELS
+# =============================================================================
+# Dedicated image-generation catalog (indexed by model_config alongside providers)
+image_generation_models:
+  openai:
+    name: "OpenAI"
+    env_key: "OPENAI_API_KEY"
+    models:
+      # Active - current OpenAI image model (released 2026-04)
+      - id: "gpt-image-2"
+        name: "GPT Image 2"
+        type: "image-generation"
+        status: "active"
+        notes: "Current OpenAI image model. ~$0.01 (low) / ~$0.06 (medium) / ~$0.22 (high) per 1024x1024 image. Up to 4K, >95% in-image text accuracy, native transparent PNG output."
+
+      - id: "gpt-image-1.5"
+        name: "GPT Image 1.5"
+        type: "image-generation"
+        status: "deprecated"
+        replaced_by: "gpt-image-2"
+        notes: "Superseded by GPT Image 2."
+
+      - id: "gpt-image-1"
+        name: "GPT Image 1"
+        type: "image-generation"
+        status: "deprecated"
+        replaced_by: "gpt-image-2"
+        notes: "Original GPT Image model. Superseded by GPT Image 2."
+
+  google:
+    name: "Google (Gemini / Imagen)"
+    env_key: "GOOGLE_AI_API_KEY"
+    models:
+      # Active - used as image-generation fallback
+      - id: "gemini-2.5-flash-image"
+        name: "Gemini 2.5 Flash Image"
+        type: "image-generation"
+        status: "active"
+        notes: "Nano Banana. Multimodal image generation via Gemini. Used as fallback when OpenAI is unavailable."
+
+      - id: "gemini-3-pro-image-preview"
+        name: "Gemini 3 Pro Image Preview"
+        type: "image-generation"
+        status: "deprecated"
+        replaced_by: "gpt-image-2"
+        notes: "Previous meme/illustration model. Image generation moved to GPT Image 2."
+
+
 # Benchmark Test Groups
 # Define model groups for A/B testing
 # ONLY INCLUDES VALIDATED WORKING MODELS
@@ -284,31 +392,30 @@ benchmark_groups:
   economy_tier:
     description: "Cheapest validated models for high-volume tasks"
     models:
-      - "gemini-2.0-flash-lite"
       - "gpt-4o-mini"
-      - "claude-3-5-haiku-20241022"
+      - "gpt-4.1-nano"
+      - "claude-haiku-4-5-20251001"
 
   # Standard tier - balanced cost/performance
   standard_tier:
     description: "Balanced cost/performance validated models"
     models:
-      - "gemini-2.0-flash"
+      - "gemini-2.5-flash"
       - "gpt-4o"
-      - "claude-sonnet-4-20250514"
+      - "claude-sonnet-4-6"
 
   # Frontier tier - highest capability
   frontier_tier:
     description: "Highest capability validated models"
     models:
-      - "gpt-5.2"
-      - "claude-opus-4-5-20251101"
-      # Note: gemini-3-pro not yet available
+      - "gpt-5.5"
+      - "claude-opus-4-8"
 
   # OpenAI comparison - all tiers
   openai_versions:
     description: "Compare OpenAI model generations"
     models:
-      - "gpt-5.2"
+      - "gpt-5.5"
       - "gpt-5-mini"
       - "gpt-4.1"
       - "gpt-4o"
@@ -326,9 +433,9 @@ benchmark_groups:
   claude_versions:
     description: "Compare Claude model tiers"
     models:
-      - "claude-opus-4-5-20251101"
-      - "claude-sonnet-4-20250514"
-      - "claude-3-5-haiku-20241022"
+      - "claude-opus-4-8"
+      - "claude-sonnet-4-6"
+      - "claude-haiku-4-5-20251001"
 
   # Gemini comparison - all versions
   gemini_versions:
@@ -360,8 +467,8 @@ benchmark_groups:
   classification_default:
     description: "Recommended validated models for document classification"
     models:
-      - "gemini-2.0-flash"        # Fast, cheap, good vision
-      - "claude-sonnet-4-20250514"  # Strong reasoning
+      - "gemini-2.5-flash"        # Fast, cheap, good vision
+      - "claude-sonnet-4-6"       # Strong reasoning
       - "gpt-4o-mini"             # Cost-effective
 
   # Full cross-provider comparison (validated only)
@@ -369,16 +476,15 @@ benchmark_groups:
     description: "All validated models across providers"
     models:
       # Frontier
-      - "gpt-5.2"
-      - "claude-opus-4-5-20251101"
+      - "gpt-5.5"
+      - "claude-opus-4-8"
       # Standard
-      - "gemini-2.0-flash"
+      - "gemini-2.5-flash"
       - "gpt-4o"
-      - "claude-sonnet-4-20250514"
+      - "claude-sonnet-4-6"
       # Economy
-      - "gemini-2.0-flash-lite"
       - "gpt-4o-mini"
-      - "claude-3-5-haiku-20241022"
+      - "claude-haiku-4-5-20251001"
 
 # Validation Results (2026-01-09):
 # WORKING:
@@ -405,8 +511,8 @@ benchmark_groups:
 task_assignments:
   # Research & Analysis Tasks
   research_enrichment:
-    description: "GPT-5.2 analysis layer for Perplexity/Insight Builder/Source Explorer"
-    model: "gpt-5.2"
+    description: "Frontier analysis layer for Perplexity/Insight Builder/Source Explorer"
+    model: "gpt-5.5"
     fallback: "gpt-4.1"
     tier: "frontier"
     economy_alternative: "gpt-4o-mini"
@@ -415,26 +521,26 @@ task_assignments:
   # Content Generation Tasks
   content_generation:
     description: "Newsletter article writing (News, Tip, Trend sections)"
-    model: "gpt-4o-mini"
-    fallback: "claude-3-5-haiku-20241022"
-    tier: "economy"
+    model: "claude-opus-4-8"
+    fallback: "claude-sonnet-4-6"
+    tier: "frontier"
     standard_alternative: "gpt-4o"
-    frontier_alternative: "gpt-5.2"
-    notes: "Cost-effective for high-volume content generation"
+    economy_alternative: "gpt-4.1-mini"
+    notes: "Runtime writer is Claude Opus 4.8 (frontier) for best brand voice"
 
   # Brand & Quality Checks
   brand_guidelines_check:
     description: "Check content against brand voice guidelines"
-    model: "gpt-4o-mini"
-    fallback: "claude-3-5-haiku-20241022"
-    tier: "economy"
-    notes: "Fast validation, doesn't need frontier capabilities"
+    model: "gpt-4.1-mini"
+    fallback: "claude-haiku-4-5-20251001"
+    tier: "standard"
+    notes: "Strong instruction-following at low cost for validation"
 
   # Image Analysis (for meme review, etc.)
   image_analysis:
     description: "Analyze images for content appropriateness"
     model: "gpt-4o"
-    fallback: "gemini-2.0-flash"
+    fallback: "gemini-2.5-flash"
     tier: "standard"
     economy_alternative: "gpt-4o-mini"
     notes: "Needs vision capabilities"
@@ -442,23 +548,23 @@ task_assignments:
   # Image Generation Prompts
   image_prompt_generation:
     description: "Generate prompts for image creation"
-    model: "gpt-4o-mini"
-    fallback: "claude-3-5-haiku-20241022"
-    tier: "economy"
-    notes: "Creative but cost-efficient"
+    model: "gpt-4.1-mini"
+    fallback: "claude-haiku-4-5-20251001"
+    tier: "standard"
+    notes: "Creative prompt writing at low cost"
 
   # Subject Line Generation
   subject_line_generation:
     description: "Generate email subject lines and preheaders"
-    model: "gpt-4o-mini"
-    fallback: "claude-3-5-haiku-20241022"
-    tier: "economy"
-    notes: "Short outputs, economy tier sufficient"
+    model: "gpt-4.1-mini"
+    fallback: "claude-haiku-4-5-20251001"
+    tier: "standard"
+    notes: "Short, punchy creative outputs"
 
-  # Meme Image Generation
-  meme_generation:
-    description: "Generate meme images with text overlays"
-    model: "gemini-3-pro-image-preview"
-    fallback: "gemini-2.0-flash"
+  # Image Generation (newsletter images, memes, Guess the Price, etc.)
+  image_generation:
+    description: "Generate newsletter images via OpenAI GPT Image 2 with Gemini fallback"
+    model: "gpt-image-2"
+    fallback: "gemini-2.5-flash-image"
     tier: "frontier"
-    notes: "Uses Gemini 3 Pro for image generation with humor"
+    notes: "Primary: OpenAI GPT Image 2. Fallback: Gemini 2.5 Flash Image (Nano Banana)"

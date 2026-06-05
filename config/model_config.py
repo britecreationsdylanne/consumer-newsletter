@@ -40,18 +40,25 @@ class ModelConfig:
         self.providers = config.get('providers', {})
         self.task_assignments = config.get('task_assignments', {})
 
-        # Build lookup table of all models by ID
-        for provider_key, provider_data in self.providers.items():
-            for model in provider_data.get('models', []):
-                model_id = model.get('id')
-                if model_id:
-                    self.models_by_id[model_id] = {
-                        **model,
-                        'provider': provider_key,
-                        'env_key': provider_data.get('env_key')
-                    }
+        # Build lookup table of all models by ID, across text/vision providers
+        # plus the dedicated image- and video-generation catalogs.
+        provider_sections = [
+            config.get('providers', {}),
+            config.get('image_generation_models', {}),
+            config.get('video_generation_models', {}),
+        ]
+        for section in provider_sections:
+            for provider_key, provider_data in section.items():
+                for model in provider_data.get('models', []):
+                    model_id = model.get('id')
+                    if model_id:
+                        self.models_by_id[model_id] = {
+                            **model,
+                            'provider': provider_key,
+                            'env_key': provider_data.get('env_key')
+                        }
 
-        print(f"[ModelConfig] Loaded {len(self.models_by_id)} models from {len(self.providers)} providers")
+        print(f"[ModelConfig] Loaded {len(self.models_by_id)} models from {len(self.providers)} text providers")
 
     def get_model_for_task(self, task: str, tier_preference: str = None) -> Dict:
         """

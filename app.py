@@ -396,6 +396,49 @@ def resize_image(base64_data, target_size):
         return base64_data
 
 
+def image_generation_available():
+    """True if at least one image-generation provider is configured"""
+    openai_ok = bool(openai_client and openai_client.is_available())
+    gemini_ok = bool(gemini_client and gemini_client.is_available())
+    return openai_ok or gemini_ok
+
+
+def generate_image_smart(prompt, aspect_ratio='1:1'):
+    """
+    Generate an image using OpenAI GPT Image 2 (primary) with Gemini fallback.
+
+    Returns the provider result dict (with base64 'image_data') or raises
+    RuntimeError if every available provider fails.
+    """
+    errors = []
+
+    # Primary: OpenAI GPT Image 2
+    if openai_client and openai_client.is_available():
+        try:
+            result = openai_client.generate_image(prompt=prompt, aspect_ratio=aspect_ratio)
+            if result and result.get('image_data'):
+                return result
+            errors.append("OpenAI: empty image data")
+        except Exception as e:
+            errors.append(f"OpenAI: {e}")
+            safe_print(f"  [image] gpt-image-2 failed, falling back to Gemini: {e}")
+
+    # Fallback: Gemini
+    if gemini_client and gemini_client.is_available():
+        try:
+            result = gemini_client.generate_image(prompt=prompt, aspect_ratio=aspect_ratio)
+            if result and result.get('image_data'):
+                return result
+            errors.append("Gemini: empty image data")
+        except Exception as e:
+            errors.append(f"Gemini: {e}")
+
+    raise RuntimeError(
+        "Image generation failed (" + "; ".join(errors) + ")" if errors
+        else "No image generation provider available"
+    )
+
+
 # ============================================================================
 # ROUTES - YOUTUBE VIDEOS
 # ============================================================================
@@ -1192,15 +1235,15 @@ Output ONLY the image generation prompt, nothing else."""
 
 @app.route('/api/generate-images', methods=['POST'])
 def generate_images():
-    """Generate images using Gemini"""
+    """Generate images using OpenAI GPT Image 2 (primary) with Gemini fallback"""
     try:
         data = request.json
         prompts = data.get('prompts', {})
 
         safe_print(f"\n[API] Generating {len(prompts)} images...")
 
-        if not gemini_client or not gemini_client.is_available():
-            return jsonify({'success': False, 'error': 'Gemini image generation not available'}), 500
+        if not image_generation_available():
+            return jsonify({'success': False, 'error': 'Image generation not available (no OpenAI or Gemini key)'}), 500
 
         images = {}
 
@@ -1223,7 +1266,7 @@ def generate_images():
 
             try:
                 aspect_ratio = ASPECT_RATIOS.get(section, '1:1')
-                result = gemini_client.generate_image(
+                result = generate_image_smart(
                     prompt=prompt,
                     aspect_ratio=aspect_ratio
                 )
@@ -1252,7 +1295,7 @@ def generate_images():
 
 @app.route('/api/generate-single-image', methods=['POST'])
 def generate_single_image():
-    """Generate a single image using Gemini"""
+    """Generate a single image using OpenAI GPT Image 2 (primary) with Gemini fallback"""
     try:
         data = request.json
         prompt = data.get('prompt', '')
@@ -1261,8 +1304,8 @@ def generate_single_image():
         if not prompt:
             return jsonify({'success': False, 'error': 'No prompt provided'}), 400
 
-        if not gemini_client or not gemini_client.is_available():
-            return jsonify({'success': False, 'error': 'Gemini not available'}), 500
+        if not image_generation_available():
+            return jsonify({'success': False, 'error': 'Image generation not available (no OpenAI or Gemini key)'}), 500
 
         IMAGE_SIZES = {
             'quick_tip': (490, 300),
@@ -1276,7 +1319,7 @@ def generate_single_image():
         }
 
         aspect_ratio = ASPECT_RATIOS.get(section, '1:1')
-        result = gemini_client.generate_image(prompt=prompt, aspect_ratio=aspect_ratio)
+        result = generate_image_smart(prompt=prompt, aspect_ratio=aspect_ratio)
         image_data = result.get('image_data', '')
 
         if image_data:
