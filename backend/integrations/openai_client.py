@@ -16,6 +16,99 @@ class OpenAIClient:
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=self.api_key) if self.api_key else None
         self.default_model = os.getenv("DEFAULT_CONTENT_MODEL", "gpt-4o")
+        # GPT Image 2 is the current OpenAI image-generation model
+        self.default_image_model = os.getenv("DEFAULT_OPENAI_IMAGE_MODEL", "gpt-image-2")
+
+    def is_available(self) -> bool:
+        """Check if the OpenAI API client is configured"""
+        return self.client is not None
+
+    def generate_image(
+        self,
+        prompt: str,
+        model: Optional[str] = None,
+        aspect_ratio: str = "1:1",
+        quality: str = "medium",
+        number_of_images: int = 1,
+    ) -> Dict:
+        """
+        Generate an image using OpenAI GPT Image 2.
+
+        Mirrors GeminiClient.generate_image so it is a drop-in replacement:
+        returns a dict with a base64-encoded PNG under "image_data".
+
+        Args:
+            prompt: Image description prompt
+            model: Model to use (default: gpt-image-2)
+            aspect_ratio: '1:1', '16:9', or '9:16' (mapped to a supported size)
+            quality: 'low', 'medium', or 'high' (affects cost/detail)
+            number_of_images: Number of images to generate (default 1)
+
+        Returns:
+            {
+                "image_data": "base64_encoded_png",
+                "prompt": "original prompt",
+                "model": "gpt-image-2",
+                "cost_estimate": "$0.06",
+                "generation_time_ms": 1234
+            }
+        """
+        if not self.is_available():
+            print("[GPT-IMAGE] OpenAI API not available - skipping image generation")
+            return None
+
+        model_name = model or self.default_image_model
+
+        # Map aspect ratio to a gpt-image-2 supported size (edges multiples of 16)
+        size_map = {
+            "1:1": "1024x1024",
+            "16:9": "1536x1024",
+            "9:16": "1024x1536",
+            "4:3": "1536x1024",
+            "3:4": "1024x1536",
+        }
+        size = size_map.get(aspect_ratio, "1024x1024")
+
+        start_time = time.time()
+        try:
+            print(f"[GPT-IMAGE] Using model: {model_name} (size={size}, quality={quality})")
+            print(f"[GPT-IMAGE] Prompt: {prompt[:100]}...")
+
+            response = self.client.images.generate(
+                model=model_name,
+                prompt=prompt,
+                size=size,
+                quality=quality,
+                n=number_of_images,
+            )
+
+            generation_time_ms = int((time.time() - start_time) * 1000)
+
+            # GPT Image returns base64-encoded PNG data by default
+            image_data = response.data[0].b64_json
+            if not image_data:
+                raise ValueError("No image data in response")
+
+            # Approx per-image cost at 1024x1024: low ~$0.01, medium ~$0.06, high ~$0.22
+            cost_per_image = {"low": 0.01, "medium": 0.06, "high": 0.22}.get(quality, 0.06)
+            cost_estimate = cost_per_image * number_of_images
+
+            print(f"[GPT-IMAGE] Image generated, base64 size: {len(image_data)} chars")
+
+            return {
+                "image_data": image_data,  # Base64 encoded PNG
+                "prompt": prompt,
+                "model": model_name,
+                "cost_estimate": f"${cost_estimate:.2f}",
+                "generation_time_ms": generation_time_ms,
+            }
+
+        except Exception as e:
+            print(f"[GPT-IMAGE ERROR] Image generation failed: {e}")
+            print(f"[GPT-IMAGE ERROR] Model: {model_name}, Prompt: {prompt[:100]}...")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def generate_content(
         self,
