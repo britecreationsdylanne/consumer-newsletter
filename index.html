@@ -1037,7 +1037,9 @@
             </div>
 
             <div class="content-section">
-                <h3>What's Inside (Agenda)</h3>
+                <h3>What's Inside (Agenda)
+                    <button class="btn-small" onclick="aiGenerateAgenda(this)" style="float:right;">Regenerate</button>
+                </h3>
                 <div class="editable" contenteditable="true" id="fc-agenda"></div>
             </div>
 
@@ -2863,10 +2865,26 @@
         return el ? (el.textContent || el.innerText) : '';
     }
 
+    // Read agenda items from the editable "What's Inside" field so manual edits
+    // (and regenerated emoji items) actually flow into the preview/export.
+    // Falls back to the stored items if the field is empty.
+    function getAgendaItems() {
+        const el = document.getElementById('fc-agenda');
+        if (el) {
+            const lis = el.querySelectorAll('li');
+            let items = Array.from(lis).map(li => (li.textContent || '').trim()).filter(Boolean);
+            if (!items.length) {
+                items = (el.innerText || el.textContent || '').split('\n').map(s => s.trim()).filter(Boolean);
+            }
+            if (items.length) return items.slice(0, 4);
+        }
+        return generatedContent.agenda_items || [];
+    }
+
     function buildContentObject() {
         return {
             intro: getFinalText('final-intro', 'fc-intro') || generatedContent.intro || '',
-            agenda_items: generatedContent.agenda_items || [],
+            agenda_items: getAgendaItems(),
             news_of_month: {
                 title: selectedContent.news_of_month?.title || '',
                 description: getFinalText('final-news', 'fc-news') || generatedContent.news_of_month?.description || '',
@@ -4292,6 +4310,37 @@
 
     function closePublishedModal() {
         document.getElementById('publishedModal').style.display = 'none';
+    }
+
+    async function aiGenerateAgenda(btn) {
+        const original = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+        try {
+            const sections = [];
+            if (selectedContent.news_of_month?.title) sections.push('News of Month video: ' + selectedContent.news_of_month.title);
+            if (selectedContent.trend_alert?.title) sections.push('Trend Alert video: ' + selectedContent.trend_alert.title);
+            const blogTitles = [selectedContent.blog_1?.title, selectedContent.blog_2?.title].filter(Boolean);
+            if (blogTitles.length) sections.push('Blog articles: ' + blogTitles.join(', '));
+            if (selectedContent.guess_the_price?.title) sections.push('Guess the Price: ' + selectedContent.guess_the_price.title);
+
+            const resp = await fetch(`${API_BASE}/api/generate-whats-inside`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sections })
+            });
+            const data = await resp.json();
+            if (data.success && data.agenda_items && data.agenda_items.length) {
+                generatedContent.agenda_items = data.agenda_items;
+                const agendaEl = document.getElementById('fc-agenda');
+                if (agendaEl) agendaEl.innerHTML = '<ul>' + data.agenda_items.map(i => '<li>' + markdownToHtml(i) + '</li>').join('') + '</ul>';
+                saveDraft();
+            } else {
+                alert('Could not generate What\'s Inside: ' + (data.error || 'unknown error'));
+            }
+        } catch (e) {
+            alert('Error: ' + e.message);
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = original; }
+        }
     }
 
     async function duplicatePublishedToDraft(filename, btn) {

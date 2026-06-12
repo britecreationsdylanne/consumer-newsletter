@@ -2025,6 +2025,42 @@ def push_to_ontraport():
 # ROUTES - EMAIL TEMPLATE RENDERING
 # ============================================================================
 
+@app.route('/api/generate-whats-inside', methods=['POST'])
+def generate_whats_inside_route():
+    """Regenerate just the 'What's Inside' agenda items (emoji-led)."""
+    try:
+        if not claude_client:
+            return jsonify({'success': False, 'error': 'Claude not available'}), 503
+        data = request.json or {}
+        sections = [s for s in (data.get('sections') or []) if s]
+        if not sections:
+            sections = [
+                'the latest jewelry news from BriteCo',
+                'a jewelry trend to know about',
+                'two must-read blog articles',
+                'a guess-the-price piece',
+            ]
+        prompt = AI_PROMPTS['generate_whats_inside'].format(
+            sections='\n'.join(f"- {s}" for s in sections)
+        )
+        response = claude_client.generate_content(
+            prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=300
+        )
+        content = response.get('content', '')
+        items = []
+        for line in content.strip().split('\n'):
+            line = line.strip()
+            if line.startswith('-') or line.startswith('*'):
+                line = line.lstrip('-* ').strip()
+            if line and len(line) > 5:
+                items.append(line)
+        items = clean_agenda_items(items)[:4]
+        return jsonify({'success': True, 'agenda_items': items})
+    except Exception as e:
+        safe_print(f"[API ERROR] Whats Inside: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/render-email-template', methods=['POST'])
 def render_email_template():
     """Render consumer email template with newsletter content"""
