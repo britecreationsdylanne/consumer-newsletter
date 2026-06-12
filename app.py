@@ -309,6 +309,29 @@ def strip_ai_title(text):
     return text.strip()
 
 
+def clean_agenda_items(items):
+    """Filter 'What's Inside' agenda items: drop empty lines, the AI preamble
+    (e.g. "Here are 4 'What's Inside' bullet items:"), and any duplicate of the
+    section header. Items lead with their own emoji, so no bullet marker is added.
+    Mirrors the client-side filter in index.html."""
+    cleaned = []
+    for item in (items or []):
+        t = (item if isinstance(item, str) else str(item)).strip()
+        if not t:
+            continue
+        low = t.lower()
+        if re.match(r"^[\s\W]*(what'?s?\s+inside|whats\s+inside)[\s\W]*$", low):
+            continue
+        if re.match(r'^here\s+(are|is)\b', low):
+            continue
+        if re.search(r'bullet\s*(items?|points?)', low):
+            continue
+        if re.match(r'^(below|following)\s+(are|is)\b', low):
+            continue
+        cleaned.append(t)
+    return cleaned
+
+
 def process_generated_content(content):
     """Process generated content to convert markdown to HTML"""
     if isinstance(content, dict):
@@ -1008,7 +1031,7 @@ def generate_newsletter():
             response = claude_client.generate_content(prompt=prompt, system_prompt=CONSUMER_SYSTEM_PROMPT, max_tokens=300, temperature=0.8)
             content = response.get('content', '')
 
-            # Parse bullet items from response
+            # Parse items from response, stripping list markers and AI preamble
             items = []
             for line in content.strip().split('\n'):
                 line = line.strip()
@@ -1016,15 +1039,15 @@ def generate_newsletter():
                     line = line.lstrip('-* ').strip()
                 if line and len(line) > 5:
                     items.append(line)
-            generated['agenda_items'] = items[:4]
+            generated['agenda_items'] = clean_agenda_items(items)[:4]
 
         except Exception as e:
             safe_print(f"  Error generating agenda: {e}")
             generated['agenda_items'] = [
-                f"The latest jewelry news from BriteCo",
-                f"A trend you need to know about",
-                f"Two must-read blog articles",
-                f"Can you guess the price of this famous piece?"
+                "📰 The latest jewelry news from BriteCo",
+                "🔥 A trend you need to know about",
+                "📖 Two must-read blog articles",
+                "💎 Can you guess the price of this famous piece?"
             ]
 
         # 3. Generate News of Month description
@@ -1639,8 +1662,8 @@ def export_to_docs():
             add_text("What's Inside", bold=True)
             items = content['agenda_items']
             if isinstance(items, list):
-                for item in items:
-                    add_text(f"- {item}")
+                for item in clean_agenda_items(items):
+                    add_text(str(item))
             else:
                 add_text(str(items))
 
@@ -2050,15 +2073,12 @@ def render_email_template():
             intro_val = intro_val[1:-1].strip()
         put('{{INTRO_TEXT}}', intro_val or f'Welcome to the {month} edition!')
 
-        # What's Inside agenda
-        agenda_items = content.get('agenda_items', [])
+        # What's Inside agenda — items lead with their own emoji, so no bullet marker.
+        agenda_items = clean_agenda_items(content.get('agenda_items', []))
         agenda_html = ''
         for item in agenda_items[:4]:
             item_text = item if isinstance(item, str) else str(item)
             agenda_html += f'''<tr>
-<td width="20" valign="top" style="padding-bottom: 10px;">
-<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #008181;">&bull;</p>
-</td>
 <td style="padding-bottom: 10px;">
 <p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #282e40;">{item_text}</p>
 </td>

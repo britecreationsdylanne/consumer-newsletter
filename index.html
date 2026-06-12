@@ -3704,8 +3704,8 @@
             if (!text) return false;
             // Filter out "What's Inside" header duplicates
             if (text.match(/^[\s\W]*(what'?s?\s+inside|whats\s+inside)[\s\W]*$/i)) return false;
-            // Filter out AI preamble lines like "Here are 4 bullet items for your newsletter:"
-            if (text.match(/^here\s+are\s+\d+/i)) return false;
+            // Filter out AI preamble lines like "Here are 4 'What's Inside' bullet items:"
+            if (text.match(/^here\s+(are|is)\b/i)) return false;
             if (text.match(/bullet\s*(items?|points?)/i)) return false;
             if (text.match(/^(below|following)\s+(are|is)/i)) return false;
             return true;
@@ -3713,7 +3713,7 @@
         let agendaHtml = '';
         agendaItems.slice(0, 4).forEach(item => {
             const itemText = cleanForEmail(typeof item === 'string' ? item : String(item));
-            agendaHtml += '<tr><td width="20" valign="top" style="padding-bottom: 10px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #008181;">&bull;</p></td><td style="padding-bottom: 10px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #282e40;">' + itemText + '</p></td></tr>';
+            agendaHtml += '<tr><td style="padding-bottom: 10px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #282e40;">' + itemText + '</p></td></tr>';
         });
 
         // Get images
