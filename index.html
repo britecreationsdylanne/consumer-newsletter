@@ -4237,6 +4237,7 @@
                             <span style="display:inline-block;background:#272d3f;color:white;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;text-transform:uppercase;margin-bottom:8px;">${monthCap} ${n.year}</span>
                             <p style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:8px;">${escapeHtml(savedBy)} &middot; ${savedAt} CT</p>
                             <button onclick="event.stopPropagation();viewPublishedNewsletter('${n.filename}')" style="width:100%;margin-top:12px;padding:12px 16px;background:#008181;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">View Newsletter</button>
+                            <button onclick="event.stopPropagation();duplicatePublishedToDraft('${n.filename}', this)" style="width:100%;margin-top:8px;padding:10px 16px;background:#fe8916;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">Duplicate to Draft</button>
                         </div>
                     `;
                     grid.appendChild(card);
@@ -4291,6 +4292,28 @@
 
     function closePublishedModal() {
         document.getElementById('publishedModal').style.display = 'none';
+    }
+
+    async function duplicatePublishedToDraft(filename, btn) {
+        const original = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = 'Copying...'; }
+        try {
+            const resp = await fetch(`${API_BASE}/api/copy-published-to-draft`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file: filename })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                await loadDrafts();
+                alert('Copied to Saved Drafts. The published version is unchanged — open the new draft above to view or edit it.');
+            } else {
+                alert('Could not duplicate: ' + (data.error || 'unknown error'));
+            }
+        } catch (e) {
+            alert('Error: ' + e.message);
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = original; }
+        }
     }
 
     // ============================================================

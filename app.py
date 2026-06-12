@@ -2027,13 +2027,28 @@ def render_email_template():
         html = html.replace('{{YEAR}}', str(year))
         html = html.replace('{{PREHEADER}}', preheader)
 
+        # Coerce any stored value to a safe template string. Legacy drafts/published
+        # newsletters occasionally store None or a rich object where plain text is
+        # expected; without this guard a single bad field 500s the whole render
+        # ("Could not render preview").
+        def _txt(v, default=''):
+            if v is None:
+                return default
+            if isinstance(v, dict):
+                return str(v.get('content') or v.get('text') or v.get('description') or '')
+            return str(v)
+
+        def put(placeholder, value, default=''):
+            nonlocal html
+            html = html.replace(placeholder, _txt(value, default))
+
         # Intro - clean any AI-generated prefixes
-        intro_val = content.get('intro', f'Welcome to the {month} edition!')
+        intro_val = _txt(content.get('intro')) or f'Welcome to the {month} edition!'
         intro_val = re.sub(r'^(?:\w+\s+)?newsletter\s+intro(?:duction)?[\s:;\-–—]*', '', intro_val, flags=re.IGNORECASE).strip()
         intro_val = re.sub(r'^(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+intro(?:duction)?[\s:;\-–—]*', '', intro_val, flags=re.IGNORECASE).strip()
         if intro_val.startswith('"') and intro_val.endswith('"'):
             intro_val = intro_val[1:-1].strip()
-        html = html.replace('{{INTRO_TEXT}}', intro_val or f'Welcome to the {month} edition!')
+        put('{{INTRO_TEXT}}', intro_val or f'Welcome to the {month} edition!')
 
         # What's Inside agenda
         agenda_items = content.get('agenda_items', [])
@@ -2051,73 +2066,67 @@ def render_email_template():
         html = html.replace('{{AGENDA_ITEMS}}', agenda_html)
 
         # News of the Month
-        nom = content.get('news_of_month', {})
-        if isinstance(nom, dict):
-            html = html.replace('{{NEWS_MONTH_TITLE}}', nom.get('title', 'News of the Month'))
-            html = html.replace('{{NEWS_MONTH_THUMBNAIL}}', nom.get('thumbnail_url', ''))
-            html = html.replace('{{NEWS_MONTH_DESCRIPTION}}', nom.get('description', ''))
-            html = html.replace('{{NEWS_MONTH_VIDEO_URL}}', nom.get('video_url', '#'))
-        else:
-            html = html.replace('{{NEWS_MONTH_TITLE}}', 'News of the Month')
-            html = html.replace('{{NEWS_MONTH_THUMBNAIL}}', '')
-            html = html.replace('{{NEWS_MONTH_DESCRIPTION}}', '')
-            html = html.replace('{{NEWS_MONTH_VIDEO_URL}}', '#')
+        nom = content.get('news_of_month') or {}
+        if not isinstance(nom, dict):
+            nom = {}
+        put('{{NEWS_MONTH_TITLE}}', nom.get('title'), 'News of the Month')
+        put('{{NEWS_MONTH_THUMBNAIL}}', nom.get('thumbnail_url'))
+        put('{{NEWS_MONTH_DESCRIPTION}}', nom.get('description'))
+        put('{{NEWS_MONTH_VIDEO_URL}}', nom.get('video_url'), '#')
 
         # Trend Alert
-        ta = content.get('trend_alert', {})
-        if isinstance(ta, dict):
-            html = html.replace('{{TREND_TITLE}}', ta.get('title', 'Trend Alert'))
-            html = html.replace('{{TREND_THUMBNAIL}}', ta.get('thumbnail_url', ''))
-            html = html.replace('{{TREND_DESCRIPTION}}', ta.get('description', ''))
-            html = html.replace('{{TREND_VIDEO_URL}}', ta.get('video_url', '#'))
-        else:
-            html = html.replace('{{TREND_TITLE}}', 'Trend Alert')
-            html = html.replace('{{TREND_THUMBNAIL}}', '')
-            html = html.replace('{{TREND_DESCRIPTION}}', '')
-            html = html.replace('{{TREND_VIDEO_URL}}', '#')
+        ta = content.get('trend_alert') or {}
+        if not isinstance(ta, dict):
+            ta = {}
+        put('{{TREND_TITLE}}', ta.get('title'), 'Trend Alert')
+        put('{{TREND_THUMBNAIL}}', ta.get('thumbnail_url'))
+        put('{{TREND_DESCRIPTION}}', ta.get('description'))
+        put('{{TREND_VIDEO_URL}}', ta.get('video_url'), '#')
 
         # Blog Articles
-        blogs = content.get('blog_articles', [{}, {}])
-        blog_1 = blogs[0] if len(blogs) > 0 else {}
-        blog_2 = blogs[1] if len(blogs) > 1 else {}
+        blogs = content.get('blog_articles') or [{}, {}]
+        blog_1 = blogs[0] if len(blogs) > 0 and isinstance(blogs[0], dict) else {}
+        blog_2 = blogs[1] if len(blogs) > 1 and isinstance(blogs[1], dict) else {}
 
-        html = html.replace('{{BLOG_1_TITLE}}', blog_1.get('title', 'Blog Article'))
-        html = html.replace('{{BLOG_1_IMAGE}}', blog_1.get('featured_image_url', ''))
-        html = html.replace('{{BLOG_1_URL}}', blog_1.get('url', '#'))
+        put('{{BLOG_1_TITLE}}', blog_1.get('title'), 'Blog Article')
+        put('{{BLOG_1_IMAGE}}', blog_1.get('featured_image_url'))
+        put('{{BLOG_1_URL}}', blog_1.get('url'), '#')
 
-        html = html.replace('{{BLOG_2_TITLE}}', blog_2.get('title', 'Blog Article'))
-        html = html.replace('{{BLOG_2_IMAGE}}', blog_2.get('featured_image_url', ''))
-        html = html.replace('{{BLOG_2_URL}}', blog_2.get('url', '#'))
+        put('{{BLOG_2_TITLE}}', blog_2.get('title'), 'Blog Article')
+        put('{{BLOG_2_IMAGE}}', blog_2.get('featured_image_url'))
+        put('{{BLOG_2_URL}}', blog_2.get('url'), '#')
 
         # Guess the Price
-        gtp = content.get('guess_the_price', {})
+        gtp = content.get('guess_the_price') or {}
         if isinstance(gtp, dict):
-            html = html.replace('{{GTP_TITLE}}', gtp.get('title', 'Guess the Price'))
-            gtp_image = gtp.get('image_url', '')
-            if images.get('guess_the_price', {}).get('url'):
-                gtp_image = images['guess_the_price']['url']
-            html = html.replace('{{GTP_IMAGE}}', gtp_image)
-            html = html.replace('{{GTP_MATERIAL}}', gtp.get('material', ''))
-            html = html.replace('{{GTP_FOUND_IN}}', gtp.get('found_in', ''))
-            html = html.replace('{{GTP_WHERE_IT_LIVES}}', gtp.get('where_it_lives', ''))
-            html = html.replace('{{GTP_FUN_FACT}}', gtp.get('fun_fact', ''))
-            html = html.replace('{{GTP_QUESTION}}', gtp.get('question', 'Think you know the price?'))
-            html = html.replace('{{GTP_LINK}}', gtp.get('link', '#'))
+            put('{{GTP_TITLE}}', gtp.get('title'), 'Guess the Price')
+            gtp_image = gtp.get('image_url') or ''
+            gtp_img_obj = images.get('guess_the_price')
+            if isinstance(gtp_img_obj, dict) and gtp_img_obj.get('url'):
+                gtp_image = gtp_img_obj['url']
+            put('{{GTP_IMAGE}}', gtp_image)
+            put('{{GTP_MATERIAL}}', gtp.get('material'))
+            put('{{GTP_FOUND_IN}}', gtp.get('found_in'))
+            put('{{GTP_WHERE_IT_LIVES}}', gtp.get('where_it_lives'))
+            put('{{GTP_FUN_FACT}}', gtp.get('fun_fact'))
+            put('{{GTP_QUESTION}}', gtp.get('question'), 'Think you know the price?')
+            put('{{GTP_LINK}}', gtp.get('link'), '#')
         else:
             for placeholder in ['GTP_TITLE', 'GTP_IMAGE', 'GTP_MATERIAL', 'GTP_FOUND_IN',
                                 'GTP_WHERE_IT_LIVES', 'GTP_FUN_FACT', 'GTP_QUESTION', 'GTP_LINK']:
                 html = html.replace('{{' + placeholder + '}}', '')
 
         # Quick Tip - clean any AI-generated prefixes
-        quick_tip_val = content.get('quick_tip', '')
+        quick_tip_val = _txt(content.get('quick_tip'))
         quick_tip_val = re.sub(r'^(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+quick\s*tip[\s:;\-–—]*', '', quick_tip_val, flags=re.IGNORECASE).strip()
         quick_tip_val = re.sub(r'^quick\s*tip[\s:;\-–—]*', '', quick_tip_val, flags=re.IGNORECASE).strip()
         if quick_tip_val.startswith('"') and quick_tip_val.endswith('"'):
             quick_tip_val = quick_tip_val[1:-1].strip()
-        html = html.replace('{{QUICK_TIP_TEXT}}', quick_tip_val)
+        put('{{QUICK_TIP_TEXT}}', quick_tip_val)
 
         # Quick tip image block
-        quick_tip_image = images.get('quick_tip', {}).get('url', '')
+        qt_img_obj = images.get('quick_tip')
+        quick_tip_image = qt_img_obj.get('url', '') if isinstance(qt_img_obj, dict) else ''
         if quick_tip_image:
             quick_tip_image_html = f'''
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 20px;">
@@ -2303,6 +2312,31 @@ def load_published():
         return jsonify({'success': True, 'draft': data})
     except Exception as e:
         safe_print(f"[PUBLISHED LOAD ERROR] {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/copy-published-to-draft', methods=['POST'])
+def copy_published_to_draft():
+    """Copy a published newsletter back into Saved Drafts, keeping both copies."""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        filename = request.json.get('file')
+        if not filename:
+            return jsonify({'success': False, 'error': 'No file specified'}), 400
+        bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
+        source_blob = bucket.blob(filename)
+        if not source_blob.exists():
+            return jsonify({'success': False, 'error': 'Published newsletter not found'}), 404
+        draft_name = filename.replace('published/', 'drafts/', 1)
+        # Don't clobber an existing draft with the same name
+        if bucket.blob(draft_name).exists():
+            draft_name = f"{draft_name[:-5]}-copy.json"
+        bucket.copy_blob(source_blob, bucket, draft_name)
+        safe_print(f"[DRAFT] Copied {filename} -> {draft_name}")
+        return jsonify({'success': True, 'file': draft_name})
+    except Exception as e:
+        safe_print(f"[DRAFT COPY ERROR] {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
