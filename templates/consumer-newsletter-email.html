@@ -36,7 +36,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 @media screen and (max-width: 700px) {
 .mobile-full { width: 100% !important; max-width: 100% !important; min-width: 100% !important; }
 .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
-.mobile-stack { display: block !important; width: 100% !important; max-width: 100% !important; }
+.mobile-stack { display: block !important; width: 100% !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
 .mobile-stack-padding { padding-right: 0 !important; padding-bottom: 20px !important; }
 .mobile-center { text-align: center !important; }
 .mobile-img-full { width: 100% !important; height: auto !important; max-width: 100% !important; }
@@ -55,6 +55,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 }
 u + .body .mobile-full { width: 100% !important; max-width: 100% !important; }
 u + .body .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
+u + .body .mobile-stack { display: block !important; width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
 u + .body .gtp-image { display: block !important; width: 100% !important; max-width: 100% !important; padding-right: 0 !important; padding-bottom: 20px !important; text-align: center !important; }
 u + .body .gtp-image img { width: 100% !important; max-width: 100% !important; }
 u + .body .gtp-details { display: block !important; width: 100% !important; }
@@ -62,7 +63,7 @@ u + .body .gtp-hero-img { height: auto !important; }
 u + .body .whats-inside-spacer { height: 25px !important; }
 u + .body .mobile-img-full { width: 100% !important; max-width: 100% !important; height: auto !important; }
 u + .body .section-badge { font-size: 14px !important; }
-u + .body .cta-btn { display: block !important; width: 100% !important; margin-bottom: 12px !important; }
+u + .body .cta-btn { display: block !important; width: 100% !important; box-sizing: border-box !important; margin: 0 0 12px 0 !important; }
 u + .body .cta-heading { font-size: 24px !important; }
 </style>
 </head>
@@ -355,7 +356,7 @@ u + .body .cta-heading { font-size: 24px !important; }
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 30px;">
 <tr>
 <td align="center">
-<img src="{{GTP_IMAGE}}" width="590" height="350" alt="{{GTP_TITLE}}" style="width: 100%; max-width: 590px; height: 350px; object-fit: cover; display: block; border-radius: 6px;" class="mobile-img-full gtp-hero-img">
+<img src="{{GTP_IMAGE}}" width="590" alt="{{GTP_TITLE}}" style="width: 100%; max-width: 590px; height: auto; display: block; border-radius: 6px;" class="mobile-img-full gtp-hero-img">
 </td>
 </tr>
 </table>
@@ -481,13 +482,13 @@ u + .body .cta-heading { font-size: 24px !important; }
 </table>
 <![endif]-->
 <!--[if !mso]><!-->
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="margin: 0 auto;">
 <tr>
-<td style="padding-right: 12px;" class="cta-btn">
-<a href="https://brite.co/jewelry-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">JEWELRY INSURANCE</a>
+<td align="center" class="mobile-stack" style="padding-right: 12px; width: 50%;">
+<a href="https://brite.co/jewelry-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link cta-btn">JEWELRY INSURANCE</a>
 </td>
-<td style="padding-left: 12px;" class="cta-btn">
-<a href="https://brite.co/wedding-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link">WEDDING INSURANCE</a>
+<td align="center" class="mobile-stack" style="padding-left: 12px; width: 50%;">
+<a href="https://brite.co/wedding-insurance/" target="_blank" style="display: inline-block; background-color: #fe8916; color: #ffffff; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none; border-radius: 4px; letter-spacing: 0.5px;" class="button-link cta-btn">WEDDING INSURANCE</a>
 </td>
 </tr>
 </table>

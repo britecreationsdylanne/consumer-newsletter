@@ -2594,12 +2594,32 @@ def upload_images_to_gcs():
                         img_format = 'gif'
                     else:
                         img_format = 'jpg'
+                    # Some CDNs serve .webp with a generic content type
+                    if img_url.lower().split('?')[0].endswith('.webp'):
+                        img_format = 'webp'
                     safe_print(f"[GCS] Downloaded {len(image_bytes)} bytes for {section}")
                 else:
                     continue
 
                 if not image_bytes:
                     continue
+
+                # Outlook for Windows cannot render WebP — convert to JPEG before hosting
+                if img_format == 'webp':
+                    try:
+                        from PIL import Image as PILImage
+                        from io import BytesIO
+                        im = PILImage.open(BytesIO(image_bytes))
+                        if im.mode != 'RGB':
+                            im = im.convert('RGB')
+                        out = BytesIO()
+                        im.save(out, format='JPEG', quality=88)
+                        image_bytes = out.getvalue()
+                        img_format = 'jpg'
+                        content_type = 'image/jpeg'
+                        safe_print(f"[GCS] Converted {section} WebP -> JPEG ({len(image_bytes)} bytes)")
+                    except Exception as conv_err:
+                        safe_print(f"[GCS] WebP conversion failed for {section}: {conv_err}")
 
                 # Static assets go to assets/ folder, newsletter images go to newsletters/
                 if section.startswith('_'):
