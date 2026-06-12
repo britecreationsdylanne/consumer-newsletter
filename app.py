@@ -2041,6 +2041,9 @@ def render_email_template():
         for item in agenda_items[:4]:
             item_text = item if isinstance(item, str) else str(item)
             agenda_html += f'''<tr>
+<td width="20" valign="top" style="padding-bottom: 10px;">
+<p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #008181;">&bull;</p>
+</td>
 <td style="padding-bottom: 10px;">
 <p style="margin: 0; font-family: 'Wix Madefor Display', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #282e40;">{item_text}</p>
 </td>

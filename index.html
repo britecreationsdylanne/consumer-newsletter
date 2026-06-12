@@ -3713,7 +3713,7 @@
         let agendaHtml = '';
         agendaItems.slice(0, 4).forEach(item => {
             const itemText = cleanForEmail(typeof item === 'string' ? item : String(item));
-            agendaHtml += '<tr><td style="padding-bottom: 10px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #282e40;">' + itemText + '</p></td></tr>';
+            agendaHtml += '<tr><td width="20" valign="top" style="padding-bottom: 10px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #008181;">&bull;</p></td><td style="padding-bottom: 10px;"><p style="margin: 0; font-family: \'Wix Madefor Display\', Arial, Helvetica, sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; color: #282e40;">' + itemText + '</p></td></tr>';
         });
 
         // Get images

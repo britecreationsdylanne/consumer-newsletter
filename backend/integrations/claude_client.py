@@ -35,7 +35,8 @@ class ClaudeClient:
         Args:
             prompt: User prompt
             system_prompt: System instructions
-            temperature: Creativity (0-1)
+            temperature: Accepted for caller compatibility but ignored — Opus 4.7/4.8
+                removed sampling parameters (see note in the API call below)
             max_tokens: Max response length
             model: Model to use (defaults to claude-opus-4-8)
 
@@ -50,10 +51,13 @@ class ClaudeClient:
         messages = [{"role": "user", "content": prompt}]
 
         # Call Claude API
+        # NOTE: `temperature` is intentionally NOT forwarded. Opus 4.7/4.8 removed the
+        # sampling parameters (temperature/top_p/top_k) — passing them returns a 400
+        # ("`temperature` is deprecated for this model"). The arg is kept in the
+        # signature for caller compatibility but no longer sent to the API.
         response = self.client.messages.create(
             model=model_name,
             max_tokens=max_tokens,
-            temperature=temperature,
             system=system_prompt if system_prompt else "",
             messages=messages
         )
@@ -133,7 +137,6 @@ Return as JSON array with this structure:
             response = self.client.messages.create(
                 model=self.default_model,
                 max_tokens=2000,
-                temperature=0.3,
                 messages=[{"role": "user", "content": search_prompt}],
                 tools=[{
                     "type": "web_search_20250305",
