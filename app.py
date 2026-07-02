@@ -107,6 +107,29 @@ def get_current_user():
     """Get current authenticated user from session"""
     return session.get('user')
 
+
+# Endpoints reachable without a logged-in session. Everything else (all /api/*,
+# the app shell, and static files) requires an authenticated @brite.co session.
+_PUBLIC_PATHS = {'/health', '/auth/login', '/auth/callback', '/auth/logout'}
+
+
+@app.before_request
+def require_authenticated_user():
+    """Global auth gate. The frontend calls /api/* same-origin, so the browser
+    sends the session cookie automatically — logged-in users are unaffected.
+    Unauthenticated API calls get 401 JSON; unauthenticated page loads redirect
+    to login."""
+    path = request.path
+    if request.method == 'OPTIONS':
+        return None  # let CORS preflight through
+    if path in _PUBLIC_PATHS or path.startswith('/auth/'):
+        return None
+    if get_current_user():
+        return None
+    if path.startswith('/api/'):
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+    return redirect('/auth/login')
+
 # Initialize AI clients
 openai_client = None
 claude_client = None
@@ -163,6 +186,50 @@ def safe_print(text):
         print(text.encode('ascii', 'replace').decode('ascii'))
 
 
+def safe_blob_name(filename, allowed_prefixes=('drafts/', 'published/')):
+    """Validate a client-supplied GCS object name so callers can't read/delete/
+    copy arbitrary blobs. Rejects path traversal and anything outside the
+    allowed prefixes. Returns the name if valid, else None."""
+    if not filename or not isinstance(filename, str):
+        return None
+    name = filename.strip()
+    # No traversal, no absolute paths, no wildcards, no NUL
+    if '..' in name or name.startswith('/') or '\\' in name or '\x00' in name:
+        return None
+    if not any(name.startswith(p) for p in allowed_prefixes):
+        return None
+    if not name.endswith('.json'):
+        return None
+    return name
+
+
+def is_safe_fetch_url(url):
+    """SSRF guard for server-side image/URL fetches. Allows only public http(s)
+    hosts; blocks private, loopback, link-local (incl. the cloud metadata server)
+    and other non-global addresses. Preserves the ability to fetch any public
+    image URL a user pastes."""
+    try:
+        from urllib.parse import urlparse
+        import socket
+        import ipaddress
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        host = parsed.hostname
+        if not host:
+            return False
+        # Resolve all A/AAAA records; reject if ANY is non-global
+        infos = socket.getaddrinfo(host, None)
+        for info in infos:
+            ip = ipaddress.ip_address(info[4][0])
+            if (ip.is_private or ip.is_loopback or ip.is_link_local
+                    or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+                return False
+        return True
+    except Exception:
+        return False
+
+
 # ============================================================================
 # OAUTH AUTHENTICATION ROUTES
 # ============================================================================
@@ -214,7 +281,7 @@ def auth_callback():
 
     except Exception as e:
         print(f"[AUTH ERROR] OAuth callback failed: {e}")
-        return f'Authentication failed: {str(e)}', 500
+        return 'Authentication failed. Please try again.', 500
 
 
 @app.route('/auth/logout')
@@ -563,7 +630,7 @@ def proxy_image():
     try:
         data = request.json
         url = data.get('url', '')
-        if not url or not url.startswith('http'):
+        if not is_safe_fetch_url(url):
             return jsonify({'success': False, 'error': 'Invalid URL'}), 400
 
         import base64
@@ -1198,6 +1265,11 @@ def generate_image_prompts():
         data = request.json
         sections = data.get('sections', {})
 
+        # Cap fan-out — a real newsletter has a handful of sections; this bounds
+        # cost/abuse on a paid-API loop.
+        if len(sections) > 12:
+            return jsonify({'success': False, 'error': 'Too many sections'}), 400
+
         safe_print(f"\n[API] Generating image prompts for {len(sections)} sections...")
 
         prompts = {}
@@ -1262,6 +1334,10 @@ def generate_images():
     try:
         data = request.json
         prompts = data.get('prompts', {})
+
+        # Cap fan-out on a paid image-generation loop.
+        if len(prompts) > 12:
+            return jsonify({'success': False, 'error': 'Too many prompts'}), 400
 
         safe_print(f"\n[API] Generating {len(prompts)} images...")
 
@@ -1422,8 +1498,10 @@ def resize_image_endpoint():
         if image_url.startswith('data:'):
             base64_data = image_url.split(',')[1] if ',' in image_url else ''
         else:
+            if not is_safe_fetch_url(image_url):
+                return jsonify({'success': False, 'error': 'Invalid image URL'}), 400
             import requests as req
-            response = req.get(image_url)
+            response = req.get(image_url, timeout=15)
             base64_data = base64.b64encode(response.content).decode('utf-8')
 
         if not base64_data:
@@ -1887,8 +1965,8 @@ def fetch_article_metadata():
         data = request.json
         url = data.get('url', '')
 
-        if not url:
-            return jsonify({'success': False, 'error': 'URL is required'}), 400
+        if not is_safe_fetch_url(url):
+            return jsonify({'success': False, 'error': 'Invalid URL'}), 400
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -2289,9 +2367,9 @@ def load_draft():
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        filename = request.args.get('file')
+        filename = safe_blob_name(request.args.get('file'), allowed_prefixes=('drafts/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         data = json.loads(blob.download_as_text())
@@ -2307,9 +2385,9 @@ def publish_draft():
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        filename = request.json.get('file')
+        filename = safe_blob_name(request.json.get('file'), allowed_prefixes=('drafts/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         source_blob = bucket.blob(filename)
         if not source_blob.exists():
@@ -2357,9 +2435,9 @@ def load_published():
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        filename = request.args.get('file')
+        filename = safe_blob_name(request.args.get('file'), allowed_prefixes=('published/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         if not blob.exists():
@@ -2377,9 +2455,9 @@ def copy_published_to_draft():
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
     try:
-        filename = request.json.get('file')
+        filename = safe_blob_name(request.json.get('file'), allowed_prefixes=('published/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         source_blob = bucket.blob(filename)
         if not source_blob.exists():
@@ -2402,9 +2480,9 @@ def delete_draft():
     if not gcs_client:
         return jsonify({'success': True})
     try:
-        filename = request.json.get('file')
+        filename = safe_blob_name(request.json.get('file'), allowed_prefixes=('drafts/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         if blob.exists():
@@ -2421,9 +2499,9 @@ def delete_published():
     if not gcs_client:
         return jsonify({'success': True})
     try:
-        filename = request.json.get('file')
+        filename = safe_blob_name(request.json.get('file'), allowed_prefixes=('published/',))
         if not filename:
-            return jsonify({'success': False, 'error': 'No file specified'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file'}), 400
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(filename)
         if blob.exists():
@@ -2533,6 +2611,9 @@ def upload_images_to_gcs():
         if not images_data:
             return jsonify({'success': True, 'urls': {}, 'count': 0})
 
+        if len(images_data) > 20:
+            return jsonify({'success': False, 'error': 'Too many images'}), 400
+
         safe_print(f"[GCS] Uploading {len(images_data)} images to bucket '{GCS_IMAGES_BUCKET}'...")
         bucket = gcs_client.bucket(GCS_IMAGES_BUCKET)
         uploaded_urls = {}
@@ -2578,6 +2659,9 @@ def upload_images_to_gcs():
 
                 elif img_url.startswith('http'):
                     # External URL - download and re-host to GCS
+                    if not is_safe_fetch_url(img_url):
+                        safe_print(f"[GCS] Skipping unsafe image URL for {section}")
+                        continue
                     import requests as req
                     safe_print(f"[GCS] Downloading external image for {section}: {img_url[:100]}...")
                     resp = req.get(img_url, timeout=30, headers={

@@ -47,6 +47,7 @@ class OntraportClient:
             url=url,
             headers=self.headers,
             json=data,
+            timeout=30,
         )
 
         latency_ms = int((time.time() - start_time) * 1000)

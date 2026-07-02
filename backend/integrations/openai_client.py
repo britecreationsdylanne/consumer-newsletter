@@ -153,14 +153,16 @@ class OpenAIClient:
         kwargs = {
             "model": model,
             "messages": messages,
-            "temperature": temperature,
         }
 
-        # GPT-5.x and newer models use max_completion_tokens instead of max_tokens
-        if model and (model.startswith("gpt-5") or model.startswith("o1") or model.startswith("o3")):
+        # GPT-5.x and reasoning models (o1/o3) use max_completion_tokens and reject
+        # the temperature/sampling parameter; only standard chat models take it.
+        is_reasoning = bool(model and (model.startswith("gpt-5") or model.startswith("o1") or model.startswith("o3")))
+        if is_reasoning:
             kwargs["max_completion_tokens"] = max_tokens
         else:
             kwargs["max_tokens"] = max_tokens
+            kwargs["temperature"] = temperature
 
         # Add tools if provided (for web search)
         if tools:
@@ -171,9 +173,20 @@ class OpenAIClient:
         latency_ms = int((time.time() - start_time) * 1000)
         tokens_used = response.usage.total_tokens
 
-        # Rough cost estimation (update with actual pricing)
-        cost_per_1k_tokens = 0.03 if "gpt-4" in model else 0.002
-        cost_estimate = (tokens_used / 1000) * cost_per_1k_tokens
+        # Cost estimation using per-model input/output rates ($ per 1M tokens)
+        usage = response.usage
+        in_tok = getattr(usage, "prompt_tokens", 0) or 0
+        out_tok = getattr(usage, "completion_tokens", 0) or 0
+        m = (model or "").lower()
+        if m.startswith("gpt-5"):
+            in_rate, out_rate = 5.00, 30.00
+        elif "gpt-4o-mini" in m:
+            in_rate, out_rate = 0.15, 0.60
+        elif "gpt-4o" in m or "gpt-4" in m:
+            in_rate, out_rate = 2.50, 10.00
+        else:
+            in_rate, out_rate = 0.50, 1.50
+        cost_estimate = (in_tok / 1_000_000) * in_rate + (out_tok / 1_000_000) * out_rate
 
         return {
             "content": response.choices[0].message.content,

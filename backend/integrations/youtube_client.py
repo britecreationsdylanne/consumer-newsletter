@@ -30,6 +30,14 @@ class YouTubeClient:
         """Check if YouTube API is configured"""
         return bool(self.api_key)
 
+    def _redact(self, text) -> str:
+        """Strip the API key from error text before logging (the key travels as a
+        `key=` query param, so exception messages can embed it)."""
+        s = str(text)
+        if self.api_key:
+            s = s.replace(self.api_key, "***")
+        return s
+
     def _get_uploads_playlist_id(self, channel_id: str) -> Optional[str]:
         """Get the uploads playlist ID for a channel."""
         # YouTube uploads playlist ID = replace 'UC' prefix with 'UU'
@@ -47,7 +55,7 @@ class YouTubeClient:
                 if items:
                     return items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
         except Exception as e:
-            print(f"[YouTube] Error getting uploads playlist: {e}")
+            print(f"[YouTube] Error getting uploads playlist: {self._redact(e)}")
         return None
 
     def get_channel_videos(
@@ -133,10 +141,10 @@ class YouTubeClient:
             print("[YouTube] Request timed out")
             return {"videos": [], "next_page_token": None}
         except requests.exceptions.RequestException as e:
-            print(f"[YouTube] Request error: {e}")
+            print(f"[YouTube] Request error: {self._redact(e)}")
             return {"videos": [], "next_page_token": None}
         except Exception as e:
-            print(f"[YouTube] Error: {e}")
+            print(f"[YouTube] Error: {self._redact(e)}")
             import traceback
             traceback.print_exc()
             return {"videos": [], "next_page_token": None}

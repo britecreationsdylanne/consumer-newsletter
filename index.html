@@ -2091,7 +2091,7 @@
                         card.style.position = 'relative';
                         const imgSrc = r.image_url || r.thumbnail || '';
                         const placeholderImg = '<div class="gtp-thumb" style="background:#f0f0f0;display:flex;align-items:center;justify-content:center;min-height:80px;border-radius:6px;color:#bbb;font-size:28px;">&#128142;</div>';
-                        card.innerHTML = `${imgSrc ? '<img class="gtp-thumb" src="' + imgSrc + '" alt="" loading="lazy">' : placeholderImg}<div class="gtp-result-info"><div class="gtp-result-title">${escapeHtml(r.title || '')}</div><div class="gtp-result-publisher">${escapeHtml(r.publisher || r.source || '')}</div><div class="gtp-result-snippet">${escapeHtml(r.snippet || r.description || '')}</div></div><button class="gtp-save-btn" title="Save for later" onclick="event.stopPropagation(); saveGTPResultForLater(this, ${idx})">&#9734; Save</button>`;
+                        card.innerHTML = `${imgSrc ? '<img class="gtp-thumb" src="' + escapeHtml(safeUrl(imgSrc)) + '" alt="" loading="lazy">' : placeholderImg}<div class="gtp-result-info"><div class="gtp-result-title">${escapeHtml(r.title || '')}</div><div class="gtp-result-publisher">${escapeHtml(r.publisher || r.source || '')}</div><div class="gtp-result-snippet">${escapeHtml(r.snippet || r.description || '')}</div></div><button class="gtp-save-btn" title="Save for later" onclick="event.stopPropagation(); saveGTPResultForLater(this, ${idx})">&#9734; Save</button>`;
                         card.onclick = () => {
                             resultsDiv.querySelectorAll('.gtp-result-card').forEach(c => c.classList.remove('selected'));
                             card.classList.add('selected');
@@ -2132,7 +2132,7 @@
             const imgSrc = r.image_url || r.thumbnail || '';
             const placeholderImg = '<div class="gtp-thumb" style="background:#f0f0f0;display:flex;align-items:center;justify-content:center;min-height:80px;border-radius:6px;color:#bbb;font-size:28px;">&#128142;</div>';
             card.innerHTML = `
-                ${imgSrc ? '<img class="gtp-thumb" src="' + imgSrc + '" alt="" loading="lazy" onerror="this.outerHTML=\'' + placeholderImg.replace(/'/g, "\\'") + '\'">' : placeholderImg}
+                ${imgSrc ? '<img class="gtp-thumb" src="' + escapeHtml(safeUrl(imgSrc)) + '" alt="" loading="lazy" onerror="this.outerHTML=\'' + placeholderImg.replace(/'/g, "\\'") + '\'">' : placeholderImg}
                 <div class="gtp-result-info">
                     <div class="gtp-result-title">${escapeHtml(r.title || '')}</div>
                     <div class="gtp-result-publisher">${escapeHtml(r.publisher || r.source || '')}</div>
@@ -2503,7 +2503,7 @@
                     body: JSON.stringify({
                         images: { 'gtp-cropped': dataUrl },
                         month: selectedMonth || 'unknown',
-                        year: selectedYear || new Date().getFullYear()
+                        year: new Date().getFullYear()
                     })
                 });
                 const result = await response.json();
@@ -2642,7 +2642,16 @@
     // ============================================================
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // Reject dangerous URL schemes (javascript:, data:, vbscript:) before putting
+    // a user-supplied URL into href/src. Returns a safe URL or '#'.
+    function safeUrl(url) {
+        if (!url) return '#';
+        const trimmed = String(url).trim();
+        if (/^\s*(javascript|data|vbscript):/i.test(trimmed)) return '#';
+        return trimmed;
     }
 
     function stripMarkdown(text) {
@@ -4215,12 +4224,18 @@
                     const savedAt = d.lastSavedAt ? new Date(d.lastSavedAt).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '';
                     const card = document.createElement('div');
                     card.style.cssText = 'background:white;border-radius:12px;padding:25px;cursor:pointer;position:relative;transition:all 0.2s;';
+                    // Build with escaped content; wire handlers via closures (no inline
+                    // onclick string interpolation, which was an XSS breakout vector).
                     card.innerHTML = `
-                        <button onclick="event.stopPropagation();if(confirm('Delete draft for ${monthCap} ${d.year}?'))deleteDraft('${d.filename}')" style="position:absolute;top:8px;right:8px;background:#dc3545;color:white;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;opacity:0.7;">&times;</button>
-                        <h4 style="color:#018181;font-size:18px;margin-bottom:8px;">${monthCap} ${d.year}</h4>
+                        <button class="draft-del-btn" style="position:absolute;top:8px;right:8px;background:#dc3545;color:white;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;opacity:0.7;">&times;</button>
+                        <h4 style="color:#018181;font-size:18px;margin-bottom:8px;">${escapeHtml(monthCap)} ${escapeHtml(String(d.year || ''))}</h4>
                         <p style="color:#6b7280;font-size:14px;">Created by: ${escapeHtml(savedBy)}</p>
-                        <p style="color:#6b7280;font-size:14px;">${savedAt} CT</p>
+                        <p style="color:#6b7280;font-size:14px;">${escapeHtml(savedAt)} CT</p>
                     `;
+                    card.querySelector('.draft-del-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete draft for ${monthCap} ${d.year}?`)) deleteDraft(d.filename);
+                    });
                     card.onclick = () => loadDraft(d.filename);
                     grid.appendChild(card);
                 });
@@ -4336,18 +4351,31 @@
                     const savedAt = n.lastSavedAt ? new Date(n.lastSavedAt).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '';
                     const card = document.createElement('div');
                     card.style.cssText = 'background:#2d3748;border-radius:12px;overflow:hidden;transition:all 0.2s;cursor:pointer;position:relative;';
+                    // Escaped content + closure handlers (no inline onclick interpolation).
                     card.innerHTML = `
-                        <button onclick="event.stopPropagation();if(confirm('Delete published newsletter for ${monthCap} ${n.year}?'))deletePublished('${n.filename}')" style="position:absolute;top:8px;right:8px;background:#dc3545;color:white;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;opacity:0.7;z-index:10;">&times;</button>
+                        <button class="pub-del-btn" style="position:absolute;top:8px;right:8px;background:#dc3545;color:white;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;opacity:0.7;z-index:10;">&times;</button>
                         <div style="height:100px;background:#272d3f;display:flex;align-items:center;justify-content:center;">
                             <span style="font-size:36px;opacity:0.4;">&#x1f4e8;</span>
                         </div>
                         <div style="padding:16px;">
-                            <span style="display:inline-block;background:#272d3f;color:white;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;text-transform:uppercase;margin-bottom:8px;">${monthCap} ${n.year}</span>
-                            <p style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:8px;">${escapeHtml(savedBy)} &middot; ${savedAt} CT</p>
-                            <button onclick="event.stopPropagation();viewPublishedNewsletter('${n.filename}')" style="width:100%;margin-top:12px;padding:12px 16px;background:#008181;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">View Newsletter</button>
-                            <button onclick="event.stopPropagation();duplicatePublishedToDraft('${n.filename}', this)" style="width:100%;margin-top:8px;padding:10px 16px;background:#fe8916;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">Duplicate to Draft</button>
+                            <span style="display:inline-block;background:#272d3f;color:white;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;text-transform:uppercase;margin-bottom:8px;">${escapeHtml(monthCap)} ${escapeHtml(String(n.year || ''))}</span>
+                            <p style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:8px;">${escapeHtml(savedBy)} &middot; ${escapeHtml(savedAt)} CT</p>
+                            <button class="pub-view-btn" style="width:100%;margin-top:12px;padding:12px 16px;background:#008181;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">View Newsletter</button>
+                            <button class="pub-dup-btn" style="width:100%;margin-top:8px;padding:10px 16px;background:#fe8916;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">Duplicate to Draft</button>
                         </div>
                     `;
+                    card.querySelector('.pub-del-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete published newsletter for ${monthCap} ${n.year}?`)) deletePublished(n.filename);
+                    });
+                    card.querySelector('.pub-view-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        viewPublishedNewsletter(n.filename);
+                    });
+                    card.querySelector('.pub-dup-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        duplicatePublishedToDraft(n.filename, e.currentTarget);
+                    });
                     grid.appendChild(card);
                 });
             } else {
@@ -4370,10 +4398,18 @@
                 body: JSON.stringify({ content, month: d.month || '', year: d.year || new Date().getFullYear(), images: d.generatedImages || {} })
             });
             const renderData = await renderResp.json();
+            const modalContent = document.getElementById('publishedModalContent');
             if (renderData.success && renderData.html) {
-                document.getElementById('publishedModalContent').innerHTML = renderData.html;
+                // Render published (cross-user) content inside a sandboxed iframe with
+                // NO allow-scripts, so any injected markup cannot run in the app origin.
+                modalContent.innerHTML = '';
+                const frame = document.createElement('iframe');
+                frame.setAttribute('sandbox', 'allow-same-origin');
+                frame.style.cssText = 'width:100%;height:75vh;border:0;background:#fff;';
+                frame.srcdoc = renderData.html;
+                modalContent.appendChild(frame);
             } else {
-                document.getElementById('publishedModalContent').innerHTML = '<p style="padding:40px;text-align:center;">Could not render preview.</p>';
+                modalContent.textContent = 'Could not render preview.';
             }
             document.getElementById('publishedModal').style.display = 'block';
         } catch (e) {
@@ -4504,7 +4540,8 @@
         const url = popover.querySelector('.lp-url').value.trim();
         if (!url) return;
         const displayText = text || url;
-        const linkHtml = `<a href="${url}" style="color:#008181;text-decoration:underline;" target="_blank">${displayText}</a>`;
+        // Escape display text and reject dangerous URL schemes before inserting.
+        const linkHtml = `<a href="${escapeHtml(safeUrl(url))}" style="color:#008181;text-decoration:underline;" target="_blank">${escapeHtml(displayText)}</a>`;
         const editor = document.getElementById(editorId);
         if (editor) {
             editor.focus();
