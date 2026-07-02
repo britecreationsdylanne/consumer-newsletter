@@ -2469,6 +2469,7 @@
             specialCropSourceUrl = '';
             generatedImages['special_section'] = { url: dataUrl, prompt: 'uploaded-cropped' };
             showSpecialSectionImageResult(dataUrl);
+            saveDraft();  // auto-save after special-section image
             closeCropModal();
             return;
         }
@@ -2521,6 +2522,7 @@
                 document.getElementById('gtpImageUrl').value = dataUrl;
                 updateGTPSelection();
             }
+            saveDraft();  // auto-save after cropping/uploading the GTP image
         }
     }
 
@@ -3247,6 +3249,7 @@
             if (data.success && data.image_url) {
                 generatedImages[section] = { url: data.image_url, prompt };
                 showImageResult(section, data.image_url);
+                saveDraft();  // auto-save so a disconnect after image gen can't lose it
             } else {
                 document.getElementById(resultId).innerHTML = '<p style="color:#dc3545;">Generation failed: ' + (data.error || '') + '</p>';
             }
@@ -3309,6 +3312,7 @@
             } else {
                 generatedImages[section] = { url: dataUrl, prompt: 'uploaded' };
                 showImageResult(section, dataUrl);
+                saveDraft();  // auto-save after image upload
             }
         };
         reader.readAsDataURL(file);
@@ -3526,6 +3530,7 @@
             if (data.success && data.image_url) {
                 generatedImages['special_section'] = { url: data.image_url, prompt };
                 showSpecialSectionImageResult(data.image_url);
+                saveDraft();  // auto-save after special-section image generation
             } else {
                 resultDiv.innerHTML = '<p style="color:#dc3545;">Generation failed: ' + (data.error || '') + '</p>';
             }
@@ -3588,6 +3593,7 @@
         if (data.image_url) {
             generatedImages['special_section'] = { url: data.image_url, prompt: 'restored' };
             showSpecialSectionImageResult(data.image_url);
+            saveDraft();  // auto-save after restoring special-section image
         }
         updateSpecialSectionWordCount();
     }
