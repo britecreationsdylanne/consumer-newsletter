@@ -16,9 +16,14 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
-      - '--set-env-vars=OPENAI_API_KEY=${_OPENAI_API_KEY},GOOGLE_AI_API_KEY=${_GOOGLE_AI_API_KEY},ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},PERPLEXITY_API_KEY=${_PERPLEXITY_API_KEY},ONTRAPORT_APP_ID=${_ONTRAPORT_APP_ID},ONTRAPORT_API_KEY=${_ONTRAPORT_API_KEY},SENDGRID_API_KEY=${_SENDGRID_API_KEY},SENDGRID_FROM_EMAIL=${_SENDGRID_FROM_EMAIL},SENDGRID_FROM_NAME=${_SENDGRID_FROM_NAME},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET},FLASK_SECRET_KEY=${_FLASK_SECRET_KEY},YOUTUBE_API_KEY=${_YOUTUBE_API_KEY},CLICKUP_API_TOKEN=${_CLICKUP_API_TOKEN},CLICKUP_LIST_ID=${_CLICKUP_LIST_ID}'
-      - '--set-secrets=GOOGLE_DOCS_CREDENTIALS=google-docs-credentials:latest'
+      # Non-sensitive config stays as plain env vars
+      - '--set-env-vars=ONTRAPORT_APP_ID=${_ONTRAPORT_APP_ID},SENDGRID_FROM_EMAIL=${_SENDGRID_FROM_EMAIL},SENDGRID_FROM_NAME=${_SENDGRID_FROM_NAME},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},CLICKUP_LIST_ID=${_CLICKUP_LIST_ID}'
+      # Sensitive credentials are read from Secret Manager, never stamped onto the service
+      - '--set-secrets=GOOGLE_DOCS_CREDENTIALS=google-docs-credentials:latest,OPENAI_API_KEY=consumer-newsletter-OPENAI_API_KEY:latest,GOOGLE_AI_API_KEY=consumer-newsletter-GOOGLE_AI_API_KEY:latest,ANTHROPIC_API_KEY=consumer-newsletter-ANTHROPIC_API_KEY:latest,PERPLEXITY_API_KEY=consumer-newsletter-PERPLEXITY_API_KEY:latest,ONTRAPORT_API_KEY=consumer-newsletter-ONTRAPORT_API_KEY:latest,SENDGRID_API_KEY=consumer-newsletter-SENDGRID_API_KEY:latest,GOOGLE_CLIENT_SECRET=consumer-newsletter-GOOGLE_CLIENT_SECRET:latest,FLASK_SECRET_KEY=consumer-newsletter-FLASK_SECRET_KEY:latest,YOUTUBE_API_KEY=consumer-newsletter-YOUTUBE_API_KEY:latest,CLICKUP_API_TOKEN=consumer-newsletter-CLICKUP_API_TOKEN:latest'
 images:
   - 'gcr.io/$PROJECT_ID/consumer-newsletter'
 options:
   logging: CLOUD_LOGGING_ONLY
+  # Trigger still defines the old _*_API_KEY substitutions; they're now unused
+  # (values live in Secret Manager) so allow the build to ignore them.
+  substitution_option: 'ALLOW_LOOSE'
