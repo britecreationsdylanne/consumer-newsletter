@@ -2728,6 +2728,27 @@
         setTimeout(() => { btn.textContent = orig; btn.style.background = '#059669'; }, 2000);
     }
 
+    // Small bottom-right toast used for save feedback (manual + auto-save).
+    let _toastTimer = null;
+    function showToast(message, type) {
+        let el = document.getElementById('appToast');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'appToast';
+            el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;padding:12px 18px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:600;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;';
+            document.body.appendChild(el);
+        }
+        el.textContent = message;
+        el.style.background = (type === 'error') ? '#dc3545' : '#059669';
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+        if (_toastTimer) clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(8px)';
+        }, type === 'error' ? 4000 : 2000);
+    }
+
     // ============================================================
     // CONTENT GENERATION
     // ============================================================
@@ -4212,8 +4233,12 @@
                 })
             });
             console.log('[Draft] Saved');
+            showToast('✓ Draft saved');
             loadDrafts();
-        } catch (e) { console.error('[Draft] Save failed:', e); }
+        } catch (e) {
+            console.error('[Draft] Save failed:', e);
+            showToast('Save failed — your changes are not saved', 'error');
+        }
     }
 
     async function loadDrafts() {
