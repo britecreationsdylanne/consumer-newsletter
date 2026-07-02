@@ -2728,25 +2728,40 @@
         setTimeout(() => { btn.textContent = orig; btn.style.background = '#059669'; }, 2000);
     }
 
-    // Small bottom-right toast used for save feedback (manual + auto-save).
+    // Small bottom-right toast for save feedback (manual + auto-save).
+    // Optional `action` = { label, handler } renders a clickable button.
     let _toastTimer = null;
-    function showToast(message, type) {
+    function showToast(message, type, action) {
         let el = document.getElementById('appToast');
         if (!el) {
             el = document.createElement('div');
             el.id = 'appToast';
-            el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;padding:12px 18px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:600;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;';
+            el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;padding:12px 18px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:600;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.25);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;max-width:360px;';
             document.body.appendChild(el);
         }
-        el.textContent = message;
+        el.innerHTML = '';
+        const span = document.createElement('span');
+        span.textContent = message;
+        el.appendChild(span);
         el.style.background = (type === 'error') ? '#dc3545' : '#059669';
+        el.style.pointerEvents = action ? 'auto' : 'none';
+        if (action) {
+            const btn = document.createElement('button');
+            btn.textContent = action.label;
+            btn.style.cssText = 'margin-left:12px;background:rgba(255,255,255,0.25);color:#fff;border:1px solid rgba(255,255,255,0.7);border-radius:5px;padding:4px 12px;font-size:13px;font-weight:700;cursor:pointer;';
+            btn.onclick = () => { try { action.handler(); } catch (e) {} };
+            el.appendChild(btn);
+        }
         el.style.opacity = '1';
         el.style.transform = 'translateY(0)';
         if (_toastTimer) clearTimeout(_toastTimer);
+        // Keep actionable errors up longer so the user can click the button.
+        const dwell = action ? 9000 : (type === 'error' ? 4000 : 2000);
         _toastTimer = setTimeout(() => {
             el.style.opacity = '0';
             el.style.transform = 'translateY(8px)';
-        }, type === 'error' ? 4000 : 2000);
+            el.style.pointerEvents = 'none';
+        }, dwell);
     }
 
     // ============================================================
@@ -4213,7 +4228,7 @@
         if (!selectedMonth) return;
         try {
             const userEmail = (window.AUTH_USER && window.AUTH_USER.email) || 'unknown';
-            await fetch(`${API_BASE}/api/save-draft`, {
+            const res = await fetch(`${API_BASE}/api/save-draft`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     month: selectedMonth,
@@ -4232,12 +4247,24 @@
                     savedBy: userEmail
                 })
             });
-            console.log('[Draft] Saved');
-            showToast('✓ Draft saved');
-            loadDrafts();
+            if (res.ok) {
+                console.log('[Draft] Saved');
+                showToast('✓ Draft saved');
+                loadDrafts();
+            } else if (res.status === 401) {
+                // Session expired — a retry won't work until they re-authenticate.
+                console.warn('[Draft] Save unauthorized — session expired');
+                showToast('Session expired — log in, then click Save Draft', 'error',
+                    { label: 'Log in', handler: () => window.open('/auth/login', '_blank') });
+            } else {
+                console.error('[Draft] Save failed, status', res.status);
+                showToast('Save failed — your changes are not saved', 'error',
+                    { label: 'Retry', handler: () => saveDraft() });
+            }
         } catch (e) {
             console.error('[Draft] Save failed:', e);
-            showToast('Save failed — your changes are not saved', 'error');
+            showToast('Save failed — check your connection', 'error',
+                { label: 'Retry', handler: () => saveDraft() });
         }
     }
 
