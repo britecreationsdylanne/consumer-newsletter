@@ -203,6 +203,17 @@ def safe_blob_name(filename, allowed_prefixes=('drafts/', 'published/')):
     return name
 
 
+def _meta_int(v):
+    """GCS metadata values are strings; coerce back to int where the original
+    field was numeric, leaving None/blank as None."""
+    if v in (None, ''):
+        return None
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return v
+
+
 def is_safe_fetch_url(url):
     """SSRF guard for server-side image/URL fetches. Allows only public http(s)
     hosts; blocks private, loopback, link-local (incl. the cloud metadata server)
@@ -2325,6 +2336,16 @@ def save_draft():
 
         bucket = gcs_client.bucket(GCS_DRAFTS_BUCKET)
         blob = bucket.blob(blob_name)
+        # Store the list-view fields as lightweight object metadata so list-drafts
+        # can render the grid without downloading each blob's full JSON (which now
+        # embeds base64 images and is large).
+        blob.metadata = {
+            'nl_month': str(month),
+            'nl_year': str(year),
+            'nl_currentStep': str(data.get('currentStep', '')),
+            'nl_lastSavedBy': draft['lastSavedBy'],
+            'nl_lastSavedAt': draft['lastSavedAt'],
+        }
         blob.upload_from_string(json.dumps(draft), content_type='application/json')
         return jsonify({'success': True, 'file': blob_name})
 
@@ -2345,15 +2366,28 @@ def list_drafts():
         for blob in blobs:
             if not blob.name.endswith('.json'):
                 continue
-            data = json.loads(blob.download_as_text())
-            drafts.append({
-                'month': data.get('month'),
-                'year': data.get('year'),
-                'currentStep': data.get('currentStep'),
-                'lastSavedBy': data.get('lastSavedBy'),
-                'lastSavedAt': data.get('lastSavedAt'),
-                'filename': blob.name
-            })
+            md = blob.metadata or {}
+            if md.get('nl_lastSavedAt'):
+                # Fast path: read list fields from object metadata, no download
+                drafts.append({
+                    'month': md.get('nl_month'),
+                    'year': _meta_int(md.get('nl_year')),
+                    'currentStep': _meta_int(md.get('nl_currentStep')),
+                    'lastSavedBy': md.get('nl_lastSavedBy'),
+                    'lastSavedAt': md.get('nl_lastSavedAt'),
+                    'filename': blob.name
+                })
+            else:
+                # Fallback for older drafts saved before metadata existed
+                data = json.loads(blob.download_as_text())
+                drafts.append({
+                    'month': data.get('month'),
+                    'year': data.get('year'),
+                    'currentStep': data.get('currentStep'),
+                    'lastSavedBy': data.get('lastSavedBy'),
+                    'lastSavedAt': data.get('lastSavedAt'),
+                    'filename': blob.name
+                })
         drafts.sort(key=lambda d: d.get('lastSavedAt', ''), reverse=True)
         return jsonify({'success': True, 'drafts': drafts})
     except Exception as e:
@@ -2412,9 +2446,21 @@ def list_published():
         blobs = list(bucket.list_blobs(prefix='published/'))
         newsletters = []
         for blob in blobs:
-            if blob.name.endswith('.json'):
+            if not blob.name.endswith('.json'):
+                continue
+            md = blob.metadata or {}
+            if md.get('nl_lastSavedAt'):
+                # Fast path: metadata carried over from the draft on publish/copy
+                newsletters.append({
+                    'filename': blob.name,
+                    'month': md.get('nl_month'),
+                    'year': _meta_int(md.get('nl_year')),
+                    'lastSavedBy': md.get('nl_lastSavedBy'),
+                    'lastSavedAt': md.get('nl_lastSavedAt'),
+                })
+            else:
+                # Fallback for older published files without metadata
                 data = json.loads(blob.download_as_text())
-                gc = data.get('generatedContent', {})
                 newsletters.append({
                     'filename': blob.name,
                     'month': data.get('month'),
