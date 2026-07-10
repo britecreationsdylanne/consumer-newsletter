@@ -1668,6 +1668,11 @@
     // The preview <div> strips it when the full doc is assigned to innerHTML, so
     // exports rebuilt from the DOM must re-attach it (see buildExportHtml).
     let emailShellStart = '';
+    // Logo is hosted at a permanent, immutable GCS URL. NEVER overwrite this object
+    // in place — if the logo art changes, upload as ...-v2.png and bump this constant.
+    // (Overwriting a shared asset in place poisons Gmail's image proxy cache, which
+    // is what caused the July mobile-Gmail wrong/stale-image bug.)
+    const BRITECO_LOGO_URL = 'https://storage.googleapis.com/consumer-images/assets/briteco-logo-white-v1.png';
 
     const TEAM_MEMBERS = [
         { name: 'Dylanne Crugnale', email: 'dylanne.crugnale@brite.co' },
@@ -3996,8 +4001,8 @@
         try {
             const uploadResult = await uploadImagesToGCS();
             const gcsUrls = uploadResult.success ? (uploadResult.urls || {}) : {};
-            const logoUrl = gcsUrls['_logo'] || (window.location.origin + '/static/briteco-logo-white.png');
-            html = html.replace(/src="\/static\/briteco-logo-white\.png"/g, 'src="' + logoUrl + '"');
+            // Logo -> permanent immutable GCS URL (never re-uploaded per send)
+            html = html.replace(/src="\/static\/briteco-logo-white\.png"/g, 'src="' + BRITECO_LOGO_URL + '"');
             const base64ToUrl = {};
             for (const [section, gcsUrl] of Object.entries(gcsUrls)) {
                 const img = generatedImages[section];
@@ -4095,8 +4100,8 @@
         for (const [key, url] of Object.entries(externalImages)) {
             if (!images[key]) images[key] = url;
         }
-        // Also upload static assets so they work in email clients
-        images['_logo'] = window.location.origin + '/static/briteco-logo-white.png';
+        // NOTE: the logo is intentionally NOT re-uploaded per send. It lives at a
+        // permanent immutable URL (BRITECO_LOGO_URL) and is swapped in at export time.
 
         try {
             const resp = await fetch(`${API_BASE}/api/upload-images-to-gcs`, {
@@ -4136,9 +4141,9 @@
             let html = savedEditedHTML || renderedEmailHTML || generateConsumerNewsletterHTML();
 
             // Replace static asset paths with GCS-hosted URLs (or fallback to app URL)
-            const logoUrl = gcsUrls['_logo'] || (window.location.origin + '/static/briteco-logo-white.png');
-            html = html.replace(/src="\/static\/briteco-logo-white\.png"/g, 'src="' + logoUrl + '"');
-            console.log('Static assets - logo:', logoUrl);
+            // Logo -> permanent immutable GCS URL (never re-uploaded per send)
+            html = html.replace(/src="\/static\/briteco-logo-white\.png"/g, 'src="' + BRITECO_LOGO_URL + '"');
+            console.log('Static assets - logo:', BRITECO_LOGO_URL);
 
             // Step 3: Build base64 → GCS URL mapping (jeweler approach)
             const base64ToUrl = {};

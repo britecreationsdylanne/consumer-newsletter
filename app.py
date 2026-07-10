@@ -2663,7 +2663,9 @@ def upload_images_to_gcs():
         safe_print(f"[GCS] Uploading {len(images_data)} images to bucket '{GCS_IMAGES_BUCKET}'...")
         bucket = gcs_client.bucket(GCS_IMAGES_BUCKET)
         uploaded_urls = {}
-        timestamp = datetime.now(CHICAGO_TZ).strftime('%Y%m%d-%H%M%S')
+        # Include a random token so two sends in the same second can never reuse a
+        # filename (in-place overwrite would poison Gmail's cached copy of that URL).
+        timestamp = datetime.now(CHICAGO_TZ).strftime('%Y%m%d-%H%M%S') + '-' + secrets.token_hex(3)
 
         for section, img_url in images_data.items():
             if not img_url:
