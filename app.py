@@ -506,14 +506,14 @@ def image_generation_available():
 
 def generate_image_smart(prompt, aspect_ratio='1:1'):
     """
-    Generate an image using OpenAI GPT Image 2 (primary) with Gemini fallback.
+    Generate an image using OpenAI GPT Image 2.6 Sunburst (primary) with Gemini fallback.
 
     Returns the provider result dict (with base64 'image_data') or raises
     RuntimeError if every available provider fails.
     """
     errors = []
 
-    # Primary: OpenAI GPT Image 2
+    # Primary: OpenAI GPT Image 2.6 Sunburst
     if openai_client and openai_client.is_available():
         try:
             result = openai_client.generate_image(prompt=prompt, aspect_ratio=aspect_ratio)
@@ -522,7 +522,7 @@ def generate_image_smart(prompt, aspect_ratio='1:1'):
             errors.append("OpenAI: empty image data")
         except Exception as e:
             errors.append(f"OpenAI: {e}")
-            safe_print(f"  [image] gpt-image-2 failed, falling back to Gemini: {e}")
+            safe_print(f"  [image] gpt-image-2.6-sunburst failed, falling back to Gemini: {e}")
 
     # Fallback: Gemini
     if gemini_client and gemini_client.is_available():
@@ -1341,7 +1341,7 @@ Output ONLY the image generation prompt, nothing else."""
 
 @app.route('/api/generate-images', methods=['POST'])
 def generate_images():
-    """Generate images using OpenAI GPT Image 2 (primary) with Gemini fallback"""
+    """Generate images using OpenAI GPT Image 2.6 Sunburst (primary) with Gemini fallback"""
     try:
         data = request.json
         prompts = data.get('prompts', {})
@@ -1405,7 +1405,7 @@ def generate_images():
 
 @app.route('/api/generate-single-image', methods=['POST'])
 def generate_single_image():
-    """Generate a single image using OpenAI GPT Image 2 (primary) with Gemini fallback"""
+    """Generate a single image using OpenAI GPT Image 2.6 Sunburst (primary) with Gemini fallback"""
     try:
         data = request.json
         prompt = data.get('prompt', '')

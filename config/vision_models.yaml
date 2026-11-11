@@ -4,7 +4,7 @@
 # The 'id' field is the exact string to send to the API
 # VALIDATED: 2026-01-09 - Only models with status "active" have been tested and work
 # Last Updated: 2026-06-05 - Synced to current models (GPT-5.5, Claude Opus 4.8, Gemini 2.5);
-#   image generation moved to OpenAI GPT Image 2 (gpt-image-2) with Gemini 2.5 Flash Image fallback.
+#   image generation moved to OpenAI GPT Image 2.6 Sunburst (gpt-image-2.6-sunburst) with Gemini 2.5 Flash Image fallback.
 #   New/replacement models marked active; superseded models marked deprecated with replaced_by.
 
 providers:
@@ -345,8 +345,8 @@ image_generation_models:
     env_key: "OPENAI_API_KEY"
     models:
       # Active - current OpenAI image model (released 2026-04)
-      - id: "gpt-image-2"
-        name: "GPT Image 2"
+      - id: "gpt-image-2.6-sunburst"
+        name: "GPT Image 2.6 Sunburst"
         type: "image-generation"
         status: "active"
         notes: "Current OpenAI image model. ~$0.01 (low) / ~$0.06 (medium) / ~$0.22 (high) per 1024x1024 image. Up to 4K, >95% in-image text accuracy, native transparent PNG output."
@@ -355,14 +355,14 @@ image_generation_models:
         name: "GPT Image 1.5"
         type: "image-generation"
         status: "deprecated"
-        replaced_by: "gpt-image-2"
+        replaced_by: "gpt-image-2.6-sunburst"
         notes: "Superseded by GPT Image 2."
 
       - id: "gpt-image-1"
         name: "GPT Image 1"
         type: "image-generation"
         status: "deprecated"
-        replaced_by: "gpt-image-2"
+        replaced_by: "gpt-image-2.6-sunburst"
         notes: "Original GPT Image model. Superseded by GPT Image 2."
 
   google:
@@ -380,7 +380,7 @@ image_generation_models:
         name: "Gemini 3 Pro Image Preview"
         type: "image-generation"
         status: "deprecated"
-        replaced_by: "gpt-image-2"
+        replaced_by: "gpt-image-2.6-sunburst"
         notes: "Previous meme/illustration model. Image generation moved to GPT Image 2."
 
 
@@ -563,8 +563,8 @@ task_assignments:
 
   # Image Generation (newsletter images, memes, Guess the Price, etc.)
   image_generation:
-    description: "Generate newsletter images via OpenAI GPT Image 2 with Gemini fallback"
-    model: "gpt-image-2"
+    description: "Generate newsletter images via OpenAI GPT Image 2.6 Sunburst with Gemini fallback"
+    model: "gpt-image-2.6-sunburst"
     fallback: "gemini-2.5-flash-image"
     tier: "frontier"
     notes: "Primary: OpenAI GPT Image 2. Fallback: Gemini 2.5 Flash Image (Nano Banana)"

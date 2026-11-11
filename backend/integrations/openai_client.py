@@ -16,8 +16,8 @@ class OpenAIClient:
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=self.api_key) if self.api_key else None
         self.default_model = os.getenv("DEFAULT_CONTENT_MODEL", "gpt-4o")
-        # GPT Image 2 is the current OpenAI image-generation model
-        self.default_image_model = os.getenv("DEFAULT_OPENAI_IMAGE_MODEL", "gpt-image-2")
+        # GPT Image 2.6 Sunburst is the current OpenAI image-generation model
+        self.default_image_model = os.getenv("DEFAULT_OPENAI_IMAGE_MODEL", "gpt-image-2.6-sunburst")
 
     def is_available(self) -> bool:
         """Check if the OpenAI API client is configured"""
@@ -39,7 +39,7 @@ class OpenAIClient:
 
         Args:
             prompt: Image description prompt
-            model: Model to use (default: gpt-image-2)
+            model: Model to use (default: gpt-image-2.6-sunburst)
             aspect_ratio: '1:1', '16:9', or '9:16' (mapped to a supported size)
             quality: 'low', 'medium', or 'high' (affects cost/detail)
             number_of_images: Number of images to generate (default 1)
@@ -48,7 +48,7 @@ class OpenAIClient:
             {
                 "image_data": "base64_encoded_png",
                 "prompt": "original prompt",
-                "model": "gpt-image-2",
+                "model": "gpt-image-2.6-sunburst",
                 "cost_estimate": "$0.06",
                 "generation_time_ms": 1234
             }
@@ -59,7 +59,7 @@ class OpenAIClient:
 
         model_name = model or self.default_image_model
 
-        # Map aspect ratio to a gpt-image-2 supported size (edges multiples of 16)
+        # Map aspect ratio to a gpt-image-2.6-sunburst supported size (edges multiples of 16)
         size_map = {
             "1:1": "1024x1024",
             "16:9": "1536x1024",
