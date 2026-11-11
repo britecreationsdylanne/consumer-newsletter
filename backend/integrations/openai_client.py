@@ -23,6 +23,23 @@ class OpenAIClient:
         """Check if the OpenAI API client is configured"""
         return self.client is not None
 
+    # Backup image model. OpenAI shuts gpt-image-2 off on 2027-02-10; remove
+    # this fallback after that date.
+    LEGACY_IMAGE_MODEL = "gpt-image-2"
+
+    def _call_image_api(self, api_call, model: str, **kwargs):
+        """Call an images endpoint on `model`; if it fails, retry once on the
+        legacy model. Returns (response, model_used)."""
+        try:
+            return api_call(model=model, **kwargs), model
+        except Exception as e:
+            msg = str(e).lower()
+            # A prompt the new model refuses will be refused by the old one too
+            if model == self.LEGACY_IMAGE_MODEL or "moderation" in msg or "safety" in msg:
+                raise
+            print(f"[IMAGE] {model} failed ({e}); retrying with {self.LEGACY_IMAGE_MODEL}")
+            return api_call(model=self.LEGACY_IMAGE_MODEL, **kwargs), self.LEGACY_IMAGE_MODEL
+
     def generate_image(
         self,
         prompt: str,
@@ -74,8 +91,9 @@ class OpenAIClient:
             print(f"[GPT-IMAGE] Using model: {model_name} (size={size}, quality={quality})")
             print(f"[GPT-IMAGE] Prompt: {prompt[:100]}...")
 
-            response = self.client.images.generate(
-                model=model_name,
+            response, model_name = self._call_image_api(
+                self.client.images.generate,
+                model_name,
                 prompt=prompt,
                 size=size,
                 quality=quality,
