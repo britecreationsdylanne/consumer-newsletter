@@ -3,6 +3,19 @@ steps:
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/consumer-newsletter', '.']
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/consumer-newsletter']
+  # One-time migration guard: gcloud refuses to turn an env var that is bound to
+  # a Secret Manager secret into a plain value in a single deploy, so drop the
+  # old secret binding first. Does nothing once the service no longer has it.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        if gcloud run services describe consumer-newsletter --region us-central1 --format=json | grep -q 'consumer-newsletter-PERPLEXITY_API_KEY'; then
+          gcloud run services update consumer-newsletter --region us-central1 --remove-secrets=PERPLEXITY_API_KEY
+        else
+          echo "PERPLEXITY_API_KEY is not bound to a secret; nothing to remove"
+        fi
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
