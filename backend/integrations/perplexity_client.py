@@ -1,7 +1,8 @@
 """
 Perplexity API Client
 
-Uses Perplexity's sonar model for research queries with citations.
+Uses Perplexity's sonar-pro model for research queries with citations,
+falling back to the Agent API if the Sonar endpoint stops answering.
 Excellent for finding recent news with proper source attribution.
 """
 
@@ -12,6 +13,10 @@ from typing import List, Dict
 from datetime import datetime
 
 
+class PerplexityAPIError(Exception):
+    """Perplexity rejected or failed a request"""
+
+
 class PerplexityClient:
     """Client for Perplexity API"""
 
@@ -19,6 +24,8 @@ class PerplexityClient:
         """Initialize Perplexity client"""
         self.api_key = api_key or os.getenv('PERPLEXITY_API_KEY')
         self.base_url = "https://api.perplexity.ai"
+        # Why the most recent search() came back empty, if it failed (None = no failure)
+        self.last_error = None
 
         if self.api_key:
             print("[OK] Perplexity initialized")
@@ -50,8 +57,11 @@ class PerplexityClient:
         Returns:
             List of results with shared schema
         """
+        self.last_error = None
+
         if not self.is_available():
             print("[Perplexity] API key not configured")
+            self.last_error = "Perplexity API key not configured"
             return []
 
         try:
@@ -97,51 +107,29 @@ Important:
 - Include specific data points when available
 - Return exactly {max_results} results"""
 
-            # Make API request
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-
-            payload = {
-                "model": "sonar",  # sonar has web search built-in
-                "messages": [
-                    {"role": "system", "content": effective_system_prompt},
-                    {"role": "user", "content": query}
-                ],
-                "temperature": 0.2,
-                "max_tokens": 2000
-            }
-
             print(f"[Perplexity] Searching: {query[:100]}...")
 
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
-
-            if response.status_code != 200:
-                print(f"[Perplexity] API error: {response.status_code} - {response.text[:200]}")
-                return []
-
-            data = response.json()
-
-            # Debug: log raw response structure
-            print(f"[Perplexity] Response keys: {data.keys()}")
-
-            # Extract content from response
-            choice = data.get('choices', [{}])[0]
-            content = choice.get('message', {}).get('content', '')
-
-            # Perplexity returns citations in a separate field
-            citations = data.get('citations', [])
+            # sonar-pro on Chat Completions is the setup the other newsletter
+            # tools (BriteCo Brief, Stay In The Loupe, Planner Pulse, Venue
+            # Voice) run on, so keep this one identical. Perplexity has retired
+            # that endpoint in favour of the Agent API and only keeps it alive
+            # by reformulating requests, so fall back to the Agent API if it
+            # stops answering.
+            try:
+                content, citations = self._call_sonar(effective_system_prompt, query)
+            except PerplexityAPIError as sonar_err:
+                print(f"[Perplexity] sonar-pro failed ({sonar_err}); trying Agent API")
+                try:
+                    content, citations = self._call_agent_api(effective_system_prompt, query)
+                except (PerplexityAPIError, requests.exceptions.RequestException) as agent_err:
+                    print(f"[Perplexity] Agent API also failed: {agent_err}")
+                    raise sonar_err
 
             print(f"[Perplexity] Content length: {len(content)}, Citations: {len(citations)}")
 
             if not content:
                 print("[Perplexity] No content in response")
+                self.last_error = "Perplexity returned an empty answer"
                 return []
 
             # First, try to parse the content as JSON directly
@@ -167,15 +155,143 @@ Important:
 
         except requests.exceptions.Timeout:
             print("[Perplexity] Request timed out")
+            self.last_error = "Perplexity request timed out"
             return []
         except requests.exceptions.RequestException as e:
             print(f"[Perplexity] Request error: {e}")
+            self.last_error = f"Perplexity request error: {e}"
+            return []
+        except PerplexityAPIError as e:
+            print(f"[Perplexity] API error: {e}")
+            self.last_error = str(e)
             return []
         except Exception as e:
             print(f"[Perplexity] Error: {e}")
+            self.last_error = f"Perplexity error: {e}"
             import traceback
             traceback.print_exc()
             return []
+
+    def _call_sonar(self, system_prompt: str, query: str):
+        """Run one search through Sonar Chat Completions with sonar-pro.
+
+        Returns (answer_text, citation_urls). Raises PerplexityAPIError with a
+        readable message when Perplexity rejects the request.
+        """
+        response = requests.post(
+            f"{self.base_url}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "sonar-pro",  # same model as the other newsletter tools
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query}
+                ],
+                "temperature": 0.2,
+                "max_tokens": 2000
+            },
+            timeout=30
+        )
+
+        if response.status_code != 200:
+            raise PerplexityAPIError(self._describe_error(response))
+
+        data = response.json()
+        choice = (data.get('choices') or [{}])[0]
+        content = choice.get('message', {}).get('content', '') or ''
+        # Perplexity returns citations in a separate field
+        citations = data.get('citations') or []
+        return content, citations
+
+    def _call_agent_api(self, system_prompt: str, query: str):
+        """Run one search through Perplexity's Agent API (fallback path).
+
+        The Agent API replaced Sonar Chat Completions, whose support ended
+        2026-09-27. Its "fast" level has web search built in.
+
+        Returns (answer_text, citation_urls). Raises PerplexityAPIError with a
+        readable message when Perplexity rejects the request.
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        base_payload = {"instructions": system_prompt, "input": query}
+
+        # Current docs name the level field "effort"; it was previously
+        # "preset". Fall back to the old name only if the new one is rejected
+        # as a bad request.
+        response = None
+        for level_field in ("effort", "preset"):
+            response = requests.post(
+                f"{self.base_url}/v1/agent",
+                headers=headers,
+                json={level_field: "fast", **base_payload},
+                timeout=90
+            )
+            if response.status_code not in (400, 422):
+                break
+            print(f"[Perplexity] Agent API rejected '{level_field}': {response.status_code} - {response.text[:200]}")
+
+        if response.status_code != 200:
+            raise PerplexityAPIError(self._describe_error(response))
+
+        data = response.json()
+        if data.get('status') == 'failed':
+            err = data.get('error') or {}
+            raise PerplexityAPIError(f"Perplexity search failed: {err.get('message') or 'unknown error'}")
+
+        # Raw JSON has no top-level output_text (that is an SDK convenience):
+        # the answer is in "message" items, the sources in "search_results" items.
+        text_parts = []
+        sources = []
+        for item in data.get('output') or []:
+            if not isinstance(item, dict):
+                continue
+            if item.get('type') == 'search_results':
+                sources.extend(r for r in (item.get('results') or []) if isinstance(r, dict))
+                continue
+            for chunk in item.get('content') or []:
+                if isinstance(chunk, dict) and chunk.get('type') == 'output_text' and chunk.get('text'):
+                    text_parts.append(chunk['text'])
+
+        content = '\n'.join(text_parts) or (data.get('output_text') or '')
+
+        # Inline [n] markers map to the search result whose id is n, so keep
+        # the citation list in id order.
+        sources.sort(key=lambda r: r.get('id') if isinstance(r.get('id'), int) else 10**6)
+        citations = []
+        for r in sources:
+            url = r.get('url')
+            if url and url not in citations:
+                citations.append(url)
+
+        return content, citations
+
+    def _describe_error(self, response) -> str:
+        """Turn a failed Perplexity response into a message worth showing a user"""
+        message = ''
+        error_type = ''
+        try:
+            err = response.json().get('error') or {}
+            if isinstance(err, dict):
+                message = err.get('message') or ''
+                error_type = err.get('type') or ''
+            else:
+                message = str(err)
+        except ValueError:
+            message = response.text[:200]
+
+        if error_type == 'insufficient_quota':
+            return f"Perplexity says the API account is out of credits ({response.status_code}): {message}"
+        if response.status_code in (401, 403):
+            return f"Perplexity rejected the API key ({response.status_code}): {message}"
+        if response.status_code == 429:
+            return f"Perplexity rate limit hit, try again in a minute ({message})"
+        return f"Perplexity API error {response.status_code}: {message}"
 
     def _try_parse_json_results(self, content: str, max_results: int) -> list:
         """Try to parse content as a JSON response with a results array.

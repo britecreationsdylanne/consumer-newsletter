@@ -730,6 +730,7 @@ Rules:
         # Step 2: Run Perplexity search for each expanded query
         all_results = []
         seen_urls = set()
+        search_error = None
 
         for sq in search_queries:
             search_query = f"""{sq}
@@ -743,6 +744,7 @@ Find specific jewelry pieces matching this search. Each result should be an iden
                     max_results=6,
                     system_prompt=gtp_system_prompt
                 )
+                search_error = perplexity_client.last_error or search_error
                 # Deduplicate by URL
                 for r in results:
                     url = r.get('url', '')
@@ -753,6 +755,10 @@ Find specific jewelry pieces matching this search. Each result should be an iden
                 safe_print(f"[GTP] Search query failed ({sq}): {search_err}")
 
         safe_print(f"[GTP] Total results after dedup: {len(all_results)} from {len(search_queries)} queries")
+
+        # Every query failed: say why instead of looking like "no results found"
+        if not all_results and search_error:
+            return jsonify({'success': False, 'error': search_error}), 502
 
         return jsonify({'success': True, 'results': all_results})
 
@@ -2881,6 +2887,9 @@ def search_perplexity():
             time_window=time_window,
             max_results=6
         )
+
+        if not results and perplexity_client.last_error:
+            return jsonify({'success': False, 'error': perplexity_client.last_error}), 502
 
         return jsonify({'success': True, 'results': results})
 
