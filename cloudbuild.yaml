@@ -16,14 +16,17 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
-      # Non-sensitive config stays as plain env vars
-      - '--set-env-vars=ONTRAPORT_APP_ID=${_ONTRAPORT_APP_ID},SENDGRID_FROM_EMAIL=${_SENDGRID_FROM_EMAIL},SENDGRID_FROM_NAME=${_SENDGRID_FROM_NAME},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},CLICKUP_LIST_ID=${_CLICKUP_LIST_ID}'
-      # Sensitive credentials are read from Secret Manager, never stamped onto the service
-      - '--set-secrets=GOOGLE_DOCS_CREDENTIALS=google-docs-credentials:latest,OPENAI_API_KEY=consumer-newsletter-OPENAI_API_KEY:latest,GOOGLE_AI_API_KEY=consumer-newsletter-GOOGLE_AI_API_KEY:latest,ANTHROPIC_API_KEY=consumer-newsletter-ANTHROPIC_API_KEY:latest,PERPLEXITY_API_KEY=consumer-newsletter-PERPLEXITY_API_KEY:latest,ONTRAPORT_API_KEY=consumer-newsletter-ONTRAPORT_API_KEY:latest,SENDGRID_API_KEY=consumer-newsletter-SENDGRID_API_KEY:latest,GOOGLE_CLIENT_SECRET=consumer-newsletter-GOOGLE_CLIENT_SECRET:latest,FLASK_SECRET_KEY=consumer-newsletter-FLASK_SECRET_KEY:latest,YOUTUBE_API_KEY=consumer-newsletter-YOUTUBE_API_KEY:latest,CLICKUP_API_TOKEN=consumer-newsletter-CLICKUP_API_TOKEN:latest'
+      # Non-sensitive config stays as plain env vars. PERPLEXITY_API_KEY is the
+      # exception: it comes from the trigger's _PERPLEXITY_API_KEY substitution,
+      # the same way BriteCo Brief and Stay In The Loupe get theirs.
+      - '--set-env-vars=PERPLEXITY_API_KEY=${_PERPLEXITY_API_KEY},ONTRAPORT_APP_ID=${_ONTRAPORT_APP_ID},SENDGRID_FROM_EMAIL=${_SENDGRID_FROM_EMAIL},SENDGRID_FROM_NAME=${_SENDGRID_FROM_NAME},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},CLICKUP_LIST_ID=${_CLICKUP_LIST_ID}'
+      # Other sensitive credentials are read from Secret Manager, never stamped onto the service
+      - '--set-secrets=GOOGLE_DOCS_CREDENTIALS=google-docs-credentials:latest,OPENAI_API_KEY=consumer-newsletter-OPENAI_API_KEY:latest,GOOGLE_AI_API_KEY=consumer-newsletter-GOOGLE_AI_API_KEY:latest,ANTHROPIC_API_KEY=consumer-newsletter-ANTHROPIC_API_KEY:latest,ONTRAPORT_API_KEY=consumer-newsletter-ONTRAPORT_API_KEY:latest,SENDGRID_API_KEY=consumer-newsletter-SENDGRID_API_KEY:latest,GOOGLE_CLIENT_SECRET=consumer-newsletter-GOOGLE_CLIENT_SECRET:latest,FLASK_SECRET_KEY=consumer-newsletter-FLASK_SECRET_KEY:latest,YOUTUBE_API_KEY=consumer-newsletter-YOUTUBE_API_KEY:latest,CLICKUP_API_TOKEN=consumer-newsletter-CLICKUP_API_TOKEN:latest'
 images:
   - 'gcr.io/$PROJECT_ID/consumer-newsletter'
 options:
   logging: CLOUD_LOGGING_ONLY
-  # Trigger still defines the old _*_API_KEY substitutions; they're now unused
-  # (values live in Secret Manager) so allow the build to ignore them.
+  # Trigger still defines the old _*_API_KEY substitutions; apart from
+  # _PERPLEXITY_API_KEY they're unused (values live in Secret Manager), so
+  # allow the build to ignore them.
   substitution_option: 'ALLOW_LOOSE'
